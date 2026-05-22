@@ -136,7 +136,7 @@
       const [editedImage, setEditedImage] = useState(null);
       
       // AI 分類結果
-      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', sub_subject: '', concept: '' });
+      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', sub_subject: '', concept: '', tips: '' });
       const [loadingMsg, setLoadingMsg] = useState('');
 
       useEffect(() => {
@@ -175,18 +175,14 @@
         
         try {
           const base64Data = base64Image.split(',')[1];
-          const prompt = `你是一個台灣國中教育會考的專家。請分析這張錯題圖片，根據108課綱，判斷它的「科目」、「次標題/單元」和「核心知識」。
+          const prompt = `你是一個台灣國中教育會考的專家。請分析這張錯題圖片，根據108課綱，判斷它的「科目」、「次標題/單元」、「核心知識」和「解題技巧教學」。
           請務必只回傳一個 JSON 格式的物件，不要包含其他文字說明或 Markdown 語法（例如 \`\`\`json ）。
-          
-          特別注意：
-          1. 「次標題/單元」請使用【概略性且單一性的大單元分類】。例如只要跟平行線、內錯角、同側內角、平行四邊形、特殊四邊形有關的題目，都一律歸類為「平行與四邊形」。請勿創造過多細碎的次標題，以利後續篩選。
-          2. 「核心知識」只限使用【繁體中文】回答，不可夾雜英文或其他語言。
-
           JSON 格式必須嚴格如下：
           {
             "subject": "科目名稱(例如：國文、數學、英文、理化、生物、地科、歷史、地理、公民)",
-            "sub_subject": "次標題/大單元(例如：平行與四邊形、一元一次方程式、遺傳規律、台灣歷史等)",
-            "concept": "核心知識(具體考點，限繁體中文)"
+            "sub_subject": "次標題/單元(例如：平行與四邊形、遺傳規律、台灣歷史等)",
+            "concept": "核心知識(具體考點)",
+            "tips": "解題技巧教學(給學生的具體步驟建議或思維引導)"
           }`;
 
           // 1. 動態取得該 API Key 實際支援的所有模型
@@ -299,7 +295,7 @@
           const aiResponseText = successData.candidates?.[0]?.content?.parts?.[0]?.text;
           
           if (aiResponseText) {
-            let parsed = { subject: '未分類', sub_subject: '未分類單元', concept: '未定單元' };
+            let parsed = { subject: '未分類', sub_subject: '未分類單元', concept: '未定單元', tips: '' };
             try {
                const cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                parsed = JSON.parse(cleanedText);
@@ -309,7 +305,8 @@
             setAiAnalysis({
               subject: parsed.subject || '未分類',
               sub_subject: parsed.sub_subject || '未分類單元',
-              concept: parsed.concept || '未定知識點'
+              concept: parsed.concept || '未定知識點',
+              tips: parsed.tips || ''
             });
           }
         } catch (error) {
@@ -751,6 +748,7 @@
         subject: initialData.subject || '',
         sub_subject: initialData.sub_subject || '',
         concept: initialData.concept || '',
+        tips: initialData.tips || '',
         notes: '',
         answer: ''
       });
@@ -807,6 +805,16 @@
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">💡 解題技巧教學 (AI 生成)</label>
+                <textarea 
+                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f1c6d2] outline-none h-32 text-gray-700"
+                  value={formData.tips}
+                  onChange={e => setFormData({...formData, tips: e.target.value})}
+                  placeholder="AI 解題技巧建議..."
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">正確解答 (選填)</label>
                 <textarea 
@@ -950,8 +958,14 @@
                      <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-100 rounded-lg print:border-none print-img" />
                   </div>
 
-                  {(item.answer || item.notes) && (
+                  {(item.answer || item.notes || item.tips) && (
                     <div className="bg-[#fcf8f9] print:bg-white p-4 print:p-2 print:pl-4 rounded-xl border border-[#f1c6d2] print:border-l-4 print:border-t-0 print:border-r-0 print:border-b-0 print:border-gray-800">
+                      {item.tips && (
+                        <div className="mb-3 print:mb-2">
+                          <span className="font-bold text-[#b86b81] print:text-black text-lg flex items-center gap-1">💡 解題技巧教學：</span>
+                          <p className="text-gray-700 print:text-black text-lg whitespace-pre-wrap mt-1 bg-white print:bg-transparent p-3 print:p-0 rounded-lg border border-pink-100 print:border-none">{item.tips}</p>
+                        </div>
+                      )}
                       {item.answer && (
                         <div className="mb-3 print:mb-2">
                           <span className="font-bold text-gray-800 print:text-black text-lg">解答：</span>
