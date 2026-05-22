@@ -179,8 +179,8 @@
             "concept": "具體單元或核心知識點(例如：一元一次方程式、遺傳、台灣歷史等)"
           }`;
 
-          // 更改為穩定且支援公開 API Key 的 gemini-1.5-flash 模型
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          // 將模型名稱加上 -latest 確保呼叫到有效的版本
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
