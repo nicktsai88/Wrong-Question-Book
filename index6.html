@@ -66,9 +66,7 @@
       ArrowLeft: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>,
       Contrast: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/></svg>,
       Cloud: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>,
-      Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-      User: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-      Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     };
 
     // --- 主應用程式元件 ---
@@ -76,7 +74,6 @@
       // 系統與雲端狀態
       const [currentView, setCurrentView] = useState('login'); 
       const [apiKey, setApiKey] = useState('');
-      const [currentProfile, setCurrentProfile] = useState(''); // 記錄當前使用者名稱
       const [fbConfig, setFbConfig] = useState(() => {
           const saved = localStorage.getItem('poppinsFbConfig');
           return saved ? JSON.parse(saved) : null;
@@ -97,7 +94,9 @@
 
       // --- 載入 Firebase 環境 ---
       useEffect(() => {
-        if (!fbConfig) return; 
+        if (!fbConfig) {
+           return; 
+        }
 
         setIsDbLoading(true);
         setDbError('');
@@ -109,6 +108,7 @@
             const fbAuth = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")')();
             const fbDb = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")')();
             
+            // 初始化 Firebase
             const app = fbApp.initializeApp(fbConfig);
             const auth = fbAuth.getAuth(app);
             const db = fbDb.getFirestore(app);
@@ -116,6 +116,7 @@
 
             setFB({ ...fbApp, ...fbAuth, ...fbDb, db, auth, appId });
 
+            // 處理匿名登入
             try {
                await fbAuth.signInAnonymously(auth);
             } catch (e) {
@@ -123,6 +124,7 @@
                setIsDbLoading(false);
             }
 
+            // 監聽登入狀態
             fbAuth.onAuthStateChanged(auth, (currentUser) => {
               setUser(currentUser);
               setIsDbLoading(false);
@@ -140,8 +142,8 @@
         const savedKey = localStorage.getItem('poppinsApiKey');
         if (savedKey) {
           setApiKey(savedKey);
+          setCurrentView('dashboard');
         }
-        // 注意：現在不自動跳轉 dashboard，讓使用者選擇 Profile
       }, []);
 
       const handleFbConfigSave = (config) => {
@@ -149,15 +151,19 @@
           setFbConfig(config);
       };
 
-      // 改為接收 key 和 profile 兩個參數
-      const handleLogin = (key, profile) => {
-        setApiKey(key);
-        setCurrentProfile(profile);
-        setCurrentView('dashboard');
+      const handleLogin = (key) => {
+        if (key.trim().length > 10) {
+          localStorage.setItem('poppinsApiKey', key.trim());
+          setApiKey(key.trim());
+          setCurrentView('dashboard');
+        } else {
+          alert('請輸入有效的 Gemini API Key');
+        }
       };
 
       const logout = () => {
-        setCurrentProfile('');
+        localStorage.removeItem('poppinsApiKey');
+        setApiKey('');
         setCurrentView('login');
       };
 
@@ -176,7 +182,7 @@
         setCurrentView('crop');
       };
 
-      // AI 分析
+      // 增強版 AI 分析：支援遇錯自動備援切換與高流量自動重試機制
       const callGeminiAI = async (base64Image) => {
         setLoadingMsg('AI 正在準備分析中...');
         setCurrentView('classify');
@@ -318,7 +324,7 @@
         setCurrentView('form');
       };
 
-      // 儲存至雲端資料庫 (存入對應使用者的 collection)
+      // 儲存至雲端資料庫
       const saveMistake = async (formData) => {
         if (!user || !FB) {
           alert('尚未連線至雲端資料庫，無法儲存。');
@@ -326,11 +332,10 @@
         }
 
         setLoadingMsg('正在同步至雲端資料庫...');
-        setCurrentView('classify');
+        setCurrentView('classify'); // 借用 loading 畫面
 
         try {
-          // 動態路徑：使用 profile 作為集合名稱達成跨裝置分享
-          const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
+          const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'users', user.uid, 'mistakes');
           await FB.addDoc(colRef, {
             ...formData,
             image: editedImage || croppedImage,
@@ -346,13 +351,17 @@
         }
       };
 
-      // 防呆攔截
+      // 渲染防呆攔截 1：若未設定 Firebase
       if (!fbConfig) {
           return <FbSetupView onSave={handleFbConfigSave} />;
       }
+
+      // 渲染防呆攔截 2：若 Firebase 初始化中
       if (isDbLoading) {
         return <LoadingView message="正在連線至雲端資料庫..." />;
       }
+
+      // 渲染防呆攔截 3：載入 Firebase 發生錯誤
       if (dbError) {
         return (
             <div className="min-h-screen font-sans text-gray-800 bg-[#fff5f7] flex items-center justify-center p-6">
@@ -369,13 +378,13 @@
 
       return (
         <div className="min-h-screen font-sans text-gray-800" style={{ backgroundColor: THEME.bg }}>
-          {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={resetFbConfig} savedKey={apiKey} />}
-          {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} />}
+          {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={resetFbConfig} />}
+          {currentView === 'dashboard' && <DashboardView onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} />}
           {currentView === 'crop' && <CropView imageUrl={rawImage} onCancel={() => setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} />}
           {currentView === 'edit' && <EditView imageUrl={croppedImage} onCancel={() => setCurrentView('crop')} onComplete={(edited) => { setEditedImage(edited); callGeminiAI(edited); }} />}
           {currentView === 'classify' && <LoadingView message={loadingMsg} />}
           {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} onCancel={() => setCurrentView('edit')} onSave={saveMistake} />}
-          {currentView === 'list' && <ListView currentProfile={currentProfile} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} />}
+          {currentView === 'list' && <ListView onBack={() => setCurrentView('dashboard')} FB={FB} user={user} />}
         </div>
       );
     }
@@ -390,11 +399,14 @@
                 let cleanConfig = input.trim();
                 if (!cleanConfig) throw new Error("請勿空白");
 
+                // 嘗試擷取物件部分 (若使用者直接複製了 const firebaseConfig = {...})
                 const match = cleanConfig.match(/\{[\s\S]*\}/);
                 if (match) cleanConfig = match[0];
 
+                // 寬鬆解析：為尚未加雙引號的 Key 加上雙引號，並將單引號轉為雙引號
                 cleanConfig = cleanConfig.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
                 cleanConfig = cleanConfig.replace(/'/g, '"');
+                // 移除可能的尾隨逗號
                 cleanConfig = cleanConfig.replace(/,\s*}/g, '}');
 
                 const configObj = JSON.parse(cleanConfig);
@@ -435,103 +447,41 @@
         );
     }
 
-    // --- 登入與大頭貼切換畫面 ---
-    function LoginView({ onLogin, onResetFb, savedKey }) {
-      const [inputKey, setInputKey] = useState(savedKey || '');
-      const [inputProfile, setInputProfile] = useState('');
-      const [profiles, setProfiles] = useState(() => {
-        const saved = localStorage.getItem('poppinsProfiles');
-        return saved ? JSON.parse(saved) : [];
-      });
-
-      const handleQuickLogin = (profile) => {
-        if (!inputKey.trim()) return alert('請先輸入或確認 Gemini API Key');
-        // 保存 API Key
-        localStorage.setItem('poppinsApiKey', inputKey.trim());
-        onLogin(inputKey.trim(), profile);
-      };
-
-      const handleNewLogin = () => {
-        if (!inputKey.trim()) return alert('請輸入有效的 Gemini API Key');
-        
-        // 清理使用者名稱，避免產生不合法的資料庫路徑
-        const cleanProfile = inputProfile.trim().replace(/[\/\\.#$\[\]]/g, '');
-        if (!cleanProfile) return alert('請輸入有效的使用者名稱 (不可包含特殊符號)');
-        
-        const newProfiles = [...new Set([...profiles, cleanProfile])];
-        localStorage.setItem('poppinsProfiles', JSON.stringify(newProfiles));
-        setProfiles(newProfiles);
-        
-        localStorage.setItem('poppinsApiKey', inputKey.trim());
-        onLogin(inputKey.trim(), cleanProfile);
-      };
-
-      const removeProfile = (profile, e) => {
-        e.stopPropagation();
-        if(window.confirm(`確定要從此裝置移除「${profile}」的快速登入嗎？\n(只要在其他裝置輸入相同名稱，依然能讀取雲端資料)`)){
-            const newProfiles = profiles.filter(p => p !== profile);
-            localStorage.setItem('poppinsProfiles', JSON.stringify(newProfiles));
-            setProfiles(newProfiles);
-        }
-      };
-
+    function LoginView({ onLogin, onResetFb }) {
+      const [inputKey, setInputKey] = useState('');
       return (
         <div className="flex flex-col items-center justify-center min-h-screen p-6">
-          <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md text-center border-t-[6px] border-[#f1c6d2]">
-            <h1 className="text-3xl font-bold mb-8 text-[#b86b81] flex justify-center items-center gap-2">
-               <Icons.Cloud /> 2027 決戰會考
-            </h1>
+          <div className="bg-white rounded-3xl shadow-xl p-10 w-full max-w-md text-center">
+            <div className="bg-[#f1c6d2] text-[#374151] p-4 rounded-2xl inline-block mb-6 shadow-md">
+              <Icons.Book />
+            </div>
+            <h1 className="text-3xl font-bold mb-8 text-[#b86b81]">2027 決戰會考</h1>
             
-            <div className="mb-6 bg-pink-50/50 p-4 rounded-2xl border border-pink-100 text-left">
-               <label className="block text-sm font-bold text-[#b86b81] mb-2">🔑 確認 API 金鑰</label>
-               <input 
-                 type="password" 
-                 placeholder="請輸入 Gemini API Key" 
-                 className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#f1c6d2] text-sm shadow-inner"
-                 value={inputKey}
-                 onChange={(e) => setInputKey(e.target.value)}
-               />
+            <div className="text-left mb-6">
+              <label className="block text-sm font-semibold text-gray-500 mb-2 flex justify-between items-center">
+                <span>✨ GOOGLE AI API KEY</span>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#b86b81] text-xs underline">前往免費申請</a>
+              </label>
+              <input 
+                type="password" 
+                placeholder="請貼上您的 API Key (AIza...)" 
+                className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#f1c6d2]"
+                value={inputKey}
+                onChange={(e) => setInputKey(e.target.value)}
+              />
             </div>
 
-            <div className="mb-8 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
-               <label className="block text-sm font-bold text-gray-700 mb-4">👤 選擇或新增使用者</label>
-               
-               {/* 快速登入大頭貼區域 */}
-               {profiles.length > 0 && (
-                  <div className="flex gap-4 overflow-x-auto pb-4 mb-4 border-b border-gray-200 scrollbar-hide">
-                    {profiles.map(p => (
-                       <div key={p} className="relative group flex-shrink-0">
-                         <button onClick={() => handleQuickLogin(p)} className="flex flex-col items-center gap-2 w-16">
-                           <div className="w-14 h-14 rounded-full bg-[#f1c6d2] text-[#374151] flex items-center justify-center text-xl font-bold shadow-sm group-hover:scale-105 transition-transform border-2 border-white">
-                             {p.substring(0, 1)}
-                           </div>
-                           <span className="text-xs font-bold text-gray-600 truncate w-full text-center px-1">{p}</span>
-                         </button>
-                         <button onClick={(e) => removeProfile(p, e)} className="absolute -top-1 -right-1 bg-white rounded-full text-gray-300 hover:text-red-500 shadow-sm border border-gray-100 md:hidden group-hover:block transition-colors p-0.5">
-                           <Icons.Close />
-                         </button>
-                       </div>
-                    ))}
-                  </div>
-               )}
-
-               <div className="flex gap-2">
-                  <input 
-                     value={inputProfile} 
-                     onChange={(e) => setInputProfile(e.target.value)} 
-                     className="flex-grow p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#f1c6d2] text-sm shadow-inner" 
-                     placeholder="輸入新使用者名稱..." 
-                     onKeyDown={(e) => e.key === 'Enter' && handleNewLogin()}
-                  />
-                  <button onClick={handleNewLogin} className="bg-[#f1c6d2] text-[#374151] px-5 rounded-xl font-bold text-sm shadow hover:bg-[#e6b7c4] transition-colors whitespace-nowrap">
-                     登入
-                  </button>
-               </div>
-               <p className="text-xs text-gray-400 mt-3 flex items-start gap-1 leading-relaxed">
-                  <span className="text-[#b86b81] font-bold">提示：</span>
-                  跨平台(如 PC 與 iPad)請輸入完全相同的「使用者名稱」，即可同步讀取同一個人的錯題庫。
-               </p>
+            <div className="bg-gray-50 p-4 rounded-xl text-sm text-left text-gray-600 mb-8 border border-gray-100 flex items-start gap-2">
+               <span className="text-[#b86b81] mt-0.5"><Icons.Cloud /></span>
+               <p>安全機制：您的資料已全面升級為雲端儲存，跨裝置登入不再遺失紀錄。</p>
             </div>
+
+            <button 
+              onClick={() => onLogin(inputKey)}
+              className="w-full bg-[#f1c6d2] text-[#374151] py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#e6b7c4] transition-colors flex justify-center items-center gap-2 mb-4"
+            >
+               進入系統
+            </button>
 
             <button onClick={onResetFb} className="text-xs text-gray-400 hover:text-red-500 underline transition-colors">
                清除並重新設定 Firebase 資料庫
@@ -541,7 +491,7 @@
       );
     }
 
-    function DashboardView({ currentProfile, onSelectImage, onGoList, onLogout }) {
+    function DashboardView({ onSelectImage, onGoList, onLogout }) {
       const fileInputRef = useRef(null);
 
       const handleFileChange = (e) => {
@@ -560,20 +510,14 @@
               <div className="bg-[#f1c6d2] text-[#374151] p-2 rounded-lg"><Icons.Book /></div>
               <span className="font-bold text-[#b86b81] text-xl">2027 決戰會考</span>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
-                 <div className="w-6 h-6 rounded-full bg-[#f1c6d2] text-[#374151] flex items-center justify-center text-xs font-bold">{currentProfile.charAt(0)}</div>
-                 <span className="text-sm font-bold text-gray-700">{currentProfile}</span>
-              </div>
-              <button onClick={onLogout} className="text-sm font-bold text-gray-500 hover:text-gray-800 transition-colors">登出 / 切換</button>
-            </div>
+            <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-800">登出</button>
           </header>
 
           <main className="flex-grow flex flex-col items-center justify-center text-center">
-             <div className="w-20 h-20 rounded-full bg-[#f1c6d2] text-[#374151] flex items-center justify-center text-4xl font-bold shadow-md mb-6 border-4 border-white">
-                {currentProfile.charAt(0)}
+             <div className="bg-white p-6 rounded-3xl shadow-sm mb-8 inline-block text-[#b86b81]">
+                <Icons.Wand />
              </div>
-             <h1 className="text-4xl font-bold mb-4 text-gray-800 tracking-wide">嗨，{currentProfile}！</h1>
+             <h1 className="text-4xl font-bold mb-6 text-gray-800 tracking-wide">2027 決戰會考</h1>
              <p className="text-gray-500 mb-12 tracking-widest">今天的努力，是為了遇見更好的自己。</p>
 
              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
@@ -743,6 +687,7 @@
         const ctx = canvas.getContext('2d');
         const img = new Image();
         img.onload = () => {
+          // 為了順利存入雲端且符合 1MB 限制，將最大寬度限制在 1000
           const maxWidth = 1000;
           let w = img.width;
           let h = img.height;
@@ -837,6 +782,7 @@
         ctx.putImageData(imgData, 0, 0);
       };
 
+      // 儲存時將圖片壓縮品質設定為 0.8 以避免雲端超出大小限制
       return (
         <div className="fixed inset-0 bg-gray-100 flex flex-col z-50">
            <div className="flex justify-between items-center p-4 bg-white shadow-sm z-10">
@@ -988,17 +934,17 @@
       );
     }
 
-    function ListView({ currentProfile, onBack, FB, user }) {
+    function ListView({ onBack, FB, user }) {
       const [mistakes, setMistakes] = useState([]);
       const [filterSubject, setFilterSubject] = useState('All');
       const [filterSubSubject, setFilterSubSubject] = useState('All');
       const [isFetching, setIsFetching] = useState(true);
       
-      // 從雲端即時載入特定使用者的資料
+      // 從雲端即時載入資料
       useEffect(() => {
-        if (!user || !FB || !currentProfile) return;
+        if (!user || !FB) return;
         setIsFetching(true);
-        const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
+        const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'users', user.uid, 'mistakes');
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             // 在前端進行排序
@@ -1012,13 +958,13 @@
         });
 
         return () => unsubscribe();
-      }, [user, FB, currentProfile]);
+      }, [user, FB]);
 
       const handleDelete = async (id) => {
-        if (!user || !FB || !currentProfile) return;
+        if (!user || !FB) return;
         if(window.confirm('確定要從雲端刪除這題嗎？(刪除後無法復原)')) {
           try {
-            await FB.deleteDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, id));
+            await FB.deleteDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'users', user.uid, 'mistakes', id));
           } catch(e) {
             alert('刪除失敗');
           }
@@ -1048,18 +994,16 @@
       };
 
       if (isFetching) {
-         return <LoadingView message={`正在從雲端載入 ${currentProfile} 的錯題本...`} />;
+         return <LoadingView message="正在從雲端載入您的錯題本..." />;
       }
 
       return (
         <div className="min-h-screen bg-gray-50">
           <div className="bg-[#f1c6d2] text-[#374151] p-4 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
             <button onClick={onBack} className="p-2 hover:bg-[#e6b7c4] rounded-full transition-colors"><Icons.ArrowLeft /></button>
-            <div className="flex items-center gap-2">
-               <h1 className="font-bold text-lg sm:text-xl truncate max-w-[150px] sm:max-w-xs">{currentProfile} 的雲端錯題本</h1>
-            </div>
-            <button onClick={handlePrint} className="bg-white text-[#374151] px-3 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-pink-50 transition-colors shadow-sm text-sm sm:text-base">
-              <Icons.Printer /> <span className="hidden sm:inline">輸出 PDF</span>
+            <h1 className="font-bold text-xl flex items-center gap-2"><Icons.Cloud /> 雲端錯題本</h1>
+            <button onClick={handlePrint} className="bg-white text-[#374151] px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-pink-50 transition-colors shadow-sm">
+              <Icons.Printer /> 輸出 PDF
             </button>
           </div>
 
@@ -1095,7 +1039,7 @@
             
             <div className="hidden print:block text-center mb-8 print-header border-b-2 border-black pb-4">
               <h1 className="text-3xl font-bold">
-                {currentProfile} 的 {filterSubject === 'All' ? '綜合' : filterSubject} 
+                {filterSubject === 'All' ? '綜合' : filterSubject} 
                 {filterSubSubject !== 'All' && ` - ${filterSubSubject}`} 錯題本
               </h1>
               <p className="text-gray-500 mt-2">列印日期：{new Date().toLocaleDateString()}</p>
@@ -1104,7 +1048,7 @@
             {filteredData.length === 0 ? (
                <div className="text-center py-20 text-gray-400 no-print">
                   <div className="flex justify-center mb-4"><Icons.Cloud /></div>
-                  <p className="mt-4 text-lg">目前沒有符合的錯題紀錄</p>
+                  <p className="mt-4 text-lg">雲端目前沒有符合的錯題紀錄</p>
                </div>
             ) : (
               filteredData.map((item, index) => (
