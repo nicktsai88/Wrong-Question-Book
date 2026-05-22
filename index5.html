@@ -45,19 +45,77 @@
 
     // --- 常數與顏色 ---
     const THEME = {
-      primary: '#f1c6d2', 
-      primaryHover: '#e6b7c4', 
-      textPrimary: '#b86b81', 
-      textDark: '#374151', 
+      primary: '#f1c6d2', // 使用者指定主色
+      primaryHover: '#e6b7c4', // 稍微加深用於 Hover
+      textPrimary: '#b86b81', // 用於白色背景上的標題色 (深粉色確保可讀)
+      textDark: '#374151', // 用於粉色背景上的文字 (深灰色確保對比)
       bg: '#fcf8f9',
       white: '#ffffff',
       red: '#e74c3c'
+    };
+
+    // --- IndexedDB 封裝 ---
+    const DB_NAME = 'PoppinsMistakeDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'mistakes';
+
+    const idb = {
+      open: () => {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(DB_NAME, DB_VERSION);
+          request.onerror = (e) => reject('Database error: ' + e.target.errorCode);
+          request.onsuccess = (e) => resolve(e.target.result);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+              store.createIndex('subject', 'subject', { unique: false });
+              store.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+          };
+        });
+      },
+      add: async (item) => {
+        const db = await idb.open();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction([STORE_NAME], 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const request = store.add(item);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      },
+      getAll: async () => {
+        const db = await idb.open();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction([STORE_NAME], 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const request = store.getAll();
+          request.onsuccess = () => {
+            // Sort by timestamp descending
+            const data = request.result.sort((a, b) => b.timestamp - a.timestamp);
+            resolve(data);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      },
+      delete: async (id) => {
+        const db = await idb.open();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction([STORE_NAME], 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const request = store.delete(id);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
     };
 
     // --- SVG 圖示組件 ---
     const Icons = {
       Book: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>,
       Camera: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>,
+      Upload: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>,
       Scissors: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>,
       Eraser: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>,
       Wand: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></svg>,
@@ -65,23 +123,12 @@
       Printer: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect width="12" height="8" x="6" y="14" /></svg>,
       ArrowLeft: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>,
       Contrast: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/></svg>,
-      Cloud: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>,
-      Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     };
 
     // --- 主應用程式元件 ---
     function App() {
-      // 系統與雲端狀態
-      const [currentView, setCurrentView] = useState('login'); 
+      const [currentView, setCurrentView] = useState('login'); // login, dashboard, crop, edit, classify, form, list
       const [apiKey, setApiKey] = useState('');
-      const [fbConfig, setFbConfig] = useState(() => {
-          const saved = localStorage.getItem('poppinsFbConfig');
-          return saved ? JSON.parse(saved) : null;
-      });
-      const [FB, setFB] = useState(null); 
-      const [user, setUser] = useState(null);
-      const [isDbLoading, setIsDbLoading] = useState(false);
-      const [dbError, setDbError] = useState('');
       
       // 工作區狀態
       const [rawImage, setRawImage] = useState(null);
@@ -92,52 +139,6 @@
       const [aiAnalysis, setAiAnalysis] = useState({ subject: '', sub_subject: '', concept: '' });
       const [loadingMsg, setLoadingMsg] = useState('');
 
-      // --- 載入 Firebase 環境 ---
-      useEffect(() => {
-        if (!fbConfig) {
-           return; // 如果沒有設定檔，就不載入 Firebase
-        }
-
-        setIsDbLoading(true);
-        setDbError('');
-
-        const loadFirebase = async () => {
-          try {
-            // 動態引入 Firebase SDK
-            const fbApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-            const fbAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-            const fbDb = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-            
-            // 初始化 Firebase
-            const app = fbApp.initializeApp(fbConfig);
-            const auth = fbAuth.getAuth(app);
-            const db = fbDb.getFirestore(app);
-            const appId = fbConfig.projectId || '2027-exam-app';
-
-            setFB({ ...fbApp, ...fbAuth, ...fbDb, db, auth, appId });
-
-            // 處理匿名登入
-            try {
-               await fbAuth.signInAnonymously(auth);
-            } catch (e) {
-               setDbError("雲端認證失敗：" + e.message);
-               setIsDbLoading(false);
-            }
-
-            // 監聽登入狀態
-            fbAuth.onAuthStateChanged(auth, (currentUser) => {
-              setUser(currentUser);
-              setIsDbLoading(false);
-            });
-
-          } catch (e) {
-            setDbError("加載 Firebase 模組失敗：" + e.message);
-            setIsDbLoading(false);
-          }
-        };
-        loadFirebase();
-      }, [fbConfig]);
-
       useEffect(() => {
         const savedKey = localStorage.getItem('poppinsApiKey');
         if (savedKey) {
@@ -146,18 +147,13 @@
         }
       }, []);
 
-      const handleFbConfigSave = (config) => {
-          localStorage.setItem('poppinsFbConfig', JSON.stringify(config));
-          setFbConfig(config);
-      };
-
       const handleLogin = (key) => {
         if (key.trim().length > 10) {
           localStorage.setItem('poppinsApiKey', key.trim());
           setApiKey(key.trim());
           setCurrentView('dashboard');
         } else {
-          alert('請輸入有效的 Gemini API Key');
+          alert('請輸入有效的 API Key');
         }
       };
 
@@ -165,16 +161,6 @@
         localStorage.removeItem('poppinsApiKey');
         setApiKey('');
         setCurrentView('login');
-      };
-
-      const resetFbConfig = () => {
-        if(window.confirm('確定要清除雲端資料庫設定嗎？這不會刪除雲端資料，但需重新輸入金鑰才能連線。')) {
-           localStorage.removeItem('poppinsFbConfig');
-           setFbConfig(null);
-           setFB(null);
-           setUser(null);
-           setCurrentView('login');
-        }
       };
 
       const handleImageSelected = (dataUrl) => {
@@ -203,6 +189,7 @@
             "concept": "核心知識(具體考點，限繁體中文)"
           }`;
 
+          // 1. 動態取得該 API Key 實際支援的所有模型
           const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
           if (!modelsRes.ok) {
              const errData = await modelsRes.json().catch(() => ({}));
@@ -214,6 +201,7 @@
               ? modelsData.models.map(m => m.name.replace('models/', ''))
               : [];
 
+          // 2. 定義優先順序陣列
           const preferredModels = [
               'gemini-2.5-flash',
               'gemini-1.5-flash', 
@@ -222,6 +210,7 @@
               'gemini-1.5-pro-latest'
           ];
 
+          // 篩選出目前 API Key 有權限的模型
           let modelsToTry = preferredModels.filter(m => availableModels.includes(m));
           
           if (modelsToTry.length === 0) {
@@ -235,11 +224,13 @@
           let successData = null;
           let lastErrorMsg = '';
 
+          // 3. 嘗試呼叫模型，加入「自動重試」機制
           for (const targetModel of modelsToTry) {
             if (successData) break;
             
-            const maxRetries = 3; 
-            let delay = 2000; 
+            console.log(`準備嘗試使用模型: ${targetModel}`);
+            const maxRetries = 3; // 每個模型最多重試 3 次
+            let delay = 2000; // 初始等待 2 秒
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
               setLoadingMsg(`AI 分析中...\n(模型: ${targetModel}, 嘗試: ${attempt}/${maxRetries})`);
@@ -267,23 +258,29 @@
 
                 if (response.ok) {
                   successData = await response.json();
-                  break; 
+                  console.log(`✅ 模型 ${targetModel} 呼叫成功！`);
+                  break; // 成功取得資料，跳出重試迴圈
                 } else {
                   const errData = await response.json().catch(() => ({}));
                   lastErrorMsg = errData.error?.message || `模型 ${targetModel} 回傳未知錯誤`;
                   
+                  // 檢查是否為高流量 (High Demand / 503 / 429)
                   if (response.status === 503 || response.status === 429 || lastErrorMsg.includes('high demand')) {
+                    console.warn(`⚠️ 模型 ${targetModel} 遇到高流量 (第 ${attempt} 次):`, lastErrorMsg);
                     if (attempt < maxRetries) {
                       setLoadingMsg(`伺服器目前滿載...\n系統將在 ${delay/1000} 秒後自動重試\n請稍候...`);
                       await new Promise(res => setTimeout(res, delay));
-                      delay *= 2; 
-                      continue; 
+                      delay *= 2; // 指數退避：下次等更久 (2s -> 4s -> 8s)
+                      continue; // 進行下一次重試
                     }
                   } else {
+                    // 其他錯誤 (如參數錯誤)，不需重試，直接換下一個模型
+                    console.warn(`❌ 模型 ${targetModel} 發生不可重試的錯誤:`, lastErrorMsg);
                     break;
                   }
                 }
               } catch (e) {
+                 console.warn(`❌ 網路例外 (第 ${attempt} 次):`, e);
                  lastErrorMsg = e.message;
                  if (attempt < maxRetries) {
                     setLoadingMsg(`網路連線不穩...\n將在 ${delay/1000} 秒後自動重試`);
@@ -291,9 +288,10 @@
                     delay *= 2;
                  }
               }
-            } 
-          } 
+            } // 結束重試迴圈
+          } // 結束模型迴圈
 
+          // 判斷是否所有模型與重試都失敗
           if (!successData) {
             throw new Error(`所有可用模型經過多次重試後皆因高流量或無權限而失敗。\n最後錯誤原因：${lastErrorMsg}`);
           }
@@ -324,130 +322,36 @@
         setCurrentView('form');
       };
 
-      // 儲存至雲端資料庫
       const saveMistake = async (formData) => {
-        if (!user || !FB) {
-          alert('尚未連線至雲端資料庫，無法儲存。');
-          return;
-        }
-
-        setLoadingMsg('正在同步至雲端資料庫...');
-        setCurrentView('classify'); // 借用 loading 畫面
-
         try {
-          const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'users', user.uid, 'mistakes');
-          await FB.addDoc(colRef, {
+          await idb.add({
             ...formData,
             image: editedImage || croppedImage,
             timestamp: Date.now()
           });
-          setLoadingMsg('');
-          alert('儲存成功！已安全同步至雲端。');
+          alert('儲存成功！');
           setCurrentView('dashboard');
         } catch (e) {
-          setLoadingMsg('');
-          alert('雲端儲存失敗：' + e.message);
-          setCurrentView('form');
+          alert('儲存失敗：' + e);
         }
       };
 
-      // 渲染防呆攔截 1：若未設定 Firebase
-      if (!fbConfig) {
-          return <FbSetupView onSave={handleFbConfigSave} />;
-      }
-
-      // 渲染防呆攔截 2：若 Firebase 初始化中
-      if (isDbLoading) {
-        return <LoadingView message="正在連線至雲端資料庫..." />;
-      }
-
-      // 渲染防呆攔截 3：載入 Firebase 發生錯誤
-      if (dbError) {
-        return (
-            <div className="min-h-screen font-sans text-gray-800 bg-[#fff5f7] flex items-center justify-center p-6">
-               <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg text-center border-t-4 border-red-500">
-                   <h2 className="text-2xl font-bold text-red-600 mb-4">資料庫連線失敗</h2>
-                   <p className="text-gray-600 mb-6">{dbError}</p>
-                   <button onClick={() => setFbConfig(null)} className="px-6 py-2 bg-gray-200 rounded-lg text-gray-700 font-bold hover:bg-gray-300">
-                      重新設定 Firebase
-                   </button>
-               </div>
-            </div>
-        );
-      }
-
       return (
         <div className="min-h-screen font-sans text-gray-800" style={{ backgroundColor: THEME.bg }}>
-          {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={resetFbConfig} />}
+          {currentView === 'login' && <LoginView onLogin={handleLogin} />}
           {currentView === 'dashboard' && <DashboardView onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} />}
           {currentView === 'crop' && <CropView imageUrl={rawImage} onCancel={() => setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} />}
           {currentView === 'edit' && <EditView imageUrl={croppedImage} onCancel={() => setCurrentView('crop')} onComplete={(edited) => { setEditedImage(edited); callGeminiAI(edited); }} />}
           {currentView === 'classify' && <LoadingView message={loadingMsg} />}
           {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} onCancel={() => setCurrentView('edit')} onSave={saveMistake} />}
-          {currentView === 'list' && <ListView onBack={() => setCurrentView('dashboard')} FB={FB} user={user} />}
+          {currentView === 'list' && <ListView onBack={() => setCurrentView('dashboard')} />}
         </div>
       );
     }
 
-    // --- 首次 Firebase 設定畫面 ---
-    function FbSetupView({ onSave }) {
-        const [input, setInput] = useState('');
-        const [error, setError] = useState('');
+    // --- 各個畫面元件 ---
 
-        const handleSave = () => {
-            try {
-                let cleanConfig = input.trim();
-                if (!cleanConfig) throw new Error("請勿空白");
-
-                // 嘗試擷取物件部分 (若使用者直接複製了 const firebaseConfig = {...})
-                const match = cleanConfig.match(/\{[\s\S]*\}/);
-                if (match) cleanConfig = match[0];
-
-                // 寬鬆解析：為尚未加雙引號的 Key 加上雙引號，並將單引號轉為雙引號
-                cleanConfig = cleanConfig.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
-                cleanConfig = cleanConfig.replace(/'/g, '"');
-                // 移除可能的尾隨逗號
-                cleanConfig = cleanConfig.replace(/,\s*}/g, '}');
-
-                const configObj = JSON.parse(cleanConfig);
-
-                if (!configObj.apiKey || !configObj.projectId) {
-                    throw new Error("缺少必要欄位 (apiKey, projectId)，請確認您貼上的是正確的 firebaseConfig 物件。");
-                }
-
-                onSave(configObj);
-            } catch (e) {
-                setError("解析失敗，請確認格式正確。\n" + e.message);
-            }
-        };
-
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#fff5f7]">
-              <div className="bg-white rounded-3xl shadow-xl p-10 w-full max-w-lg text-center">
-                 <div className="bg-[#f1c6d2] text-[#374151] p-4 rounded-2xl inline-block mb-6 shadow-md">
-                    <Icons.Settings />
-                 </div>
-                 <h1 className="text-3xl font-bold mb-4 text-[#b86b81]">雲端資料庫設定</h1>
-                 <p className="text-gray-600 mb-6 text-sm text-left leading-relaxed">
-                   歡迎使用！為了啟用跨裝置雲端同步功能，請將您的 <strong>Firebase 專案設定 (firebaseConfig)</strong> 貼在下方。<br/><br/>
-                   安全保證：這些資料將<strong className="text-red-500">僅儲存於您的瀏覽器 LocalStorage 中</strong>，絕對不會寫入原始碼或外洩。
-                 </p>
-                 <textarea
-                    className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#f1c6d2] text-sm font-mono h-48 mb-4 shadow-inner"
-                    placeholder={`{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}`}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                 />
-                 {error && <div className="text-red-500 text-sm mb-4 text-left whitespace-pre-wrap font-bold bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
-                 <button onClick={handleSave} className="w-full bg-[#f1c6d2] text-[#374151] py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#e6b7c4] transition-colors flex justify-center items-center gap-2">
-                    儲存設定並繼續
-                 </button>
-              </div>
-            </div>
-        );
-    }
-
-    function LoginView({ onLogin, onResetFb }) {
+    function LoginView({ onLogin }) {
       const [inputKey, setInputKey] = useState('');
       return (
         <div className="flex flex-col items-center justify-center min-h-screen p-6">
@@ -472,19 +376,15 @@
             </div>
 
             <div className="bg-gray-50 p-4 rounded-xl text-sm text-left text-gray-600 mb-8 border border-gray-100 flex items-start gap-2">
-               <span className="text-[#b86b81] mt-0.5"><Icons.Cloud /></span>
-               <p>安全機制：您的資料已全面升級為雲端儲存，跨裝置登入不再遺失紀錄。</p>
+               <span className="text-[#b86b81] mt-0.5"><Icons.Book /></span>
+               <p>安全機制 (BYOK)：此 API Key 僅會儲存在您的本機裝置中，系統絕對不會將其傳送至任何外部伺服器。</p>
             </div>
 
             <button 
               onClick={() => onLogin(inputKey)}
-              className="w-full bg-[#f1c6d2] text-[#374151] py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#e6b7c4] transition-colors flex justify-center items-center gap-2 mb-4"
+              className="w-full bg-[#f1c6d2] text-[#374151] py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#e6b7c4] transition-colors flex justify-center items-center gap-2"
             >
                進入系統
-            </button>
-
-            <button onClick={onResetFb} className="text-xs text-gray-400 hover:text-red-500 underline transition-colors">
-               清除並重新設定 Firebase 資料庫
             </button>
           </div>
         </div>
@@ -531,7 +431,7 @@
                   onClick={onGoList}
                   className="flex-1 bg-white text-[#374151] border-2 border-[#f1c6d2] py-4 px-6 rounded-xl font-bold text-lg hover:bg-pink-50 transition-colors flex justify-center items-center gap-2"
                 >
-                  <Icons.Cloud /> 雲端題本
+                  <Icons.Book /> 檢視題本
                 </button>
              </div>
              
@@ -687,8 +587,7 @@
         const ctx = canvas.getContext('2d');
         const img = new Image();
         img.onload = () => {
-          // 為了順利存入雲端且符合 1MB 限制，將最大寬度限制在 1000
-          const maxWidth = 1000;
+          const maxWidth = 1200;
           let w = img.width;
           let h = img.height;
           if (w > maxWidth) {
@@ -782,13 +681,12 @@
         ctx.putImageData(imgData, 0, 0);
       };
 
-      // 儲存時將圖片壓縮品質設定為 0.8 以避免雲端超出大小限制
       return (
         <div className="fixed inset-0 bg-gray-100 flex flex-col z-50">
            <div className="flex justify-between items-center p-4 bg-white shadow-sm z-10">
             <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
             <span className="font-bold text-gray-800">第二步：影像處理</span>
-            <button onClick={() => onComplete(canvasRef.current.toDataURL('image/jpeg', 0.8))} className="px-4 py-2 bg-[#f1c6d2] hover:bg-[#e6b7c4] transition-colors text-[#374151] rounded-lg text-sm font-bold">
+            <button onClick={() => onComplete(canvasRef.current.toDataURL('image/jpeg', 0.9))} className="px-4 py-2 bg-[#f1c6d2] hover:bg-[#e6b7c4] transition-colors text-[#374151] rounded-lg text-sm font-bold">
               完成
             </button>
           </div>
@@ -841,7 +739,7 @@
       return (
         <div className="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 p-6 text-center">
           <div className="animate-spin text-[#c47b90] mb-4">
-            <Icons.Cloud /> 
+            <Icons.Book /> 
           </div>
           <p className="text-lg font-bold text-[#c47b90] whitespace-pre-wrap leading-relaxed">{message}</p>
         </div>
@@ -862,8 +760,8 @@
           <div className="bg-white p-4 shadow-sm sticky top-0 flex justify-between items-center z-10">
             <button onClick={onCancel} className="p-2 text-gray-500"><Icons.ArrowLeft /></button>
             <span className="font-bold text-lg text-gray-800">確認並儲存</span>
-            <button onClick={() => onSave(formData)} className="px-5 py-2 bg-[#f1c6d2] hover:bg-[#e6b7c4] transition-colors text-[#374151] rounded-lg font-bold flex items-center gap-2">
-              <Icons.Cloud /> 同步至雲端
+            <button onClick={() => onSave(formData)} className="px-5 py-2 bg-[#f1c6d2] hover:bg-[#e6b7c4] transition-colors text-[#374151] rounded-lg font-bold">
+              儲存題本
             </button>
           </div>
 
@@ -934,53 +832,38 @@
       );
     }
 
-    function ListView({ onBack, FB, user }) {
+    function ListView({ onBack }) {
       const [mistakes, setMistakes] = useState([]);
       const [filterSubject, setFilterSubject] = useState('All');
       const [filterSubSubject, setFilterSubSubject] = useState('All');
-      const [isFetching, setIsFetching] = useState(true);
       
-      // 從雲端即時載入資料
-      useEffect(() => {
-        if (!user || !FB) return;
-        setIsFetching(true);
-        const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'users', user.uid, 'mistakes');
-        const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // 在前端進行排序
-            data.sort((a, b) => b.timestamp - a.timestamp);
-            setMistakes(data);
-            setIsFetching(false);
-        }, (error) => {
-            console.error("雲端讀取錯誤:", error);
-            alert("雲端讀取失敗，請確認網路連線");
-            setIsFetching(false);
-        });
+      const loadData = async () => {
+        const data = await idb.getAll();
+        setMistakes(data);
+      };
 
-        return () => unsubscribe();
-      }, [user, FB]);
+      useEffect(() => { loadData(); }, []);
 
       const handleDelete = async (id) => {
-        if (!user || !FB) return;
-        if(window.confirm('確定要從雲端刪除這題嗎？(刪除後無法復原)')) {
-          try {
-            await FB.deleteDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'users', user.uid, 'mistakes', id));
-          } catch(e) {
-            alert('刪除失敗');
-          }
+        if(window.confirm('確定要刪除這題嗎？')) {
+          await idb.delete(id);
+          loadData();
         }
       };
 
       const handleSubjectChange = (sub) => {
         setFilterSubject(sub);
-        setFilterSubSubject('All'); 
+        setFilterSubSubject('All'); // 切換科目時，重置次標題篩選
       };
 
       const subjects = ['All', ...new Set(mistakes.map(m => m.subject))];
+      
+      // 根據選擇的科目，取得動態的次標題清單
       const availableSubSubjects = filterSubject === 'All' 
          ? [] 
          : ['All', ...new Set(mistakes.filter(m => m.subject === filterSubject).map(m => m.sub_subject || '未分類單元'))];
 
+      // 雙重篩選邏輯
       let filteredData = mistakes;
       if (filterSubject !== 'All') {
         filteredData = filteredData.filter(m => m.subject === filterSubject);
@@ -993,15 +876,11 @@
         window.print();
       };
 
-      if (isFetching) {
-         return <LoadingView message="正在從雲端載入您的錯題本..." />;
-      }
-
       return (
         <div className="min-h-screen bg-gray-50">
           <div className="bg-[#f1c6d2] text-[#374151] p-4 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
             <button onClick={onBack} className="p-2 hover:bg-[#e6b7c4] rounded-full transition-colors"><Icons.ArrowLeft /></button>
-            <h1 className="font-bold text-xl flex items-center gap-2"><Icons.Cloud /> 雲端錯題本</h1>
+            <h1 className="font-bold text-xl">我的數位錯題本</h1>
             <button onClick={handlePrint} className="bg-white text-[#374151] px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-pink-50 transition-colors shadow-sm">
               <Icons.Printer /> 輸出 PDF
             </button>
@@ -1020,6 +899,7 @@
               ))}
             </div>
             
+            {/* 次標題篩選區塊 */}
             {filterSubject !== 'All' && availableSubSubjects.length > 1 && (
               <div className="flex gap-2 max-w-4xl mx-auto mt-3 pt-3 border-t border-gray-100 border-dashed overflow-x-auto">
                 {availableSubSubjects.map(subSub => (
@@ -1047,8 +927,8 @@
 
             {filteredData.length === 0 ? (
                <div className="text-center py-20 text-gray-400 no-print">
-                  <div className="flex justify-center mb-4"><Icons.Cloud /></div>
-                  <p className="mt-4 text-lg">雲端目前沒有符合的錯題紀錄</p>
+                  <Icons.Book />
+                  <p className="mt-4 text-lg">目前沒有錯題紀錄</p>
                </div>
             ) : (
               filteredData.map((item, index) => (
