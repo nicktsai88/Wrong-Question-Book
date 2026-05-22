@@ -360,19 +360,19 @@
         return (
             <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#fffbeb]">
               <div className="bg-white rounded-3xl shadow-xl p-10 w-full max-w-lg text-center">
-                 <div className="bg-[#f59e0b] text-[#ffffff] p-5 rounded-2xl inline-block mb-6 shadow-md"><Icons.Settings /></div>
-                 <h1 className="text-4xl font-bold mb-5 text-[#b45309]">雲端資料庫設定</h1>
-                 <p className="text-gray-600 mb-6 text-base text-left leading-relaxed">
+                 <div className="bg-[#f59e0b] text-[#ffffff] p-4 rounded-2xl inline-block mb-6 shadow-md"><Icons.Settings /></div>
+                 <h1 className="text-3xl font-bold mb-4 text-[#b45309]">雲端資料庫設定</h1>
+                 <p className="text-gray-600 mb-6 text-sm text-left leading-relaxed">
                    歡迎使用！為了啟用跨裝置雲端同步功能，請將您的 <strong>Firebase 專案設定 (firebaseConfig)</strong> 貼在下方。<br/><br/>
                    安全保證：這些資料將<strong className="text-red-500">僅儲存於您的瀏覽器 LocalStorage 中</strong>，絕對不會寫入原始碼或外洩。
                  </p>
                  <textarea
-                    className="w-full p-5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#f59e0b] text-base font-mono h-48 mb-5 shadow-inner"
+                    className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#f59e0b] text-sm font-mono h-48 mb-4 shadow-inner"
                     placeholder={`{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}`}
                     value={input} onChange={(e) => setInput(e.target.value)}
                  />
-                 {error && <div className="text-red-500 text-base mb-5 text-left whitespace-pre-wrap font-bold bg-red-50 p-4 rounded-lg border border-red-100">{error}</div>}
-                 <button onClick={handleSave} className="w-full bg-[#f59e0b] text-[#ffffff] py-4 rounded-xl font-bold text-xl shadow-lg hover:bg-[#d97706] transition-colors flex justify-center items-center gap-2">
+                 {error && <div className="text-red-500 text-sm mb-4 text-left whitespace-pre-wrap font-bold bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
+                 <button onClick={handleSave} className="w-full bg-[#f59e0b] text-[#ffffff] py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#d97706] transition-colors flex justify-center items-center gap-2">
                     儲存設定並繼續
                  </button>
               </div>
@@ -408,45 +408,43 @@
 
       const removeProfile = (profile, e) => {
         e.stopPropagation();
-        if(window.confirm(`第一次確認：\n確定要從此裝置移除「${profile}」的快速登入嗎？`)){
-            if(window.confirm(`第二次防呆確認：\n真的確定要移除「${profile}」嗎？\n(移除後只要重新輸入原名稱登入，雲端資料仍會保留)`)) {
-                const newProfiles = profiles.filter(p => p !== profile);
-                localStorage.setItem('poppinsProfiles', JSON.stringify(newProfiles));
-                setProfiles(newProfiles);
-            }
+        if(window.confirm(`確定要從此裝置移除「${profile}」的快速登入嗎？`)){
+            const newProfiles = profiles.filter(p => p !== profile);
+            localStorage.setItem('poppinsProfiles', JSON.stringify(newProfiles));
+            setProfiles(newProfiles);
         }
       };
 
       return (
         <div className="flex flex-col items-center justify-center min-h-screen p-6">
           <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md text-center border-t-[6px] border-[#f59e0b]">
-            <h1 className="text-4xl font-bold mb-8 text-[#b45309] flex justify-center items-center gap-3">
+            <h1 className="text-3xl font-bold mb-8 text-[#b45309] flex justify-center items-center gap-2">
                <Icons.Cloud /> 2027 決戰會考
             </h1>
             
-            <div className="mb-6 bg-amber-50 p-5 rounded-2xl border border-amber-100 text-left">
-               <label className="block text-base font-bold text-[#b45309] mb-3">🔑 確認 API 金鑰</label>
+            <div className="mb-6 bg-amber-50 p-4 rounded-2xl border border-amber-100 text-left">
+               <label className="block text-sm font-bold text-[#b45309] mb-2">🔑 確認 API 金鑰</label>
                <input 
                  type="password" placeholder="請輸入 Gemini API Key" 
-                 className="w-full p-4 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#f59e0b] text-base shadow-inner"
+                 className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#f59e0b] text-sm shadow-inner"
                  value={inputKey} onChange={(e) => setInputKey(e.target.value)}
                />
             </div>
 
-            <div className="mb-8 bg-gray-50 p-5 rounded-2xl border border-gray-100 text-left">
-               <label className="block text-base font-bold text-gray-700 mb-4">👤 選擇或新增使用者</label>
+            <div className="mb-8 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
+               <label className="block text-sm font-bold text-gray-700 mb-4">👤 選擇或新增使用者</label>
                
                {profiles.length > 0 && (
                   <div className="flex gap-4 overflow-x-auto pb-4 mb-4 border-b border-gray-200 scrollbar-hide">
                     {profiles.map(p => (
                        <div key={p} className="relative group flex-shrink-0">
-                         <button onClick={() => handleQuickLogin(p)} className="flex flex-col items-center gap-2 w-20">
-                           <div className="w-16 h-16 rounded-full bg-[#f59e0b] text-[#ffffff] flex items-center justify-center text-2xl font-bold shadow-sm group-hover:scale-105 transition-transform border-2 border-white">
+                         <button onClick={() => handleQuickLogin(p)} className="flex flex-col items-center gap-2 w-16">
+                           <div className="w-14 h-14 rounded-full bg-[#f59e0b] text-[#ffffff] flex items-center justify-center text-xl font-bold shadow-sm group-hover:scale-105 transition-transform border-2 border-white">
                              {p.substring(0, 1)}
                            </div>
-                           <span className="text-sm font-bold text-gray-600 truncate w-full text-center px-1">{p}</span>
+                           <span className="text-xs font-bold text-gray-600 truncate w-full text-center px-1">{p}</span>
                          </button>
-                         <button onClick={(e) => removeProfile(p, e)} className="absolute -top-1 -right-1 bg-white rounded-full text-gray-300 hover:text-red-500 shadow-sm border border-gray-100 md:hidden group-hover:block transition-colors p-1">
+                         <button onClick={(e) => removeProfile(p, e)} className="absolute -top-1 -right-1 bg-white rounded-full text-gray-300 hover:text-red-500 shadow-sm border border-gray-100 md:hidden group-hover:block transition-colors p-0.5">
                            <Icons.Close />
                          </button>
                        </div>
@@ -454,18 +452,18 @@
                   </div>
                )}
 
-               <div className="flex gap-3">
+               <div className="flex gap-2">
                   <input 
                      value={inputProfile} onChange={(e) => setInputProfile(e.target.value)} 
-                     className="flex-grow p-4 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#f59e0b] text-base shadow-inner" 
+                     className="flex-grow p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#f59e0b] text-sm shadow-inner" 
                      placeholder="輸入新使用者名稱..." onKeyDown={(e) => e.key === 'Enter' && handleNewLogin()}
                   />
-                  <button onClick={handleNewLogin} className="bg-[#f59e0b] text-[#ffffff] px-6 rounded-xl font-bold text-base shadow hover:bg-[#d97706] transition-colors whitespace-nowrap">
+                  <button onClick={handleNewLogin} className="bg-[#f59e0b] text-[#ffffff] px-5 rounded-xl font-bold text-sm shadow hover:bg-[#d97706] transition-colors whitespace-nowrap">
                      登入
                   </button>
                </div>
             </div>
-            <button onClick={onResetFb} className="text-sm text-gray-400 hover:text-red-500 underline transition-colors">清除並重新設定 Firebase 資料庫</button>
+            <button onClick={onResetFb} className="text-xs text-gray-400 hover:text-red-500 underline transition-colors">清除並重新設定 Firebase 資料庫</button>
           </div>
         </div>
       );
@@ -484,37 +482,38 @@
       };
 
       return (
-        <div className="min-h-screen flex flex-col p-4 md:p-6 w-[98%] max-w-[1400px] mx-auto">
+        <div className="min-h-screen flex flex-col p-6 max-w-4xl mx-auto">
           <header className="flex justify-between items-center mb-12 py-4">
             <div className="flex items-center gap-3">
-              <div className="bg-[#f59e0b] text-[#ffffff] p-3 rounded-lg"><Icons.Book /></div>
-              <span className="font-bold text-[#b45309] text-2xl hidden sm:block">2027 決戰會考</span>
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm ml-2">
+              <div className="bg-[#f59e0b] text-[#ffffff] p-2 rounded-lg"><Icons.Book /></div>
+              <span className="font-bold text-[#b45309] text-xl hidden sm:block">2027 決戰會考</span>
+              {/* 雲端連線狀態燈號 */}
+              <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full border border-gray-200 shadow-sm ml-2">
                 <Icons.StatusDot color={isDbConnected ? "#22c55e" : "#ef4444"} />
-                <span className="text-sm font-bold text-gray-600">{isDbConnected ? '已連線' : '未連線'}</span>
+                <span className="text-xs font-bold text-gray-600">{isDbConnected ? '已連線' : '未連線'}</span>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
-                 <div className="w-8 h-8 rounded-full bg-[#f59e0b] text-[#ffffff] flex items-center justify-center text-sm font-bold">{currentProfile.charAt(0)}</div>
-                 <span className="text-base font-bold text-gray-700">{currentProfile}</span>
+              <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                 <div className="w-6 h-6 rounded-full bg-[#f59e0b] text-[#ffffff] flex items-center justify-center text-xs font-bold">{currentProfile.charAt(0)}</div>
+                 <span className="text-sm font-bold text-gray-700">{currentProfile}</span>
               </div>
-              <button onClick={onLogout} className="text-base font-bold text-gray-500 hover:text-gray-800 transition-colors">登出 / 切換</button>
+              <button onClick={onLogout} className="text-sm font-bold text-gray-500 hover:text-gray-800 transition-colors">登出 / 切換</button>
             </div>
           </header>
 
           <main className="flex-grow flex flex-col items-center justify-center text-center">
-             <div className="w-24 h-24 rounded-full bg-[#f59e0b] text-[#ffffff] flex items-center justify-center text-5xl font-bold shadow-md mb-8 border-4 border-white">
+             <div className="w-20 h-20 rounded-full bg-[#f59e0b] text-[#ffffff] flex items-center justify-center text-4xl font-bold shadow-md mb-6 border-4 border-white">
                 {currentProfile.charAt(0)}
              </div>
-             <h1 className="text-5xl font-bold mb-6 text-gray-800 tracking-wide">嗨，{currentProfile}！</h1>
-             <p className="text-gray-500 mb-12 text-xl tracking-widest">今天的努力，是為了遇見更好的自己。</p>
+             <h1 className="text-4xl font-bold mb-4 text-gray-800 tracking-wide">嗨，{currentProfile}！</h1>
+             <p className="text-gray-500 mb-12 tracking-widest">今天的努力，是為了遇見更好的自己。</p>
 
-             <div className="flex flex-col sm:flex-row gap-5 w-full max-w-2xl">
-                <button onClick={() => fileInputRef.current.click()} className="flex-1 bg-[#f59e0b] text-[#ffffff] py-5 px-6 rounded-xl font-bold text-xl shadow-lg hover:bg-[#d97706] transition-colors flex justify-center items-center gap-3">
+             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                <button onClick={() => fileInputRef.current.click()} className="flex-1 bg-[#f59e0b] text-[#ffffff] py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:bg-[#d97706] transition-colors flex justify-center items-center gap-2">
                   <Icons.Camera /> 開始製作
                 </button>
-                <button onClick={onGoList} className="flex-1 bg-white text-[#451a03] border-2 border-[#f59e0b] py-5 px-6 rounded-xl font-bold text-xl hover:bg-amber-50 transition-colors flex justify-center items-center gap-3">
+                <button onClick={onGoList} className="flex-1 bg-white text-[#451a03] border-2 border-[#f59e0b] py-4 px-6 rounded-xl font-bold text-lg hover:bg-amber-50 transition-colors flex justify-center items-center gap-2">
                   <Icons.Cloud /> 雲端題本
                 </button>
              </div>
@@ -688,10 +687,10 @@
 
       return (
         <div className="fixed inset-0 bg-gray-900 flex flex-col z-50">
-          <div className="flex justify-between items-center p-5 text-white bg-gray-800 shadow-md z-20">
+          <div className="flex justify-between items-center p-4 text-white bg-gray-800 shadow-md z-20">
             <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
-            <span className="text-lg font-bold">第一步：透視校正裁切</span>
-            <button onClick={handleRotate} className="p-2 px-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 text-base font-bold"><Icons.Rotate /> 旋轉</button>
+            <span className="font-bold">第一步：透視校正裁切</span>
+            <button onClick={handleRotate} className="p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-1 text-sm"><Icons.Rotate /> 旋轉</button>
           </div>
           
           <div className="flex-grow relative overflow-hidden flex items-center justify-center p-4">
@@ -716,19 +715,19 @@
                 {/* Draggable corners */}
                 <div className="absolute inset-0 z-20 pointer-events-none">
                   {pts.map((pt, i) => (
-                     <div key={i} className="absolute w-10 h-10 bg-white border-4 border-[#f59e0b] rounded-full shadow-lg pointer-events-auto cursor-move transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+                     <div key={i} className="absolute w-8 h-8 bg-white border-4 border-[#f59e0b] rounded-full shadow-lg pointer-events-auto cursor-move transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
                           style={{ top: `${pt.y}%`, left: `${pt.x}%` }}
                           onMouseDown={(e) => startDrag(e, i)} onTouchStart={(e) => startDrag(e, i)}>
-                          <div className="w-2 h-2 bg-[#f59e0b] rounded-full"></div>
+                          <div className="w-1.5 h-1.5 bg-[#f59e0b] rounded-full"></div>
                      </div>
                   ))}
                 </div>
             </div>
           </div>
 
-          <div className="p-6 bg-white rounded-t-3xl flex gap-5 justify-between items-center shadow-lg z-20">
-             <button onClick={onCancel} className="px-6 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold text-lg flex-1">重新選圖</button>
-             <button onClick={handleConfirm} className="px-6 py-4 bg-[#f59e0b] text-[#ffffff] rounded-xl font-bold text-lg flex-1 flex justify-center items-center gap-2 hover:bg-[#d97706] transition-colors">下一步 <Icons.Scissors/></button>
+          <div className="p-6 bg-white rounded-t-3xl flex gap-4 justify-between items-center shadow-lg z-20">
+             <button onClick={onCancel} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold flex-1">重新選圖</button>
+             <button onClick={handleConfirm} className="px-6 py-3 bg-[#f59e0b] text-[#ffffff] rounded-xl font-bold flex-1 flex justify-center items-center gap-2 hover:bg-[#d97706] transition-colors">下一步 <Icons.Scissors/></button>
           </div>
         </div>
       );
@@ -831,17 +830,17 @@
 
       return (
         <div className="fixed inset-0 bg-gray-100 flex flex-col z-50">
-           <div className="flex justify-between items-center p-5 bg-white shadow-sm z-10">
+           <div className="flex justify-between items-center p-4 bg-white shadow-sm z-10">
             <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
             <div className="flex items-center gap-4">
-               <span className="text-lg font-bold text-gray-800 hidden sm:inline">第二步：影像處理</span>
+               <span className="font-bold text-gray-800 hidden sm:inline">第二步：影像處理</span>
                {canUndo && (
-                  <button onClick={handleUndo} className="flex items-center gap-2 text-base bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-bold transition-colors">
+                  <button onClick={handleUndo} className="flex items-center gap-1 text-sm bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-300 font-bold transition-colors">
                      <Icons.Undo /> 復原
                   </button>
                )}
             </div>
-            <button onClick={() => onComplete(canvasRef.current.toDataURL('image/jpeg', 0.8))} className="px-5 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg text-base font-bold">
+            <button onClick={() => onComplete(canvasRef.current.toDataURL('image/jpeg', 0.8))} className="px-4 py-2 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg text-sm font-bold">
               完成
             </button>
           </div>
@@ -853,16 +852,16 @@
               onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
           </div>
 
-          <div className="bg-white p-5 pb-8 flex justify-center gap-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="bg-white p-4 pb-8 flex justify-center gap-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
             <button onClick={() => setMode(mode === 'eraser' ? 'none' : 'eraser')}
               className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}>
-              <Icons.Eraser /><span className="text-sm font-bold">手動橡皮擦</span>
+              <Icons.Eraser /><span className="text-xs font-bold">手動橡皮擦</span>
             </button>
             <button onClick={handleRemoveRed} className="flex flex-col items-center gap-2 p-3 rounded-xl text-red-500 hover:bg-red-50 transition-colors">
-              <Icons.Wand /><span className="text-sm font-bold">一鍵去紅筆</span>
+              <Icons.Wand /><span className="text-xs font-bold">一鍵去紅筆</span>
             </button>
             <button onClick={handleRemoveBackground} className="flex flex-col items-center gap-2 p-3 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors">
-              <Icons.Contrast /><span className="text-sm font-bold">一鍵去背景</span>
+              <Icons.Contrast /><span className="text-xs font-bold">一鍵去背景</span>
             </button>
           </div>
         </div>
@@ -871,9 +870,9 @@
 
     function LoadingView({ message }) {
       return (
-        <div className="fixed inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-50 p-6 text-center">
-          <div className="animate-spin text-[#d97706] mb-6 scale-150"><Icons.Cloud /></div>
-          <p className="text-xl font-bold text-[#d97706] whitespace-pre-wrap leading-relaxed">{message}</p>
+        <div className="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 p-6 text-center">
+          <div className="animate-spin text-[#d97706] mb-4"><Icons.Cloud /></div>
+          <p className="text-lg font-bold text-[#d97706] whitespace-pre-wrap leading-relaxed">{message}</p>
         </div>
       );
     }
@@ -885,65 +884,65 @@
         concept: initialData.concept || '',
         notes: '',
         answer: '',
-        mastery: 'need_review'
+        mastery: 'need_review' // 新增熟練度標籤
       });
 
       return (
         <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
-          <div className="bg-white p-5 shadow-sm sticky top-0 flex justify-between items-center z-10">
+          <div className="bg-white p-4 shadow-sm sticky top-0 flex justify-between items-center z-10">
             <button onClick={onCancel} className="p-2 text-gray-500"><Icons.ArrowLeft /></button>
-            <span className="font-bold text-xl text-gray-800">確認並儲存</span>
-            <button onClick={() => onSave(formData)} className="px-6 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold text-lg flex items-center gap-2">
+            <span className="font-bold text-lg text-gray-800">確認並儲存</span>
+            <button onClick={() => onSave(formData)} className="px-5 py-2 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold flex items-center gap-2">
               <Icons.Cloud /> 同步至雲端
             </button>
           </div>
 
-          <div className="p-4 md:p-6 w-[98%] max-w-[1000px] mx-auto space-y-6">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-               <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-[400px] border border-gray-200 mx-auto" />
+          <div className="p-6 max-w-2xl mx-auto space-y-6">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+               <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-64 border border-gray-200 mx-auto" />
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
-              <div className="flex justify-between items-center mb-2">
-                 <div className="flex items-center gap-2 text-xl"><Icons.Wand /> <span className="font-bold text-[#b45309]">AI 分類結果 (可手動修改)</span></div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                 <div className="flex items-center gap-2"><Icons.Wand /> <span className="font-bold text-[#b45309]">AI 分類結果 (可手動修改)</span></div>
               </div>
 
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
                 <div className="flex gap-4">
-                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
                       <input type="radio" name="mastery" value="need_review" className="hidden" checked={formData.mastery === 'need_review'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                      <span className="text-2xl">🔴</span><span className="font-bold text-gray-700 text-lg">需再複習</span>
+                      <span className="text-lg">🔴</span><span className="font-bold text-gray-700">需再複習</span>
                    </label>
-                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
                       <input type="radio" name="mastery" value="mastered" className="hidden" checked={formData.mastery === 'mastered'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                      <span className="text-2xl">🟢</span><span className="font-bold text-gray-700 text-lg">已掌握</span>
+                      <span className="text-lg">🟢</span><span className="font-bold text-gray-700">已掌握</span>
                    </label>
                 </div>
               </div>
               
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">科目</label>
-                <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} />
+                <label className="block text-sm font-bold text-gray-700 mb-1">科目</label>
+                <input className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} />
               </div>
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">次標題 / 大單元</label>
-                <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.sub_subject} onChange={e => setFormData({...formData, sub_subject: e.target.value})} />
+                <label className="block text-sm font-bold text-gray-700 mb-1">次標題 / 大單元</label>
+                <input className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.sub_subject} onChange={e => setFormData({...formData, sub_subject: e.target.value})} />
               </div>
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">核心知識 (限繁體中文)</label>
-                <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.concept} onChange={e => setFormData({...formData, concept: e.target.value})} />
+                <label className="block text-sm font-bold text-gray-700 mb-1">核心知識 (限繁體中文)</label>
+                <input className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.concept} onChange={e => setFormData({...formData, concept: e.target.value})} />
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">正確解答 (選填)</label>
-                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-32" value={formData.answer} onChange={e => setFormData({...formData, answer: e.target.value})} />
+                <label className="block text-sm font-bold text-gray-700 mb-1">正確解答 (選填)</label>
+                <textarea className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-24" value={formData.answer} onChange={e => setFormData({...formData, answer: e.target.value})} />
               </div>
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">錯題筆記 / 訂正過程 (選填)</label>
-                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-40" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+                <label className="block text-sm font-bold text-gray-700 mb-1">錯題筆記 / 訂正過程 (選填)</label>
+                <textarea className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-32" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
               </div>
             </div>
           </div>
@@ -955,8 +954,8 @@
       const [mistakes, setMistakes] = useState([]);
       const [filterSubject, setFilterSubject] = useState('All');
       const [filterSubSubject, setFilterSubSubject] = useState('All');
-      const [filterMastery, setFilterMastery] = useState('All'); 
-      const [searchQuery, setSearchQuery] = useState(''); 
+      const [filterMastery, setFilterMastery] = useState('All'); // 新增熟練度篩選
+      const [searchQuery, setSearchQuery] = useState(''); // 新增搜尋功能
       const [isFetching, setIsFetching] = useState(true);
       
       useEffect(() => {
@@ -983,25 +982,12 @@
         }
       };
 
-      // 在列表切換熟練度狀態
-      const handleUpdateMastery = async (id, currentMastery) => {
-        if (!user || !FB || !currentProfile) return;
-        const newMastery = (!currentMastery || currentMastery === 'need_review') ? 'mastered' : 'need_review';
-        try {
-          await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, id), {
-            mastery: newMastery
-          });
-        } catch (e) {
-          console.error(e);
-          alert('狀態更新失敗');
-        }
-      };
-
       const handleSubjectChange = (sub) => { setFilterSubject(sub); setFilterSubSubject('All'); };
 
       const subjects = ['All', ...new Set(mistakes.map(m => m.subject))];
       const availableSubSubjects = filterSubject === 'All' ? [] : ['All', ...new Set(mistakes.filter(m => m.subject === filterSubject).map(m => m.sub_subject || '未分類單元'))];
 
+      // 綜合篩選邏輯 (科目 + 次標題 + 熟練度 + 關鍵字)
       let filteredData = mistakes;
       if (filterSubject !== 'All') filteredData = filteredData.filter(m => m.subject === filterSubject);
       if (filterSubSubject !== 'All') filteredData = filteredData.filter(m => (m.sub_subject || '未分類單元') === filterSubSubject);
@@ -1016,58 +1002,64 @@
          );
       }
 
-      const handlePrint = () => { setTimeout(() => { window.print(); }, 100); };
+      // 列印處理：改用原生呼叫方式避免 iOS 被阻擋
+      const printBtnRef = useRef(null);
+      const handlePrint = () => {
+         setTimeout(() => {
+           window.print();
+         }, 100);
+      };
 
       if (isFetching) return <LoadingView message={`正在從雲端載入 ${currentProfile} 的錯題本...`} />;
 
       return (
         <div className="min-h-screen bg-gray-50">
-          <div className="bg-[#f59e0b] text-[#ffffff] p-5 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
+          <div className="bg-[#f59e0b] text-[#ffffff] p-4 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
             <button onClick={onBack} className="p-2 hover:bg-[#d97706] rounded-full transition-colors"><Icons.ArrowLeft /></button>
             <div className="flex items-center gap-2">
-               <h1 className="font-bold text-xl sm:text-2xl truncate max-w-[200px] sm:max-w-xs">{currentProfile} 的雲端錯題本</h1>
+               <h1 className="font-bold text-lg sm:text-xl truncate max-w-[150px] sm:max-w-xs">{currentProfile} 的雲端錯題本</h1>
                <div title="雲端連線狀態" className="ml-1"><Icons.StatusDot color={isDbConnected ? "#4ade80" : "#ef4444"} /></div>
             </div>
-            <button onClick={handlePrint} className="bg-white text-[#451a03] px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-amber-50 transition-colors shadow-sm text-base">
+            <button onClick={handlePrint} className="bg-white text-[#451a03] px-3 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-amber-50 transition-colors shadow-sm text-sm sm:text-base">
               <Icons.Printer /> <span className="hidden sm:inline">輸出 PDF</span>
             </button>
           </div>
 
-          <div className="p-4 md:p-5 bg-white border-b no-print space-y-5">
+          <div className="p-4 bg-white border-b no-print space-y-4">
             {/* 搜尋列 */}
-            <div className="w-[98%] max-w-[1400px] mx-auto relative">
-               <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
+            <div className="max-w-4xl mx-auto relative">
+               <div className="absolute left-3 top-3 text-gray-400"><Icons.Search /></div>
                <input 
                   type="text" placeholder="搜尋核心知識、單元或筆記關鍵字..." 
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow"
                   value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                />
             </div>
 
             {/* 科目與熟練度篩選列 */}
-            <div className="flex flex-col sm:flex-row gap-4 w-[98%] max-w-[1400px] mx-auto justify-between items-start sm:items-center">
-                <div className="flex gap-3 overflow-x-auto whitespace-nowrap w-full sm:w-auto scrollbar-hide pb-2">
+            <div className="flex flex-col sm:flex-row gap-4 max-w-4xl mx-auto justify-between items-start sm:items-center">
+                <div className="flex gap-2 overflow-x-auto whitespace-nowrap w-full sm:w-auto scrollbar-hide pb-1">
                   {subjects.map(sub => (
                     <button key={sub} onClick={() => handleSubjectChange(sub)}
-                      className={`px-5 py-2.5 rounded-full text-base font-bold transition-colors flex-shrink-0 ${filterSubject === sub ? 'bg-[#f59e0b] text-[#ffffff]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                      className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterSubject === sub ? 'bg-[#f59e0b] text-[#ffffff]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                       {sub}
                     </button>
                   ))}
                 </div>
                 
-                <div className="flex gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
-                    <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500'}`}>全部熟練度</button>
-                    <button onClick={() => setFilterMastery('need_review')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'need_review' ? 'bg-white shadow-md text-red-600' : 'text-gray-500'}`}>🔴 需複習</button>
-                    <button onClick={() => setFilterMastery('mastered')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'mastered' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}`}>🟢 已掌握</button>
+                <div className="flex gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
+                    <button onClick={() => setFilterMastery('All')} className={`px-3 py-1.5 text-xs font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow text-gray-800' : 'text-gray-500'}`}>全部熟練度</button>
+                    <button onClick={() => setFilterMastery('need_review')} className={`px-3 py-1.5 text-xs font-bold rounded-lg whitespace-nowrap flex items-center gap-1 ${filterMastery === 'need_review' ? 'bg-white shadow text-red-600' : 'text-gray-500'}`}>🔴 需複習</button>
+                    <button onClick={() => setFilterMastery('mastered')} className={`px-3 py-1.5 text-xs font-bold rounded-lg whitespace-nowrap flex items-center gap-1 ${filterMastery === 'mastered' ? 'bg-white shadow text-green-600' : 'text-gray-500'}`}>🟢 已掌握</button>
                 </div>
             </div>
             
             {/* 次標題篩選 */}
             {filterSubject !== 'All' && availableSubSubjects.length > 1 && (
-              <div className="flex gap-3 w-[98%] max-w-[1400px] mx-auto pt-4 border-t border-gray-100 border-dashed overflow-x-auto scrollbar-hide pb-2">
+              <div className="flex gap-2 max-w-4xl mx-auto pt-3 border-t border-gray-100 border-dashed overflow-x-auto scrollbar-hide pb-1">
                 {availableSubSubjects.map(subSub => (
                   <button key={subSub} onClick={() => setFilterSubSubject(subSub)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterSubSubject === subSub ? 'bg-[#b45309] text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}>
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex-shrink-0 ${filterSubSubject === subSub ? 'bg-[#b45309] text-white shadow-sm' : 'bg-gray-50 text-gray-500 hover:bg-gray-200 border border-gray-200'}`}>
                     {subSub === 'All' ? '全部單元' : subSub}
                   </button>
                 ))}
@@ -1075,67 +1067,58 @@
             )}
           </div>
 
-          <div id="print-area" className="p-4 md:p-5 print:p-0 w-[98%] max-w-[1400px] mx-auto space-y-8 print:space-y-0 bg-[#fffbeb] print:bg-white">
+          <div id="print-area" className="p-4 print:p-0 max-w-4xl mx-auto space-y-6 print:space-y-0 bg-[#fffbeb] print:bg-white">
             
             <div className="hidden print:block text-center mb-8 print-header border-b-2 border-black pb-4">
-              <h1 className="text-4xl font-bold text-black">
+              <h1 className="text-3xl font-bold text-black">
                 {currentProfile} 的 {filterSubject === 'All' ? '綜合' : filterSubject} 
                 {filterSubSubject !== 'All' && ` - ${filterSubSubject}`} 錯題本
               </h1>
-              <p className="text-gray-500 mt-2 text-lg">列印日期：{new Date().toLocaleDateString()}</p>
+              <p className="text-gray-500 mt-2">列印日期：{new Date().toLocaleDateString()}</p>
             </div>
 
             {filteredData.length === 0 ? (
-               <div className="text-center py-24 text-gray-400 no-print">
-                  <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
-                  <p className="mt-5 text-2xl font-bold">找不到符合條件的錯題</p>
+               <div className="text-center py-20 text-gray-400 no-print">
+                  <div className="flex justify-center mb-4"><Icons.Cloud /></div>
+                  <p className="mt-4 text-lg">找不到符合條件的錯題</p>
                </div>
             ) : (
               filteredData.map((item, index) => (
-                <div key={item.id} className="bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 print:mb-3">
-                    <div className="flex flex-wrap gap-3 items-center w-full">
-                      <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 rounded-full text-base font-bold border border-amber-200">
+                <div key={item.id} className="bg-white p-6 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
+                  <div className="flex justify-between items-start mb-4 print:mb-2">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-3 py-1 rounded-full text-sm font-bold border border-amber-200">
                         #{index + 1} {item.subject}
                       </span>
                       {item.sub_subject && (
-                         <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 rounded-full text-base font-semibold">{item.sub_subject}</span>
+                         <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-3 py-1 rounded-full text-sm font-semibold">{item.sub_subject}</span>
                       )}
-                      <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 rounded-full text-base font-bold">🎯 {item.concept}</span>
+                      <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-3 py-1 rounded-full text-sm font-bold">🎯 {item.concept}</span>
                       
-                      {/* 顯示並在網頁端提供點擊切換熟練度 */}
-                      <button 
-                        onClick={() => handleUpdateMastery(item.id, item.mastery)}
-                        className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
-                        title="點擊切換熟練度"
-                      >
-                         {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
-                      </button>
-                      
-                      {/* 列印時僅顯示靜態 Emoji */}
-                      <span className="hidden print:inline-block ml-2 text-2xl">
+                      {/* 顯示熟練度 */}
+                      <span className="no-print ml-1" title={(!item.mastery || item.mastery === 'need_review') ? '需再複習' : '已掌握'}>
                          {(!item.mastery || item.mastery === 'need_review') ? '🔴' : '🟢'}
                       </span>
                     </div>
-                    <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 p-2 no-print transition-colors self-end sm:self-auto"><Icons.Trash /></button>
+                    <button onClick={() => handleDelete(item.id)} className="text-gray-300 hover:text-red-500 p-2 no-print transition-colors"><Icons.Trash /></button>
                   </div>
                   
-                  <div className="mb-5 print:mb-4 bg-white print:bg-white">
-                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto block bg-white" />
+                  <div className="mb-4 print:mb-4 bg-white print:bg-white">
+                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-lg print:border-none print-img mx-auto block bg-white" />
                   </div>
 
                   {(item.answer || item.notes) && (
-                    <div className="bg-amber-50 print:bg-white p-5 print:p-3 print:pl-4 rounded-2xl border border-amber-200 print:border-l-4 print:border-t-0 print:border-r-0 print:border-b-0 print:border-gray-800">
+                    <div className="bg-amber-50 print:bg-white p-4 print:p-2 print:pl-4 rounded-xl border border-amber-200 print:border-l-4 print:border-t-0 print:border-r-0 print:border-b-0 print:border-gray-800">
                       {item.answer && (
-                        <div className="mb-4 print:mb-3">
-                          <span className="font-bold text-gray-800 print:text-black text-xl">解答：</span>
-                          <span className="text-gray-800 print:text-black text-xl whitespace-pre-wrap leading-relaxed">{item.answer}</span>
+                        <div className="mb-3 print:mb-2">
+                          <span className="font-bold text-gray-800 print:text-black text-lg">解答：</span>
+                          <span className="text-gray-800 print:text-black text-lg whitespace-pre-wrap">{item.answer}</span>
                         </div>
                       )}
                       {item.notes && (
                         <div>
-                          <span className="font-bold text-[#b45309] print:text-black text-xl">筆記：</span>
-                          <p className="text-gray-700 print:text-black text-xl whitespace-pre-wrap mt-2 leading-relaxed">{item.notes}</p>
+                          <span className="font-bold text-[#b45309] print:text-black text-lg">筆記：</span>
+                          <p className="text-gray-700 print:text-black text-lg whitespace-pre-wrap mt-1">{item.notes}</p>
                         </div>
                       )}
                     </div>
@@ -1144,7 +1127,7 @@
               ))
             )}
             
-            <div className="no-print text-center py-8 text-base text-gray-400 font-bold">
+            <div className="no-print text-center py-6 text-sm text-gray-400">
               💡 若點擊「輸出 PDF」無反應或被阻擋，請使用瀏覽器右上角的「分享」>「列印」功能。
             </div>
           </div>
