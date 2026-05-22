@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>2027 決戰會考</title>
+  <title>POPPINS 數位錯題本</title>
   
   <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -20,12 +20,9 @@
     @media print {
       body * { visibility: hidden; }
       #print-area, #print-area * { visibility: visible; }
-      #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; }
       .no-print { display: none !important; }
-      @page { margin: 0.5cm; size: A4 portrait; }
-      .print-card { padding: 0.5rem !important; margin-bottom: 2rem !important; border: none !important; box-shadow: none !important; }
-      .print-img { width: 100% !important; max-height: none !important; object-fit: contain; }
-      .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
+      @page { margin: 1cm; size: A4 portrait; }
     }
     
     /* 避免觸控裝置上的橡皮筋效果與選取 */
@@ -37,7 +34,7 @@
     }
   </style>
 </head>
-<body class="bg-[#fff5f7]">
+<body class="bg-[#f4f7f8]">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -45,9 +42,9 @@
 
     // --- 常數與顏色 ---
     const THEME = {
-      primary: '#db2777', // Pink-600
-      secondary: '#be185d', // Pink-700
-      bg: '#fff5f7', // Pink-50
+      primary: '#0d4e4e',
+      secondary: '#1a7575',
+      bg: '#f4f7f8',
       white: '#ffffff',
       text: '#333333',
       red: '#e74c3c'
@@ -311,33 +308,34 @@
       return (
         <div className="flex flex-col items-center justify-center min-h-screen p-6">
           <div className="bg-white rounded-3xl shadow-xl p-10 w-full max-w-md text-center">
-            <div className="bg-[#db2777] text-white p-4 rounded-2xl inline-block mb-6 shadow-md">
+            <div className="bg-[#0d4e4e] text-white p-4 rounded-2xl inline-block mb-6 shadow-md">
               <Icons.Book />
             </div>
-            <h1 className="text-3xl font-bold mb-8 text-[#db2777]">2027 決戰會考</h1>
+            <h1 className="text-3xl font-bold mb-2 text-[#0d4e4e]">POPPINS 錯題紀錄系統</h1>
+            <h2 className="text-xl text-[#27ae60] mb-8 font-semibold">PRO 試用版</h2>
             
             <div className="text-left mb-6">
               <label className="block text-sm font-semibold text-gray-500 mb-2 flex justify-between items-center">
                 <span>✨ GOOGLE AI API KEY</span>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#db2777] text-xs underline">前往免費申請</a>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#0d4e4e] text-xs underline">前往免費申請</a>
               </label>
               <input 
                 type="password" 
                 placeholder="請貼上您的 API Key (AIza...)" 
-                className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#db2777]"
+                className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0d4e4e]"
                 value={inputKey}
                 onChange={(e) => setInputKey(e.target.value)}
               />
             </div>
 
             <div className="bg-gray-50 p-4 rounded-xl text-sm text-left text-gray-600 mb-8 border border-gray-100 flex items-start gap-2">
-               <span className="text-[#db2777] mt-0.5"><Icons.Book /></span>
+               <span className="text-[#0d4e4e] mt-0.5"><Icons.Book /></span>
                <p>安全機制 (BYOK)：此 API Key 僅會儲存在您的本機裝置中，系統絕對不會將其傳送至任何外部伺服器。</p>
             </div>
 
             <button 
               onClick={() => onLogin(inputKey)}
-              className="w-full bg-[#db2777] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#be185d] transition-colors flex justify-center items-center gap-2"
+              className="w-full bg-[#0d4e4e] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#0a3d3d] transition-colors flex justify-center items-center gap-2"
             >
                進入系統
             </button>
@@ -362,29 +360,30 @@
         <div className="min-h-screen flex flex-col p-6 max-w-4xl mx-auto">
           <header className="flex justify-between items-center mb-12 py-4">
             <div className="flex items-center gap-3">
-              <div className="bg-[#db2777] text-white p-2 rounded-lg"><Icons.Book /></div>
-              <span className="font-bold text-[#db2777] text-xl">2027 決戰會考</span>
+              <div className="bg-[#0d4e4e] text-white p-2 rounded-lg"><Icons.Book /></div>
+              <span className="font-bold text-[#0d4e4e] text-xl">POPPINS 數位錯題本</span>
             </div>
             <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-800">登出</button>
           </header>
 
           <main className="flex-grow flex flex-col items-center justify-center text-center">
-             <div className="bg-white p-6 rounded-3xl shadow-sm mb-8 inline-block text-[#db2777]">
+             <div className="bg-white p-6 rounded-3xl shadow-sm mb-8 inline-block text-[#0d4e4e]">
                 <Icons.Wand />
              </div>
-             <h1 className="text-4xl font-bold mb-6 text-gray-800 tracking-wide">2027 決戰會考</h1>
+             <h1 className="text-4xl font-bold mb-2 text-gray-800 tracking-wide">POPPINS 錯題紀錄系統</h1>
+             <h2 className="text-3xl text-[#27ae60] mb-6 font-bold">PRO 試用版</h2>
              <p className="text-gray-500 mb-12 tracking-widest">今天的努力，是為了遇見更好的自己。</p>
 
              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <button 
                   onClick={() => fileInputRef.current.click()}
-                  className="flex-1 bg-[#db2777] text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:bg-[#be185d] transition-colors flex justify-center items-center gap-2"
+                  className="flex-1 bg-[#0d4e4e] text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:bg-[#0a3d3d] transition-colors flex justify-center items-center gap-2"
                 >
                   <Icons.Camera /> 開始製作
                 </button>
                 <button 
                   onClick={onGoList}
-                  className="flex-1 bg-white text-[#db2777] border-2 border-[#db2777] py-4 px-6 rounded-xl font-bold text-lg hover:bg-pink-50 transition-colors flex justify-center items-center gap-2"
+                  className="flex-1 bg-white text-[#0d4e4e] border-2 border-[#0d4e4e] py-4 px-6 rounded-xl font-bold text-lg hover:bg-gray-50 transition-colors flex justify-center items-center gap-2"
                 >
                   <Icons.Book /> 檢視題本
                 </button>
@@ -490,43 +489,41 @@
       };
 
       return (
-        <div className="fixed inset-0 bg-gray-900 flex flex-col z-50">
-          <div className="flex justify-between items-center p-4 text-white bg-gray-800 shadow-md z-20">
+        <div className="fixed inset-0 bg-black flex flex-col z-50">
+          <div className="flex justify-between items-center p-4 text-white">
             <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
             <span className="font-bold">第一步：裁切題目</span>
             <div className="w-8"></div>
           </div>
           
           <div className="flex-grow relative overflow-hidden flex items-center justify-center p-4">
-            <div className="relative inline-block" style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 160px)' }}>
+            <div ref={containerRef} className="relative w-full h-full max-w-3xl max-h-full">
                 <img 
                   ref={imgRef} 
                   src={imageUrl} 
                   alt="To crop" 
-                  className="block pointer-events-none" 
-                  style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 160px)', width: 'auto', height: 'auto' }}
+                  className="absolute inset-0 w-full h-full object-contain pointer-events-none" 
                 />
-                <div ref={containerRef} className="absolute inset-0 touch-none">
-                  <div 
-                    className="absolute border-[3px] border-[#db2777] shadow-[0_0_0_9999px_rgba(0,0,0,0.65)]"
-                    style={{
-                      top: `${cropBox.y}%`, left: `${cropBox.x}%`, 
-                      width: `${cropBox.width}%`, height: `${cropBox.height}%`,
-                    }}
-                  >
-                    <div className="absolute inset-0 cursor-move" onMouseDown={(e) => startDrag(e, 'move')} onTouchStart={(e) => startDrag(e, 'move')} />
-                    <div className="absolute top-0 left-0 w-6 h-6 bg-[#db2777] -mt-3 -ml-3 rounded-full cursor-nwse-resize z-10 shadow-sm" onMouseDown={(e) => startDrag(e, 'nw')} onTouchStart={(e) => startDrag(e, 'nw')} />
-                    <div className="absolute top-0 right-0 w-6 h-6 bg-[#db2777] -mt-3 -mr-3 rounded-full cursor-nesw-resize z-10 shadow-sm" onMouseDown={(e) => startDrag(e, 'ne')} onTouchStart={(e) => startDrag(e, 'ne')} />
-                    <div className="absolute bottom-0 left-0 w-6 h-6 bg-[#db2777] -mb-3 -ml-3 rounded-full cursor-nesw-resize z-10 shadow-sm" onMouseDown={(e) => startDrag(e, 'sw')} onTouchStart={(e) => startDrag(e, 'sw')} />
-                    <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#db2777] -mb-3 -mr-3 rounded-full cursor-nwse-resize z-10 shadow-sm" onMouseDown={(e) => startDrag(e, 'se')} onTouchStart={(e) => startDrag(e, 'se')} />
-                  </div>
+                <div 
+                  className="absolute border-2 border-blue-500 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"
+                  style={{
+                    top: `${cropBox.y}%`, left: `${cropBox.x}%`, 
+                    width: `${cropBox.width}%`, height: `${cropBox.height}%`,
+                    touchAction: 'none'
+                  }}
+                >
+                  <div className="absolute inset-0 cursor-move" onMouseDown={(e) => startDrag(e, 'move')} onTouchStart={(e) => startDrag(e, 'move')} />
+                  <div className="absolute top-0 left-0 w-6 h-6 bg-blue-500 -mt-3 -ml-3 rounded-full cursor-nwse-resize z-10" onMouseDown={(e) => startDrag(e, 'nw')} onTouchStart={(e) => startDrag(e, 'nw')} />
+                  <div className="absolute top-0 right-0 w-6 h-6 bg-blue-500 -mt-3 -mr-3 rounded-full cursor-nesw-resize z-10" onMouseDown={(e) => startDrag(e, 'ne')} onTouchStart={(e) => startDrag(e, 'ne')} />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 bg-blue-500 -mb-3 -ml-3 rounded-full cursor-nesw-resize z-10" onMouseDown={(e) => startDrag(e, 'sw')} onTouchStart={(e) => startDrag(e, 'sw')} />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 -mb-3 -mr-3 rounded-full cursor-nwse-resize z-10" onMouseDown={(e) => startDrag(e, 'se')} onTouchStart={(e) => startDrag(e, 'se')} />
                 </div>
             </div>
           </div>
 
-          <div className="p-6 bg-white rounded-t-3xl flex gap-4 justify-between items-center shadow-lg z-20">
+          <div className="p-6 bg-white rounded-t-3xl flex gap-4 justify-between items-center shadow-lg">
              <button onClick={onCancel} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold flex-1">重新選圖</button>
-             <button onClick={handleConfirm} className="px-6 py-3 bg-[#db2777] text-white rounded-xl font-bold flex-1 flex justify-center items-center gap-2 hover:bg-[#be185d] transition-colors">下一步 <Icons.Scissors/></button>
+             <button onClick={handleConfirm} className="px-6 py-3 bg-[#0d4e4e] text-white rounded-xl font-bold flex-1 flex justify-center items-center gap-2">下一步 <Icons.Scissors/></button>
           </div>
         </div>
       );
@@ -645,8 +642,8 @@
         <div className="fixed inset-0 bg-gray-100 flex flex-col z-50">
            <div className="flex justify-between items-center p-4 bg-white shadow-sm z-10">
             <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
-            <span className="font-bold text-gray-800">第二步：影像處理</span>
-            <button onClick={() => onComplete(canvasRef.current.toDataURL('image/jpeg', 0.9))} className="px-4 py-2 bg-[#db2777] hover:bg-[#be185d] transition-colors text-white rounded-lg text-sm font-bold">
+            <span className="font-bold">第二步：影像處理</span>
+            <button onClick={() => onComplete(canvasRef.current.toDataURL('image/jpeg', 0.9))} className="px-4 py-2 bg-[#0d4e4e] text-white rounded-lg text-sm font-bold">
               完成
             </button>
           </div>
@@ -669,7 +666,7 @@
           <div className="bg-white p-4 pb-8 flex justify-center gap-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
             <button 
               onClick={() => setMode(mode === 'eraser' ? 'none' : 'eraser')}
-              className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#db2777] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#0d4e4e] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               <Icons.Eraser />
               <span className="text-xs font-bold">手動橡皮擦</span>
@@ -698,10 +695,10 @@
     function LoadingView({ message }) {
       return (
         <div className="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50">
-          <div className="animate-spin text-[#db2777] mb-4">
+          <div className="animate-spin text-[#0d4e4e] mb-4">
             <Icons.Book /> 
           </div>
-          <p className="text-lg font-bold text-[#db2777]">{message}</p>
+          <p className="text-lg font-bold text-[#0d4e4e]">{message}</p>
         </div>
       );
     }
@@ -718,8 +715,8 @@
         <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
           <div className="bg-white p-4 shadow-sm sticky top-0 flex justify-between items-center z-10">
             <button onClick={onCancel} className="p-2 text-gray-500"><Icons.ArrowLeft /></button>
-            <span className="font-bold text-lg text-gray-800">確認並儲存</span>
-            <button onClick={() => onSave(formData)} className="px-5 py-2 bg-[#db2777] hover:bg-[#be185d] transition-colors text-white rounded-lg font-bold">
+            <span className="font-bold text-lg">確認並儲存</span>
+            <button onClick={() => onSave(formData)} className="px-5 py-2 bg-[#0d4e4e] text-white rounded-lg font-bold">
               儲存題本
             </button>
           </div>
@@ -731,13 +728,13 @@
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
               <div className="flex items-center gap-2 mb-4">
-                <Icons.Wand /> <span className="font-bold text-[#db2777]">AI 分類結果 (可手動修改)</span>
+                <Icons.Wand /> <span className="font-bold text-[#0d4e4e]">AI 分類結果 (可手動修改)</span>
               </div>
               
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">科目</label>
                 <input 
-                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#db2777] outline-none"
+                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#0d4e4e] outline-none"
                   value={formData.subject}
                   onChange={e => setFormData({...formData, subject: e.target.value})}
                   placeholder="例如：數學、國文..."
@@ -747,7 +744,7 @@
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">核心知識點 / 單元</label>
                 <input 
-                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#db2777] outline-none"
+                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#0d4e4e] outline-none"
                   value={formData.concept}
                   onChange={e => setFormData({...formData, concept: e.target.value})}
                   placeholder="例如：一元一次方程式"
@@ -759,7 +756,7 @@
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">正確解答 (選填)</label>
                 <textarea 
-                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#db2777] outline-none h-24"
+                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#0d4e4e] outline-none h-24"
                   value={formData.answer}
                   onChange={e => setFormData({...formData, answer: e.target.value})}
                   placeholder="輸入正確答案..."
@@ -769,7 +766,7 @@
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">錯題筆記 / 訂正過程 (選填)</label>
                 <textarea 
-                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#db2777] outline-none h-32"
+                  className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#0d4e4e] outline-none h-32"
                   value={formData.notes}
                   onChange={e => setFormData({...formData, notes: e.target.value})}
                   placeholder="為什麼會錯？下次要注意什麼？"
@@ -808,10 +805,10 @@
 
       return (
         <div className="min-h-screen bg-gray-50">
-          <div className="bg-[#db2777] text-white p-4 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
-            <button onClick={onBack} className="p-2 hover:bg-[#be185d] rounded-full transition-colors"><Icons.ArrowLeft /></button>
+          <div className="bg-[#0d4e4e] text-white p-4 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
+            <button onClick={onBack} className="p-2"><Icons.ArrowLeft /></button>
             <h1 className="font-bold text-xl">我的數位錯題本</h1>
-            <button onClick={handlePrint} className="bg-white text-[#db2777] px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-pink-50 transition-colors">
+            <button onClick={handlePrint} className="bg-white text-[#0d4e4e] px-4 py-2 rounded-lg font-bold flex items-center gap-2">
               <Icons.Printer /> 輸出 PDF
             </button>
           </div>
@@ -822,7 +819,7 @@
                 <button 
                   key={sub}
                   onClick={() => setFilterSubject(sub)}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filterSubject === sub ? 'bg-[#db2777] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filterSubject === sub ? 'bg-[#0d4e4e] text-white' : 'bg-gray-100 text-gray-600'}`}
                 >
                   {sub}
                 </button>
@@ -830,9 +827,9 @@
             </div>
           </div>
 
-          <div id="print-area" className="p-4 print:p-0 max-w-4xl mx-auto space-y-6 print:space-y-0">
+          <div id="print-area" className="p-4 max-w-4xl mx-auto space-y-6">
             
-            <div className="hidden print:block text-center mb-8 print-header border-b-2 border-black pb-4">
+            <div className="hidden print:block text-center mb-8 border-b-2 border-black pb-4">
               <h1 className="text-3xl font-bold">{filterSubject === 'All' ? '綜合' : filterSubject} 錯題本</h1>
               <p className="text-gray-500 mt-2">列印日期：{new Date().toLocaleDateString()}</p>
             </div>
@@ -844,33 +841,33 @@
                </div>
             ) : (
               filteredData.map((item, index) => (
-                <div key={item.id} className="bg-white p-6 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid">
-                  <div className="flex justify-between items-start mb-4 print:mb-2">
+                <div key={item.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black print:mb-8 break-inside-avoid">
+                  <div className="flex justify-between items-start mb-4">
                     <div className="flex flex-wrap gap-2">
-                      <span className="bg-pink-100 print:bg-transparent print:border print:border-black text-[#db2777] print:text-black px-3 py-1 rounded-full text-sm font-bold">#{index + 1} {item.subject}</span>
-                      <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-3 py-1 rounded-full text-sm font-bold">{item.concept}</span>
+                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">#{index + 1} {item.subject}</span>
+                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">{item.concept}</span>
                     </div>
-                    <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 p-2 no-print transition-colors">
+                    <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600 p-2 no-print">
                       <Icons.Trash />
                     </button>
                   </div>
                   
-                  <div className="mb-4 print:mb-2">
-                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-100 rounded-lg print:border-none print-img" />
+                  <div className="mb-4">
+                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-100 rounded-lg print:border-none" />
                   </div>
 
                   {(item.answer || item.notes) && (
-                    <div className="bg-pink-50 print:bg-white p-4 print:p-2 print:pl-4 rounded-xl border border-pink-100 print:border-l-4 print:border-t-0 print:border-r-0 print:border-b-0 print:border-gray-800">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 print:border-dashed print:border-gray-400">
                       {item.answer && (
-                        <div className="mb-3 print:mb-2">
-                          <span className="font-bold text-gray-800 print:text-black text-lg">解答：</span>
-                          <span className="text-gray-800 print:text-black text-lg whitespace-pre-wrap">{item.answer}</span>
+                        <div className="mb-3">
+                          <span className="font-bold text-gray-700">解答：</span>
+                          <span className="text-gray-800 whitespace-pre-wrap">{item.answer}</span>
                         </div>
                       )}
                       {item.notes && (
                         <div>
-                          <span className="font-bold text-[#db2777] print:text-black text-lg">筆記：</span>
-                          <p className="text-gray-700 print:text-black text-lg whitespace-pre-wrap mt-1">{item.notes}</p>
+                          <span className="font-bold text-[#0d4e4e]">筆記：</span>
+                          <p className="text-gray-600 whitespace-pre-wrap mt-1">{item.notes}</p>
                         </div>
                       )}
                     </div>
