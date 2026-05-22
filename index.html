@@ -95,7 +95,7 @@
       // --- 載入 Firebase 環境 ---
       useEffect(() => {
         if (!fbConfig) {
-           return; // 如果沒有設定檔，就不載入 Firebase
+           return; 
         }
 
         setIsDbLoading(true);
@@ -103,10 +103,10 @@
 
         const loadFirebase = async () => {
           try {
-            // 動態引入 Firebase SDK
-            const fbApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-            const fbAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-            const fbDb = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            // 使用 new Function 避開 Babel 對 import() 的編譯，修正 require is not defined 錯誤
+            const fbApp = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js")')();
+            const fbAuth = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")')();
+            const fbDb = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")')();
             
             // 初始化 Firebase
             const app = fbApp.initializeApp(fbConfig);
