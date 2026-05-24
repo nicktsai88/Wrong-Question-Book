@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🏆 決戰會考 錯題本</title>
+  <title>2027 決戰會考</title>
   
   <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -683,8 +683,8 @@
         onComplete(dstCvs.toDataURL('image/jpeg', 0.9));
       };
 
-      // 產生 SVG 多邊形字串 (將百分比轉為 viewBox 的絕對數值)
-      const polygonPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+      // 產生 SVG 多邊形字串
+      const polygonPoints = pts.map(p => `${p.x}%,${p.y}%`).join(' ');
 
       return (
         <div className="fixed inset-0 bg-gray-900 flex flex-col z-50">
@@ -701,16 +701,16 @@
                   style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 160px)', width: 'auto', height: 'auto' }}
                 />
                 
-                {/* SVG Mask overlay with viewBox to support absolute coordinates mapping */}
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                {/* SVG Mask overlay */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
                   <defs>
                     <mask id="crop-mask">
-                      <rect width="100" height="100" fill="white" />
+                      <rect width="100%" height="100%" fill="white" />
                       <polygon points={polygonPoints} fill="black" />
                     </mask>
                   </defs>
-                  <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask="url(#crop-mask)" />
-                  <polygon points={polygonPoints} fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="1,1" vectorEffect="non-scaling-stroke" />
+                  <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#crop-mask)" />
+                  <polygon points={polygonPoints} fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="5,5" />
                 </svg>
 
                 {/* Draggable corners */}
