@@ -16,13 +16,6 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
-    html {
-      -webkit-text-size-adjust: 100%;
-      text-size-adjust: 100%;
-      overflow-y: scroll;
-    }
-
     /* 列印專用樣式 - 強制純白背景 */
     @media print {
       body, html, #root, .min-h-screen, .bg-\[\#fffbeb\] { background-color: #ffffff !important; }
