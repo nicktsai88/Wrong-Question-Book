@@ -161,7 +161,6 @@
       Eraser: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>,
       Wand: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></svg>,
       Trash: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>,
-      Edit: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
       Printer: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect width="12" height="8" x="6" y="14" /></svg>,
       ArrowLeft: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>,
       Contrast: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/></svg>,
@@ -292,7 +291,6 @@
           2. "volume" 必須是該科目的冊別 (如 "第1冊")。若該科目無冊別(國文、英文)，請填 null。
           3. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。
           4. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
-          5. 【極度重要】次標題(sub_subject)請務必仔細分析題目內容所屬的學科概念，例如「幾何圖形、角度、外角」相關的必須歸類在幾何章節(如：平行與四邊形)，請勿僅憑題目出現的數字或非關鍵字誤判為數列或代數。
 
           JSON 格式必須嚴格如下：
           {
@@ -1119,10 +1117,6 @@
       const [searchQuery, setSearchQuery] = useState(''); 
       const [isFetching, setIsFetching] = useState(true);
       
-      // 編輯狀態
-      const [editingId, setEditingId] = useState(null);
-      const [editFormData, setEditFormData] = useState({});
-      
       useEffect(() => {
         if (!user || !FB || !currentProfile) return;
         setIsFetching(true);
@@ -1144,57 +1138,6 @@
         if(window.confirm('確定要從雲端刪除這題嗎？(刪除後無法復原)')) {
           try { await FB.deleteDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, id)); } 
           catch(e) { alert('刪除失敗'); }
-        }
-      };
-
-      // 觸發編輯模式
-      const handleEditClick = (item) => {
-        setEditingId(item.id);
-        const subj = SUBJECT_ORDER.includes(item.subject) ? item.subject : '國文';
-        setEditFormData({
-          subject: subj,
-          volume: item.volume || (CURRICULUM_DB[subj].hasVolume ? Object.keys(CURRICULUM_DB[subj].volumes)[0] : null),
-          sub_subject: item.sub_subject || '',
-          concept: item.concept || ''
-        });
-      };
-
-      // 編輯模式的連動選單處理
-      const handleEditSubjectChange = (e) => {
-        const newSubj = e.target.value;
-        const info = CURRICULUM_DB[newSubj];
-        let newVol = null;
-        let newSubSubj = '';
-        if (info && info.hasVolume) {
-            newVol = Object.keys(info.volumes)[0];
-            newSubSubj = info.volumes[newVol][0];
-        } else if (info) {
-            newSubSubj = info.chapters[0];
-        }
-        setEditFormData({ ...editFormData, subject: newSubj, volume: newVol, sub_subject: newSubSubj });
-      };
-
-      const handleEditVolumeChange = (e) => {
-        const newVol = e.target.value;
-        const info = CURRICULUM_DB[editFormData.subject];
-        const newSubSubj = info.volumes[newVol]?.[0] || '';
-        setEditFormData({ ...editFormData, volume: newVol, sub_subject: newSubSubj });
-      };
-
-      // 儲存編輯結果
-      const handleSaveEdit = async (id) => {
-        if (!user || !FB || !currentProfile) return;
-        try {
-          await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, id), {
-            subject: editFormData.subject,
-            volume: editFormData.volume,
-            sub_subject: editFormData.sub_subject,
-            concept: editFormData.concept
-          });
-          setEditingId(null);
-        } catch (e) {
-          console.error(e);
-          alert('更新失敗');
         }
       };
 
@@ -1342,67 +1285,30 @@
               filteredData.map((item, index) => (
                 <div key={item.id} className="bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 print:mb-3">
-                    
-                    {/* 若目前項目為編輯模式 */}
-                    {editingId === item.id ? (
-                       <div className="flex flex-col gap-3 w-full bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-inner no-print">
-                          <div className="flex flex-wrap gap-2 items-center font-bold text-gray-700">
-                             <span className="text-[#b45309]">編輯分類：</span>
-                             <select className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none" value={editFormData.subject} onChange={handleEditSubjectChange}>
-                               {SUBJECT_ORDER.map(s => <option key={s} value={s}>{s}</option>)}
-                             </select>
-                             {CURRICULUM_DB[editFormData.subject]?.hasVolume && (
-                               <select className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none" value={editFormData.volume || ''} onChange={handleEditVolumeChange}>
-                                 {Object.keys(CURRICULUM_DB[editFormData.subject].volumes).map(v => <option key={v} value={v}>{v}</option>)}
-                               </select>
-                             )}
-                             <select className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none max-w-full sm:max-w-xs truncate" value={editFormData.sub_subject || ''} onChange={e => setEditFormData({...editFormData, sub_subject: e.target.value})}>
-                               {CURRICULUM_DB[editFormData.subject]?.hasVolume
-                                  ? (CURRICULUM_DB[editFormData.subject].volumes[editFormData.volume] || []).map(c => <option key={c} value={c}>{c}</option>)
-                                  : (CURRICULUM_DB[editFormData.subject]?.chapters || []).map(c => <option key={c} value={c}>{c}</option>)
-                               }
-                             </select>
-                             <input className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none flex-grow min-w-[150px]" value={editFormData.concept} onChange={e => setEditFormData({...editFormData, concept: e.target.value})} placeholder="核心知識" />
-                          </div>
-                          <div className="flex justify-end gap-3 mt-1">
-                             <button onClick={() => setEditingId(null)} className="px-5 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg font-bold transition-colors">取消</button>
-                             <button onClick={() => handleSaveEdit(item.id)} className="px-5 py-2 bg-[#f59e0b] text-white hover:bg-[#d97706] rounded-lg font-bold transition-colors">儲存</button>
-                          </div>
-                       </div>
-                    ) : (
-                       /* 非編輯模式 - 正常顯示分類與熟練度 */
-                       <div className="flex flex-wrap gap-3 items-center w-full">
-                         <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 rounded-full text-base font-bold border border-amber-200">
-                           #{index + 1} {item.subject} {item.volume ? item.volume : ''}
-                         </span>
-                         {item.sub_subject && (
-                            <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 rounded-full text-base font-semibold">{item.sub_subject}</span>
-                         )}
-                         <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 rounded-full text-base font-bold">🎯 {item.concept}</span>
-                         
-                         {/* 顯示並在網頁端提供點擊切換熟練度 */}
-                         <button 
-                           onClick={() => handleUpdateMastery(item.id, item.mastery)}
-                           className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
-                           title="點擊切換熟練度"
-                         >
-                            {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
-                         </button>
-                         
-                         {/* 列印時僅顯示靜態 Emoji */}
-                         <span className="hidden print:inline-block ml-2 text-2xl">
-                            {(!item.mastery || item.mastery === 'need_review') ? '🔴' : '🟢'}
-                         </span>
-                       </div>
-                    )}
-
-                    {/* 操作按鈕 (編輯 / 刪除) - 僅在非編輯模式顯示 */}
-                    {editingId !== item.id && (
-                       <div className="flex items-center gap-1 self-end sm:self-auto no-print flex-shrink-0">
-                         <button onClick={() => handleEditClick(item)} className="text-gray-400 hover:text-[#f59e0b] p-2 transition-colors" title="編輯分類"><Icons.Edit /></button>
-                         <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 p-2 transition-colors" title="刪除錯題"><Icons.Trash /></button>
-                       </div>
-                    )}
+                    <div className="flex flex-wrap gap-3 items-center w-full">
+                      <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 rounded-full text-base font-bold border border-amber-200">
+                        #{index + 1} {item.subject} {item.volume ? item.volume : ''}
+                      </span>
+                      {item.sub_subject && (
+                         <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 rounded-full text-base font-semibold">{item.sub_subject}</span>
+                      )}
+                      <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 rounded-full text-base font-bold">🎯 {item.concept}</span>
+                      
+                      {/* 顯示並在網頁端提供點擊切換熟練度 */}
+                      <button 
+                        onClick={() => handleUpdateMastery(item.id, item.mastery)}
+                        className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
+                        title="點擊切換熟練度"
+                      >
+                         {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
+                      </button>
+                      
+                      {/* 列印時僅顯示靜態 Emoji */}
+                      <span className="hidden print:inline-block ml-2 text-2xl">
+                         {(!item.mastery || item.mastery === 'need_review') ? '🔴' : '🟢'}
+                      </span>
+                    </div>
+                    <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 p-2 no-print transition-colors self-end sm:self-auto"><Icons.Trash /></button>
                   </div>
                   
                   <div className="mb-5 print:mb-4 bg-white print:bg-white">
