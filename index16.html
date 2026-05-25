@@ -859,11 +859,6 @@
       const [mode, setMode] = useState('none');
       const historyRef = useRef([]); // 用於存放 Undo 的歷史紀錄
       const [canUndo, setCanUndo] = useState(false);
-      
-      // 新增：橡皮擦大小與游標狀態
-      const [eraserSize, setEraserSize] = useState(40);
-      const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
-      const [showCursor, setShowCursor] = useState(false);
 
       useEffect(() => {
         const canvas = canvasRef.current;
@@ -897,50 +892,16 @@
         setCanUndo(historyRef.current.length > 0);
       };
 
-      // 更新游標位置
-      const updateCursorPos = (e) => {
-        if (mode !== 'eraser') return;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        setCursorPos({ x: clientX, y: clientY });
-      };
-
       const startDrawing = (e) => {
         if (mode !== 'eraser') return;
-        updateCursorPos(e);
-        setShowCursor(true);
         saveState(); // 畫下第一筆前儲存狀態
         setIsErasing(true);
-        
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const x = (clientX - rect.left) * scaleX, y = (clientY - rect.top) * scaleY;
-        
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        // 點擊時畫一個點，處理單點觸控也能擦除
-        ctx.lineWidth = eraserSize * scaleX;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineTo(x, y);
-        ctx.stroke();
+        draw(e);
       };
       
-      const stopDrawing = () => { 
-        setIsErasing(false); 
-        const ctx = canvasRef.current?.getContext('2d'); 
-        if(ctx) ctx.beginPath(); 
-      };
+      const stopDrawing = () => { setIsErasing(false); const ctx = canvasRef.current.getContext('2d'); ctx.beginPath(); };
       
       const draw = (e) => {
-        if (mode === 'eraser') {
-          updateCursorPos(e);
-        }
         if (!isErasing || mode !== 'eraser') return;
         e.preventDefault();
         const canvas = canvasRef.current;
@@ -950,10 +911,8 @@
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         const x = (clientX - rect.left) * scaleX, y = (clientY - rect.top) * scaleY;
-        
-        ctx.lineWidth = eraserSize * scaleX;
+        ctx.lineWidth = 40 * scaleX;
         ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
         ctx.strokeStyle = '#ffffff';
         ctx.lineTo(x, y);
         ctx.stroke();
@@ -1024,20 +983,6 @@
 
       return (
         <div className="fixed inset-0 bg-gray-100 flex flex-col z-50">
-           {/* 自訂橡皮擦圓框游標 (Apple Pencil / 鼠標通用) */}
-           {mode === 'eraser' && showCursor && (
-             <div 
-               className="fixed z-50 border border-black pointer-events-none rounded-full shadow-[0_0_0_1px_rgba(255,255,255,0.9)] bg-white/20"
-               style={{
-                 left: cursorPos.x,
-                 top: cursorPos.y,
-                 width: eraserSize,
-                 height: eraserSize,
-                 transform: 'translate(-50%, -50%)'
-               }}
-             />
-           )}
-
            <div className="flex justify-between items-center p-5 bg-white shadow-sm z-10">
             <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
             <div className="flex items-center gap-4">
@@ -1053,49 +998,31 @@
             </button>
           </div>
 
-          <div className="flex-grow overflow-auto flex items-center justify-center p-4 touch-none relative">
-            <canvas ref={canvasRef} className={`max-w-full max-h-full shadow-md bg-white border border-gray-300 ${mode === 'eraser' ? 'cursor-none' : ''}`}
+          <div className="flex-grow overflow-auto flex items-center justify-center p-4 touch-none">
+            <canvas ref={canvasRef} className="max-w-full max-h-full shadow-md bg-white border border-gray-300"
               style={{ touchAction: mode === 'eraser' ? 'none' : 'auto' }}
-              onMouseEnter={() => mode === 'eraser' && setShowCursor(true)}
-              onMouseLeave={() => { setShowCursor(false); stopDrawing(); }}
-              onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing}
-              onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={() => { stopDrawing(); setShowCursor(false); }} />
+              onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseOut={stopDrawing}
+              onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
           </div>
 
-          <div className="relative">
-            {/* 橡皮擦大小選單 */}
-            {mode === 'eraser' && (
-              <div className="absolute bottom-full left-0 right-0 flex justify-center pb-4 pointer-events-none">
-                 <div className="bg-white/95 backdrop-blur px-6 py-3 rounded-full shadow-lg border border-gray-200 flex items-center gap-6 pointer-events-auto">
-                    <span className="text-sm font-bold text-gray-700">擦拭範圍</span>
-                    <div className="flex items-center gap-4">
-                      <button onClick={() => setEraserSize(20)} className={`w-12 h-12 flex items-center justify-center rounded-full transition-all ${eraserSize === 20 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="小"><div className="w-3 h-3 rounded-full bg-current"></div></button>
-                      <button onClick={() => setEraserSize(40)} className={`w-12 h-12 flex items-center justify-center rounded-full transition-all ${eraserSize === 40 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="中"><div className="w-5 h-5 rounded-full bg-current"></div></button>
-                      <button onClick={() => setEraserSize(80)} className={`w-12 h-12 flex items-center justify-center rounded-full transition-all ${eraserSize === 80 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="大"><div className="w-8 h-8 rounded-full bg-current"></div></button>
-                    </div>
-                 </div>
-              </div>
-            )}
-            
-            <div className="bg-white p-4 pb-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
-              <div className="flex justify-center gap-2 sm:gap-6 overflow-x-auto pb-2 scrollbar-hide w-full max-w-2xl mx-auto">
-                <button onClick={() => setMode(mode === 'eraser' ? 'none' : 'eraser')}
-                  className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}>
-                  <Icons.Eraser /><span className="text-sm font-bold">🧽 橡皮擦</span>
-                </button>
-                <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
-                <button onClick={handleRemoveColoredPen} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-blue-500 hover:bg-blue-50 transition-colors">
-                  <Icons.Wand /><span className="text-sm font-bold">🪄 去彩筆跡</span>
-                </button>
-                <button onClick={handleRemovePencil} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-600 hover:bg-gray-100 transition-colors">
-                  <Icons.Pencil /><span className="text-sm font-bold">✏️ 去鉛筆跡</span>
-                </button>
-                <button onClick={handleRemoveBackground} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-800 hover:bg-gray-100 transition-colors">
-                  <Icons.Contrast /><span className="text-sm font-bold">🌗 黑白淨化</span>
-                </button>
-              </div>
-              <div className="text-center mt-1 text-xs text-gray-400 font-bold">💡 提示：若無法完全清除，可連續多次點擊加深效果，或搭配手動橡皮擦使用</div>
+          <div className="bg-white p-4 pb-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <div className="flex justify-center gap-2 sm:gap-6 overflow-x-auto pb-2 scrollbar-hide w-full max-w-2xl mx-auto">
+              <button onClick={() => setMode(mode === 'eraser' ? 'none' : 'eraser')}
+                className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}>
+                <Icons.Eraser /><span className="text-sm font-bold">🧽 橡皮擦</span>
+              </button>
+              <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
+              <button onClick={handleRemoveColoredPen} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-blue-500 hover:bg-blue-50 transition-colors">
+                <Icons.Wand /><span className="text-sm font-bold">🪄 去彩筆跡</span>
+              </button>
+              <button onClick={handleRemovePencil} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-600 hover:bg-gray-100 transition-colors">
+                <Icons.Pencil /><span className="text-sm font-bold">✏️ 去鉛筆跡</span>
+              </button>
+              <button onClick={handleRemoveBackground} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-800 hover:bg-gray-100 transition-colors">
+                <Icons.Contrast /><span className="text-sm font-bold">🌗 黑白淨化</span>
+              </button>
             </div>
+            <div className="text-center mt-1 text-xs text-gray-400 font-bold">💡 提示：若無法完全清除，可連續多次點擊加深效果，或搭配手動橡皮擦使用</div>
           </div>
         </div>
       );
