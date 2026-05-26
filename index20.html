@@ -858,8 +858,7 @@
     function EditView({ imageUrl, onCancel, onComplete }) {
       const containerRef = useRef(null);
       const canvasRef = useRef(null);
-      const cursorRef = useRef(null); // 新增：使用 Ref 控制游標，避免書寫時 React 重新渲染導致卡頓
-      const isDrawingRef = useRef(false); // 新增：使用 Ref 紀錄書寫狀態，大幅提升流暢度
+      const [isDrawing, setIsDrawing] = useState(false);
       const [mode, setMode] = useState('none');
       const historyRef = useRef([]); // 用於存放 Undo 的歷史紀錄
       const [canUndo, setCanUndo] = useState(false);
@@ -869,6 +868,7 @@
       const [penSize, setPenSize] = useState(6);
       const [penColor, setPenColor] = useState('#ef4444'); // 預設紅筆
       
+      const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
       const [showCursor, setShowCursor] = useState(false);
       const [showSizePicker, setShowSizePicker] = useState(false);
       const [showPenPicker, setShowPenPicker] = useState(false);
@@ -921,11 +921,9 @@
         setCanUndo(historyRef.current.length > 0);
       };
 
-      // 高效更新游標位置 (繞過 React 狀態更新，達到零卡頓)
       const updateCursorPos = (clientX, clientY) => {
-        if ((mode !== 'eraser' && mode !== 'pen') || !cursorRef.current) return;
-        cursorRef.current.style.left = `${clientX}px`;
-        cursorRef.current.style.top = `${clientY}px`;
+        if (mode !== 'eraser' && mode !== 'pen') return;
+        setCursorPos({ x: clientX, y: clientY });
       };
 
       // 統一整合的觸控/滑鼠起始事件
@@ -937,16 +935,8 @@
             return;
         }
 
-        const isTouch = !!e.touches;
-        
-        // 🌟 Apple Pencil 防手掌誤觸機制 🌟
-        // 若為書寫模式，且觸控來源為手指 ('direct')，則直接忽略，只允許 Apple Pencil ('stylus') 書寫
-        if (isTouch && mode === 'pen' && e.touches[0].touchType === 'direct') {
-            return;
-        }
-
-        const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-        const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
         if (mode === 'scale') {
             setIsPanning(true);
@@ -955,12 +945,13 @@
             updateCursorPos(clientX, clientY);
             setShowCursor(true);
             saveState();
-            isDrawingRef.current = true; // 使用 Ref 記錄狀態
+            setIsDrawing(true);
             
             // 單點繪製
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
             const rect = canvas.getBoundingClientRect();
+            // 不論 transform 如何，這兩行都能精準映射到畫布內部像素
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const x = (clientX - rect.left) * scaleX;
@@ -989,15 +980,8 @@
             return;
         }
 
-        const isTouch = !!e.touches;
-
-        // 🌟 Apple Pencil 防手掌誤觸機制 🌟
-        if (isTouch && mode === 'pen' && e.touches[0].touchType === 'direct') {
-            return;
-        }
-
-        const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-        const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
         if (mode === 'scale' && isPanning) {
             e.preventDefault();
@@ -1006,7 +990,7 @@
             setPan({ x: panRef.current.startPanX + dx, y: panRef.current.startPanY + dy });
         } else if (mode === 'eraser' || mode === 'pen') {
             updateCursorPos(clientX, clientY);
-            if (!isDrawingRef.current) return;
+            if (!isDrawing) return;
             e.preventDefault();
             
             const canvas = canvasRef.current;
@@ -1017,6 +1001,10 @@
             const x = (clientX - rect.left) * scaleX;
             const y = (clientY - rect.top) * scaleY;
             
+            ctx.lineWidth = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : penColor;
             ctx.lineTo(x, y);
             ctx.stroke();
             ctx.beginPath();
@@ -1026,13 +1014,13 @@
 
       const endAction = () => {
         if (isPanning) setIsPanning(false);
-        if (isDrawingRef.current) {
-            isDrawingRef.current = false;
+        if (isDrawing) {
+            setIsDrawing(false);
             const ctx = canvasRef.current?.getContext('2d');
             if (ctx) ctx.beginPath();
         }
         touchRef.current.dist = 0;
-        if (!isDrawingRef.current && (mode === 'eraser' || mode === 'pen')) setShowCursor(false);
+        if (!isDrawing && (mode === 'eraser' || mode === 'pen')) setShowCursor(false);
       };
 
       // 加入電腦滑鼠滾輪縮放支援
@@ -1121,22 +1109,21 @@
 
       return (
         <div className="fixed inset-0 bg-gray-100 flex flex-col z-50">
-           {/* 高效渲染的游標元件 */}
-           <div 
-             ref={cursorRef}
-             className="fixed z-50 pointer-events-none rounded-full"
-             style={{
-               display: (mode === 'eraser' || mode === 'pen') && showCursor ? 'block' : 'none',
-               left: -100, top: -100, 
-               width: mode === 'eraser' ? eraserSize : penSize, 
-               height: mode === 'eraser' ? eraserSize : penSize,
-               transform: 'translate(-50%, -50%)',
-               boxShadow: mode === 'eraser' ? '0 0 0 2px black, inset 0 0 0 2px white' : '0 0 0 1px white, inset 0 0 0 1px black',
-               backgroundColor: mode === 'eraser' ? 'rgba(255,255,255,0.3)' : penColor,
-               opacity: mode === 'pen' ? 0.8 : 1,
-               willChange: 'left, top' // 開啟 GPU 加速，讓游標跟隨零延遲
-             }}
-           />
+           {/* 自訂橡皮擦與畫筆的圓框游標 */}
+           {(mode === 'eraser' || mode === 'pen') && showCursor && (
+             <div 
+               className="fixed z-50 pointer-events-none rounded-full"
+               style={{
+                 left: cursorPos.x, top: cursorPos.y, 
+                 width: mode === 'eraser' ? eraserSize : penSize, 
+                 height: mode === 'eraser' ? eraserSize : penSize,
+                 transform: 'translate(-50%, -50%)',
+                 boxShadow: mode === 'eraser' ? '0 0 0 2px black, inset 0 0 0 2px white' : '0 0 0 1px white, inset 0 0 0 1px black',
+                 backgroundColor: mode === 'eraser' ? 'rgba(255,255,255,0.3)' : penColor,
+                 opacity: mode === 'pen' ? 0.8 : 1
+               }}
+             />
+           )}
 
            <div className="flex justify-between items-center p-5 bg-white shadow-sm z-10">
             <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
