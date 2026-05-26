@@ -858,10 +858,8 @@
     function EditView({ imageUrl, onCancel, onComplete }) {
       const containerRef = useRef(null);
       const canvasRef = useRef(null);
-      const cursorRef = useRef(null); // 使用 Ref 控制游標，啟動 GPU 加速
-      const isDrawingRef = useRef(false); // 使用 Ref 紀錄書寫狀態，大幅提升流暢度
-      const lastPosRef = useRef({ x: 0, y: 0 }); // 紀錄上一個筆畫座標，使線條平滑不中斷
-      
+      const cursorRef = useRef(null); // 新增：使用 Ref 控制游標，避免書寫時 React 重新渲染導致卡頓
+      const isDrawingRef = useRef(false); // 新增：使用 Ref 紀錄書寫狀態，大幅提升流暢度
       const [mode, setMode] = useState('none');
       const historyRef = useRef([]); // 用於存放 Undo 的歷史紀錄
       const [canUndo, setCanUndo] = useState(false);
@@ -923,52 +921,32 @@
         setCanUndo(historyRef.current.length > 0);
       };
 
-      // 高效更新游標位置 (繞過 React 狀態更新，並使用 GPU 加速達到 120Hz 零卡頓)
+      // 高效更新游標位置 (繞過 React 狀態更新，達到零卡頓)
       const updateCursorPos = (clientX, clientY) => {
         if ((mode !== 'eraser' && mode !== 'pen') || !cursorRef.current) return;
-        // 改用 transform translate3d 直接觸發 GPU 渲染，效能遠高於修改 left/top
-        cursorRef.current.style.transform = `translate3d(calc(${clientX}px - 50%), calc(${clientY}px - 50%), 0)`;
-      };
-
-      // 取得畫布精確座標
-      const getCanvasPos = (clientX, clientY) => {
-        const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY,
-            scaleX // 回傳 scaleX 供調整筆刷比例使用
-        };
+        cursorRef.current.style.left = `${clientX}px`;
+        cursorRef.current.style.top = `${clientY}px`;
       };
 
       // 統一整合的觸控/滑鼠起始事件
       const startAction = (e) => {
-        const isTouch = !!e.touches;
-
-        // --- 處理雙指縮放 ---
-        if (isTouch && e.touches.length >= 2) {
-            // 如果正在書寫中，手掌誤觸產生兩點，應直接忽略，不打斷書寫
-            if (isDrawingRef.current) return; 
-
+        if (e.touches && e.touches.length === 2) {
+            // 雙指縮放
             const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
             touchRef.current.dist = dist;
             return;
         }
 
-        // --- 取得單點觸控/滑鼠座標 ---
-        const touch = isTouch ? e.touches[0] : null;
+        const isTouch = !!e.touches;
         
-        // 🌟 Apple Pencil 嚴格防手掌誤觸機制 🌟
-        // 如果是觸控螢幕，且目前處於畫筆或橡皮擦模式，我們檢查 touchType
-        // 若 touchType 存在且不等於 'stylus' (例如手指/手掌的 'direct')，則直接忽略，完全防呆！
-        if (isTouch && (mode === 'pen' || mode === 'eraser') && touch.touchType && touch.touchType !== 'stylus') {
+        // 🌟 Apple Pencil 防手掌誤觸機制 🌟
+        // 若為書寫模式，且觸控來源為手指 ('direct')，則直接忽略，只允許 Apple Pencil ('stylus') 書寫
+        if (isTouch && mode === 'pen' && e.touches[0].touchType === 'direct') {
             return;
         }
 
-        const clientX = isTouch ? touch.clientX : e.clientX;
-        const clientY = isTouch ? touch.clientY : e.clientY;
+        const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+        const clientY = isTouch ? e.touches[0].clientY : e.clientY;
 
         if (mode === 'scale') {
             setIsPanning(true);
@@ -977,48 +955,49 @@
             updateCursorPos(clientX, clientY);
             setShowCursor(true);
             saveState();
-            isDrawingRef.current = true;
+            isDrawingRef.current = true; // 使用 Ref 記錄狀態
             
-            const { x, y, scaleX } = getCanvasPos(clientX, clientY);
-            lastPosRef.current = { x, y };
-
-            const ctx = canvasRef.current.getContext('2d');
-            const currentSize = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
-            ctx.fillStyle = mode === 'eraser' ? '#ffffff' : penColor;
+            // 單點繪製
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
             
-            // 點擊時畫一個圓，確保輕觸也能留下完美圓潤的痕跡
             ctx.beginPath();
-            ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.moveTo(x, y);
+            ctx.lineWidth = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : penColor;
+            ctx.lineTo(x, y);
+            ctx.stroke();
         }
       };
 
       const moveAction = (e) => {
-        const isTouch = !!e.touches;
-
-        // --- 處理雙指縮放 ---
-        if (isTouch && e.touches.length >= 2) {
-            if (isDrawingRef.current) return; // 書寫中防干擾
-            e.preventDefault(); 
+        if (e.touches && e.touches.length === 2) {
+            e.preventDefault(); // 防止 Safari 縮放
             const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
             if (touchRef.current.dist > 0) {
                 const delta = dist / touchRef.current.dist;
-                setExportScale(prev => Math.min(Math.max(prev * delta, 0.2), 5));
+                setExportScale(prev => Math.min(Math.max(prev * delta, 0.2), 5)); // 限制範圍 0.2 ~ 5.0
             }
             touchRef.current.dist = dist;
             return;
         }
 
-        // --- 取得單點觸控/滑鼠座標 ---
-        const touch = isTouch ? e.touches[0] : null;
+        const isTouch = !!e.touches;
 
-        // 🌟 Apple Pencil 嚴格防手掌誤觸機制 🌟
-        if (isTouch && (mode === 'pen' || mode === 'eraser') && touch.touchType && touch.touchType !== 'stylus') {
+        // 🌟 Apple Pencil 防手掌誤觸機制 🌟
+        if (isTouch && mode === 'pen' && e.touches[0].touchType === 'direct') {
             return;
         }
 
-        const clientX = isTouch ? touch.clientX : e.clientX;
-        const clientY = isTouch ? touch.clientY : e.clientY;
+        const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+        const clientY = isTouch ? e.touches[0].clientY : e.clientY;
 
         if (mode === 'scale' && isPanning) {
             e.preventDefault();
@@ -1028,24 +1007,20 @@
         } else if (mode === 'eraser' || mode === 'pen') {
             updateCursorPos(clientX, clientY);
             if (!isDrawingRef.current) return;
-            e.preventDefault(); // 防止 Safari 畫面滑動
+            e.preventDefault();
             
-            const { x, y, scaleX } = getCanvasPos(clientX, clientY);
-            const ctx = canvasRef.current.getContext('2d');
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
             
-            ctx.lineWidth = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : penColor;
-            
-            // 使用連續線段繪製，徹底解決筆劃間卡頓不連續的問題
-            ctx.beginPath();
-            ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
             ctx.lineTo(x, y);
             ctx.stroke();
-
-            // 更新最後座標供下一幀使用
-            lastPosRef.current = { x, y };
+            ctx.beginPath();
+            ctx.moveTo(x, y);
         }
       };
 
@@ -1152,14 +1127,14 @@
              className="fixed z-50 pointer-events-none rounded-full"
              style={{
                display: (mode === 'eraser' || mode === 'pen') && showCursor ? 'block' : 'none',
-               left: 0, top: 0, // 修改為 0，靠 transform 位移
+               left: -100, top: -100, 
                width: mode === 'eraser' ? eraserSize : penSize, 
                height: mode === 'eraser' ? eraserSize : penSize,
-               transform: 'translate3d(-1000px, -1000px, 0)', // 初始隱藏
+               transform: 'translate(-50%, -50%)',
                boxShadow: mode === 'eraser' ? '0 0 0 2px black, inset 0 0 0 2px white' : '0 0 0 1px white, inset 0 0 0 1px black',
                backgroundColor: mode === 'eraser' ? 'rgba(255,255,255,0.3)' : penColor,
                opacity: mode === 'pen' ? 0.8 : 1,
-               willChange: 'transform' // 開啟 GPU 加速，讓游標跟隨零延遲
+               willChange: 'left, top' // 開啟 GPU 加速，讓游標跟隨零延遲
              }}
            />
 
