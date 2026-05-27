@@ -15,38 +15,12 @@
   <!-- 引入 Babel 讓瀏覽器可以編譯 JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- 引入 MathJax 數學渲染套件 -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      },
-      startup: {
-        typeset: false
-      }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
   <style>
-    /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
     /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
     html {
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
       overflow-y: scroll;
-    }
-
-    /* 統一的影像顯示設定：確保 1 CSS pixel = 1 image pixel，使裁切時的實體比例正確對位 */
-    .question-img {
-      width: auto !important;
-      max-width: 100% !important;
-      height: auto !important;
-      max-height: none !important;
-      object-fit: contain;
-      margin: 0 auto;
-      display: block;
     }
 
     /* 列印專用樣式 - 強制純白背景 */
@@ -58,6 +32,8 @@
       .no-print { display: none !important; }
       @page { margin: 0.5cm; size: A4 portrait; }
       .print-card { padding: 0.5rem !important; margin-bottom: 2rem !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; }
+      /* 取消 width: 100% 強制放大，改為依原始圖片比例顯示，確保字體大小一致 */
+      .print-img { max-width: 100% !important; width: auto !important; max-height: none !important; object-fit: contain; }
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
     }
     
@@ -202,42 +178,6 @@
       Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
       StatusDot: ({ color }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg>
     };
-
-    // --- MathJax 數學渲染元件 ---
-    function MathText({ text, className }) {
-        const nodeRef = useRef(null);
-
-        useEffect(() => {
-            let isMounted = true;
-            const renderMath = async () => {
-                while (!window.MathJax && isMounted) {
-                    await new Promise(r => setTimeout(r, 100));
-                }
-                if (!isMounted) return;
-                
-                if (nodeRef.current) {
-                    nodeRef.current.innerHTML = '';
-                    const contentDiv = document.createElement('div');
-                    contentDiv.style.whiteSpace = 'pre-wrap';
-                    contentDiv.textContent = text || '';
-                    nodeRef.current.appendChild(contentDiv);
-                    
-                    try {
-                        if (window.MathJax.typesetPromise) {
-                            await window.MathJax.typesetPromise([nodeRef.current]);
-                        }
-                    } catch (err) {
-                        console.error("MathJax render error:", err);
-                    }
-                }
-            };
-            renderMath();
-            
-            return () => { isMounted = false; };
-        }, [text]);
-
-        return <div ref={nodeRef} className={className} />;
-    }
 
     // --- 高效能手寫板元件 (用於筆記欄位) ---
     function NoteCanvas({ initialDataUrl, onChange }) {
@@ -547,8 +487,8 @@
       // 完整編輯雲端既有資料
       const handleFullEdit = (item) => {
         setEditTargetId(item.id);
-        setAiAnalysis(item); 
-        setEditedImage(item.image); 
+        setAiAnalysis(item); // 載入原本的全部資料，包含分類、筆記、AI教學
+        setEditedImage(item.image); // 編輯基礎圖預設為已完成的圖
         setIsEditingExisting(true);
         setCurrentView('form');
       };
@@ -576,7 +516,7 @@
           4. "volume" 必須是該科目的冊別 (如 "第1冊")。若該科目無冊別(國文、英文)，請填 null。
           5. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。若無完全相同的字眼，請挑選涵蓋該知識點的單元。
           6. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
-          7. "ai_tutor": 這是「AI老師教學」欄位。如果是數學題，請提供「詳細的解題步驟」；如果是其他科目，請提供「題目的詳細解析，並分析每個選項正確或錯誤的原因」。請務必詳盡且易於理解，適合國中生閱讀。如果包含數學算式，請用 $ 包覆行內算式，$$ 包覆獨立行算式。
+          7. "ai_tutor": 這是「AI老師教學」欄位。如果是數學題，請提供「詳細的解題步驟」；如果是其他科目，請提供「題目的詳細解析，並分析每個選項正確或錯誤的原因」。請務必詳盡且易於理解，適合國中生閱讀。
 
           JSON 格式必須嚴格如下：
           {
@@ -691,7 +631,7 @@
              // 更新現有資料
              await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), {
                ...formData,
-               image: editedImage, 
+               image: editedImage, // 儲存可能的二次編輯
                updated_at: Date.now()
              });
              setLoadingMsg('');
@@ -1184,8 +1124,7 @@
       
       const [showSizePicker, setShowSizePicker] = useState(false);
       const [showPenPicker, setShowPenPicker] = useState(false);
-      // 動態隱藏黑框狀態：只要互動過一次，就永久隱藏
-      const [hasInteracted, setHasInteracted] = useState(false);
+      const [isInteracting, setIsInteracting] = useState(false); // ★ 動態隱藏黑框 ★
       
       const [canvasDim, setCanvasDim] = useState({ w: 0, h: 0 });
       const [exportScale, setExportScale] = useState(1);
@@ -1212,8 +1151,7 @@
 
           if (containerRef.current) {
              const rect = containerRef.current.getBoundingClientRect();
-             // 放大了初始預設比例 1.5 倍，符合大螢幕檢視需求
-             const initScale = Math.min((rect.width - 40) / w, (rect.height - 100) / h, 1) * 1.5;
+             const initScale = Math.min((rect.width - 40) / w, (rect.height - 100) / h, 1);
              setExportScale(initScale);
           }
         };
@@ -1285,7 +1223,7 @@
         activePointers.current.set(e.pointerId, e);
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
 
-        setHasInteracted(true); // ★ 觸控開始，永久隱藏教學黑框 ★
+        setIsInteracting(true); // ★ 觸控開始，隱藏教學黑框 ★
 
         // --- 處理雙指縮放與旋轉 ---
         if (activePointers.current.size >= 2) {
@@ -1403,6 +1341,7 @@
         }
 
         if (activePointers.current.size === 0) {
+            setIsInteracting(false); // ★ 所有觸控結束，恢復顯示黑框 ★
             if (isPanning) setIsPanning(false);
             if (isDrawingRef.current) {
                 isDrawingRef.current = false;
@@ -1573,10 +1512,10 @@
             {/* 尺寸校正 - 參考方框與動態隱藏的教學黑框 */}
             {(mode === 'scale' || mode === 'rotate') && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
-                 <div style={{ width: '4.94mm', height: '4.94mm' }} className="border-[2px] border-red-500 bg-red-500/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
-                 <div className={`mt-10 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${hasInteracted ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                 <div style={{ width: '4.94mm', height: '4.94mm' }} className="border-[3px] border-red-500 bg-red-500/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
+                 <div className={`mt-6 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${isInteracting ? 'opacity-0' : 'opacity-100'}`}>
                    {mode === 'scale' ? (
-                       <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至符合上方紅框 (固定 14pt)</span></>
+                       <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至塞滿上方紅框</span></>
                    ) : (
                        <>🔄 請用雙指旋轉或單指平移<br/><span className="text-amber-300">將題目調整至完美水平狀態</span></>
                    )}
@@ -1826,15 +1765,7 @@
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
               <div>
                 <label className="block text-base font-bold text-gray-700 mb-2">🤖 AI 老師教學</label>
-                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed mb-3" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
-                
-                {/* 加上 KaTeX 數學即時預覽 */}
-                {formData.ai_tutor && (
-                    <div className="p-4 bg-white border border-amber-200 rounded-xl shadow-inner">
-                       <span className="text-sm text-gray-500 font-bold mb-2 block">✨ 排版預覽：</span>
-                       <MathText text={formData.ai_tutor} className="text-gray-800 text-lg leading-relaxed" />
-                    </div>
-                )}
+                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
               </div>
               <div>
                 <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
@@ -1855,8 +1786,8 @@
       const [searchQuery, setSearchQuery] = useState(''); 
       const [isFetching, setIsFetching] = useState(true);
       
-      // 控制閱覽列表中的 AI 教學與筆記顯示狀態 (預設隱藏 -> 空物件)
-      const [showSections, setShowSections] = useState({});
+      // 控制閱覽列表中的 AI 教學與筆記摺疊狀態
+      const [hiddenSections, setHiddenSections] = useState({});
       
       useEffect(() => {
         if (!user || !FB || !currentProfile) return;
@@ -1897,7 +1828,7 @@
       };
 
       const toggleSection = (id, type) => {
-          setShowSections(prev => ({...prev, [`${id}_${type}`]: !prev[`${id}_${type}`]}));
+          setHiddenSections(prev => ({...prev, [`${id}_${type}`]: !prev[`${id}_${type}`]}));
       };
 
       const handleSubjectChange = (sub) => { setFilterSubject(sub); setFilterVolume('All'); setFilterSubSubject('All'); };
@@ -2058,9 +1989,9 @@
                     </div>
                   </div>
                   
-                  {/* 錯題影像顯示 (去除 w-full 改為 question-img 確保字體比例一致，且列印保留) */}
-                  <div className="mb-5 bg-white print:m-0 print:mb-4">
-                     <img src={item.image} alt="Question" className="question-img border border-gray-200 rounded-xl print:border-none bg-white" />
+                  {/* 列印時保留影像 (移除了 print:hidden) */}
+                  <div className="mb-5 bg-white">
+                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto block bg-white" />
                   </div>
 
                   {/* 列印時強制隱藏 AI 教學與筆記 */}
@@ -2068,32 +1999,29 @@
                     <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 print:hidden space-y-5">
                       {(item.ai_tutor || item.answer) && (
                         <div>
-                          <div className="font-bold text-gray-800 text-xl mb-2 flex items-center justify-between">
+                          <div className="font-bold text-gray-800 text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'ai')}>
                              <div className="flex items-center gap-2">🤖 AI老師教學 / 解答</div>
-                             <button onClick={() => toggleSection(item.id, 'ai')} className="text-gray-600 hover:text-amber-700 bg-amber-100/70 hover:bg-amber-200 px-4 py-1.5 rounded-xl font-bold transition-colors no-print text-sm shadow-sm">
-                                 {showSections[`${item.id}_ai`] ? '🙈 隱藏解析' : '🐣 顯示解析'}
+                             <button className="text-gray-400 hover:text-amber-600 transition-colors no-print">
+                                 {hiddenSections[`${item.id}_ai`] ? '👁️ 顯示' : '🙈 隱藏'}
                              </button>
                           </div>
-                          {showSections[`${item.id}_ai`] && (
-                              <div className="bg-white/70 p-4 rounded-xl shadow-sm border border-amber-100/50 mt-3">
-                                 <MathText text={item.ai_tutor || item.answer} className="text-gray-800 text-lg whitespace-pre-wrap leading-relaxed" />
+                          {!hiddenSections[`${item.id}_ai`] && (
+                              <div className="text-gray-800 text-lg whitespace-pre-wrap leading-relaxed bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
+                                 {item.ai_tutor || item.answer}
                               </div>
                           )}
                         </div>
                       )}
                       {item.notes && (
                         <div>
-                          <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center justify-between">
+                          <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'note')}>
                              <div className="flex items-center gap-2">📝 錯題筆記 / 訂正過程</div>
-                             <button onClick={() => toggleSection(item.id, 'note')} className="text-gray-600 hover:text-amber-700 bg-amber-100/70 hover:bg-amber-200 px-4 py-1.5 rounded-xl font-bold transition-colors no-print text-sm shadow-sm">
-                                 {showSections[`${item.id}_note`] ? '🙈 隱藏筆記' : '📝 查看筆記'}
+                             <button className="text-gray-400 hover:text-amber-600 transition-colors no-print">
+                                 {hiddenSections[`${item.id}_note`] ? '👁️ 顯示' : '🙈 隱藏'}
                              </button>
                           </div>
-                          {showSections[`${item.id}_note`] && (
-                              <div className="mt-3 flex justify-center bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
-                                  {/* 手寫筆記的解析度固定，可以直接 w-full 適應容器 */}
-                                  <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain max-h-[600px]" />
-                              </div>
+                          {!hiddenSections[`${item.id}_note`] && (
+                              <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain bg-white border border-amber-200 rounded-xl shadow-sm" style={{ maxHeight: '600px' }} />
                           )}
                         </div>
                       )}
