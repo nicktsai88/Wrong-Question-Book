@@ -181,34 +181,15 @@
 
     // --- 高效能手寫板元件 (用於筆記欄位) ---
     function NoteCanvas({ initialDataUrl, onChange }) {
-      const containerRef = useRef(null);
       const canvasRef = useRef(null);
-      const ctxRef = useRef(null);
       const [mode, setMode] = useState('pen');
       const [color, setColor] = useState('#000000');
-      const [penSize, setPenSize] = useState(6);
-      const [eraserSize, setEraserSize] = useState(40);
-      
       const isDrawing = useRef(false);
-      const lastPosRef = useRef({x: 0, y: 0});
-      const activePointers = useRef(new Map());
-      const canvasRectRef = useRef(null);
-
-      // 強制阻斷 iOS Safari 滑動干擾 (與 EditView 相同等級防呆)
-      useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-        const handleTouchMove = (e) => {
-           if (e.cancelable) e.preventDefault();
-        };
-        container.addEventListener('touchmove', handleTouchMove, { passive: false });
-        return () => container.removeEventListener('touchmove', handleTouchMove);
-      }, []);
+      const lastPos = useRef({x: 0, y: 0});
 
       useEffect(() => {
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
-          ctxRef.current = ctx;
           // 固定高解析度，確保筆跡細膩
           canvas.width = 1200;
           canvas.height = 800;
@@ -224,96 +205,68 @@
           }
       }, []); // 空陣列確保只初始化一次
 
-      const getPos = (clientX, clientY) => {
+      const getPos = (e) => {
           const canvas = canvasRef.current;
-          const rect = canvasRectRef.current || canvas.getBoundingClientRect();
-          const scaleX = canvas.width / rect.width;
-          const scaleY = canvas.height / rect.height;
+          const rect = canvas.getBoundingClientRect();
           return {
-              x: (clientX - rect.left) * scaleX,
-              y: (clientY - rect.top) * scaleY,
-              scaleX
+              x: (e.clientX - rect.left) * (canvas.width / rect.width),
+              y: (e.clientY - rect.top) * (canvas.height / rect.height)
           };
       };
 
       const startDraw = (e) => {
-          activePointers.current.set(e.pointerId, e);
-          try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
-          
-          if (activePointers.current.size >= 2) {
-             isDrawing.current = false;
-             return;
-          }
-
+          e.preventDefault();
+          try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
           isDrawing.current = true;
-          canvasRectRef.current = canvasRef.current.getBoundingClientRect();
-          const { x, y, scaleX } = getPos(e.clientX, e.clientY);
-          lastPosRef.current = { x, y };
+          const p = getPos(e);
+          lastPos.current = p;
           
-          const ctx = ctxRef.current;
-          const currentSize = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
+          const ctx = canvasRef.current.getContext('2d');
           ctx.beginPath();
-          ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, mode === 'eraser' ? 20 : 3, 0, Math.PI * 2);
           ctx.fillStyle = mode === 'eraser' ? '#ffffff' : color;
           ctx.fill();
       };
 
       const moveDraw = (e) => {
-          if (!activePointers.current.has(e.pointerId)) return;
-          activePointers.current.set(e.pointerId, e);
-
-          if (activePointers.current.size >= 2) return;
           if (!isDrawing.current) return;
+          e.preventDefault();
           
-          const pointer = e;
-          const ctx = ctxRef.current;
-          const { scaleX } = getPos(pointer.clientX, pointer.clientY);
-          
-          ctx.lineWidth = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
+          const ctx = canvasRef.current.getContext('2d');
+          ctx.lineWidth = mode === 'eraser' ? 40 : 6;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : color;
           
-          const eventsToProcess = (pointer.nativeEvent && typeof pointer.nativeEvent.getCoalescedEvents === 'function')
-              ? pointer.nativeEvent.getCoalescedEvents()
-              : [pointer.nativeEvent || pointer];
+          const eventsToProcess = (e.nativeEvent && typeof e.nativeEvent.getCoalescedEvents === 'function')
+              ? e.nativeEvent.getCoalescedEvents()
+              : [e.nativeEvent || e];
 
           ctx.beginPath();
-          ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
+          ctx.moveTo(lastPos.current.x, lastPos.current.y);
           
-          let lastPos = lastPosRef.current;
+          let currentLast = lastPos.current;
           for (let i = 0; i < eventsToProcess.length; i++) {
-              const ev = eventsToProcess[i];
-              const { x, y } = getPos(ev.clientX, ev.clientY);
-              ctx.lineTo(x, y);
-              lastPos = { x, y };
+              const p = getPos(eventsToProcess[i]);
+              ctx.lineTo(p.x, p.y);
+              currentLast = p;
           }
           ctx.stroke();
-          lastPosRef.current = lastPos;
+          lastPos.current = currentLast;
       };
 
       const endDraw = (e) => {
-          if (e && e.pointerId) {
-              activePointers.current.delete(e.pointerId);
-              try { e.currentTarget.releasePointerCapture(e.pointerId); } catch(err) {}
-          } else {
-              activePointers.current.clear();
-          }
-
-          if (activePointers.current.size === 0) {
-              if (isDrawing.current) {
-                  isDrawing.current = false;
-                  if (ctxRef.current) ctxRef.current.beginPath();
-                  onChange(canvasRef.current.toDataURL('image/jpeg', 0.8));
-              }
-              canvasRectRef.current = null;
+          if (isDrawing.current) {
+              isDrawing.current = false;
+              try { e.target.releasePointerCapture(e.pointerId); } catch(err) {}
+              onChange(canvasRef.current.toDataURL('image/jpeg', 0.8));
           }
       };
 
       const handleClear = () => {
           if(window.confirm('確定要清除所有手寫筆記嗎？')) {
               const canvas = canvasRef.current;
-              const ctx = ctxRef.current;
+              const ctx = canvas.getContext('2d');
               ctx.fillStyle = '#ffffff';
               ctx.fillRect(0, 0, canvas.width, canvas.height);
               onChange('');
@@ -321,52 +274,27 @@
       };
 
       return (
-          <div className="border border-amber-200 rounded-xl overflow-hidden bg-white flex flex-col">
+          <div className="border border-amber-200 rounded-xl overflow-hidden bg-white">
               {/* 工具列 */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-amber-50 border-b border-amber-200 w-full">
-                  <div className="flex items-center gap-2">
-                      <button onClick={() => { setMode('pen'); setColor('#000000'); }} className={`w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 ${mode === 'pen' && color === '#000000' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#000000'}} title="黑筆"></button>
-                      <button onClick={() => { setMode('pen'); setColor('#ef4444'); }} className={`w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 ${mode === 'pen' && color === '#ef4444' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#ef4444'}} title="紅筆"></button>
-                      <button onClick={() => { setMode('pen'); setColor('#3b82f6'); }} className={`w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 ${mode === 'pen' && color === '#3b82f6' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#3b82f6'}} title="藍筆"></button>
-                      
-                      <div className="w-px h-6 bg-amber-200 mx-1"></div>
-                      
-                      <button onClick={() => setMode('eraser')} className={`p-2 rounded-lg transition-colors flex items-center gap-1 font-bold text-sm flex-shrink-0 ${mode === 'eraser' ? 'bg-amber-600 text-white shadow-md' : 'text-gray-600 hover:bg-amber-100'}`}>
-                          <Icons.Eraser /> 橡皮擦
-                      </button>
+              <div className="flex items-center gap-4 p-3 bg-amber-50 border-b border-amber-200">
+                  <div className="flex gap-2">
+                      <button onClick={() => { setMode('pen'); setColor('#000000'); }} className={`w-8 h-8 rounded-full border-2 transition-transform ${mode === 'pen' && color === '#000000' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#000000'}} title="黑筆"></button>
+                      <button onClick={() => { setMode('pen'); setColor('#ef4444'); }} className={`w-8 h-8 rounded-full border-2 transition-transform ${mode === 'pen' && color === '#ef4444' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#ef4444'}} title="紅筆"></button>
+                      <button onClick={() => { setMode('pen'); setColor('#3b82f6'); }} className={`w-8 h-8 rounded-full border-2 transition-transform ${mode === 'pen' && color === '#3b82f6' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#3b82f6'}} title="藍筆"></button>
                   </div>
-                  
-                  {/* 尺寸選擇區 */}
-                  <div className="flex items-center gap-2 overflow-x-auto sm:ml-2">
-                     {mode === 'pen' && (
-                        <>
-                          <button onClick={() => setPenSize(4)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${penSize === 4 ? 'bg-amber-200 shadow-inner' : 'hover:bg-amber-100'}`} title="細"><div className="rounded-full" style={{ width: 4, height: 4, backgroundColor: color }}></div></button>
-                          <button onClick={() => setPenSize(8)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${penSize === 8 ? 'bg-amber-200 shadow-inner' : 'hover:bg-amber-100'}`} title="中"><div className="rounded-full" style={{ width: 8, height: 8, backgroundColor: color }}></div></button>
-                          <button onClick={() => setPenSize(16)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${penSize === 16 ? 'bg-amber-200 shadow-inner' : 'hover:bg-amber-100'}`} title="粗"><div className="rounded-full" style={{ width: 16, height: 16, backgroundColor: color }}></div></button>
-                          <button onClick={() => setPenSize(24)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${penSize === 24 ? 'bg-amber-200 shadow-inner' : 'hover:bg-amber-100'}`} title="特粗"><div className="rounded-full" style={{ width: 24, height: 24, backgroundColor: color }}></div></button>
-                        </>
-                     )}
-                     {mode === 'eraser' && (
-                        <>
-                          <button onClick={() => setEraserSize(10)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${eraserSize === 10 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="特小"><div className="w-1.5 h-1.5 rounded-full bg-current"></div></button>
-                          <button onClick={() => setEraserSize(20)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${eraserSize === 20 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="小"><div className="w-3 h-3 rounded-full bg-current"></div></button>
-                          <button onClick={() => setEraserSize(40)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${eraserSize === 40 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="中"><div className="w-5 h-5 rounded-full bg-current"></div></button>
-                          <button onClick={() => setEraserSize(70)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${eraserSize === 70 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="大"><div className="w-7 h-7 rounded-full bg-current"></div></button>
-                          <button onClick={() => setEraserSize(100)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${eraserSize === 100 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="特大"><div className="w-9 h-9 rounded-full bg-current"></div></button>
-                        </>
-                     )}
-                  </div>
-                  
-                  <button onClick={handleClear} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors sm:ml-auto flex items-center gap-1 font-bold text-sm flex-shrink-0 w-full sm:w-auto justify-center mt-2 sm:mt-0">
+                  <div className="w-px h-6 bg-amber-200"></div>
+                  <button onClick={() => setMode('eraser')} className={`p-2 rounded-lg transition-colors flex items-center gap-1 font-bold text-sm ${mode === 'eraser' ? 'bg-amber-600 text-white' : 'text-gray-600 hover:bg-amber-100'}`}>
+                      <Icons.Eraser /> 橡皮擦
+                  </button>
+                  <button onClick={handleClear} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-auto flex items-center gap-1 font-bold text-sm">
                       <Icons.Trash /> 全部清除
                   </button>
               </div>
               {/* 繪圖區 */}
-              <div ref={containerRef} className="w-full bg-gray-100 touch-none flex-grow" style={{ minHeight: '350px' }}>
+              <div className="w-full bg-gray-100 touch-none" style={{ height: '300px' }}>
                   <canvas 
                       ref={canvasRef}
-                      className="w-full h-full cursor-crosshair touch-none block"
-                      style={{ objectFit: 'contain' }}
+                      className="w-full h-full cursor-crosshair touch-none"
                       onPointerDown={startDraw}
                       onPointerMove={moveDraw}
                       onPointerUp={endDraw}
@@ -976,7 +904,7 @@
           window.removeEventListener('mousemove', onDrag);
           window.removeEventListener('mouseup', endDrag);
           window.removeEventListener('touchmove', onDrag);
-          window.removeEventListener('touchmove', endDrag);
+          window.removeEventListener('touchend', endDrag);
         };
       }, [draggingIdx, onDrag]);
 
@@ -1124,7 +1052,6 @@
       
       const [showSizePicker, setShowSizePicker] = useState(false);
       const [showPenPicker, setShowPenPicker] = useState(false);
-      const [isInteracting, setIsInteracting] = useState(false); // ★ 動態隱藏黑框 ★
       
       const [canvasDim, setCanvasDim] = useState({ w: 0, h: 0 });
       const [exportScale, setExportScale] = useState(1);
@@ -1222,8 +1149,6 @@
       const startAction = (e) => {
         activePointers.current.set(e.pointerId, e);
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
-
-        setIsInteracting(true); // ★ 觸控開始，隱藏教學黑框 ★
 
         // --- 處理雙指縮放與旋轉 ---
         if (activePointers.current.size >= 2) {
@@ -1341,7 +1266,6 @@
         }
 
         if (activePointers.current.size === 0) {
-            setIsInteracting(false); // ★ 所有觸控結束，恢復顯示黑框 ★
             if (isPanning) setIsPanning(false);
             if (isDrawingRef.current) {
                 isDrawingRef.current = false;
@@ -1509,11 +1433,11 @@
               }} 
             />
 
-            {/* 尺寸校正 - 參考方框與動態隱藏的教學黑框 */}
+            {/* 尺寸校正 - 參考方框與暗化遮罩 */}
             {(mode === 'scale' || mode === 'rotate') && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
                  <div style={{ width: '4.94mm', height: '4.94mm' }} className="border-[3px] border-red-500 bg-red-500/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
-                 <div className={`mt-6 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${isInteracting ? 'opacity-0' : 'opacity-100'}`}>
+                 <div className="mt-6 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed">
                    {mode === 'scale' ? (
                        <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至塞滿上方紅框</span></>
                    ) : (
@@ -1786,9 +1710,6 @@
       const [searchQuery, setSearchQuery] = useState(''); 
       const [isFetching, setIsFetching] = useState(true);
       
-      // 控制閱覽列表中的 AI 教學與筆記摺疊狀態
-      const [hiddenSections, setHiddenSections] = useState({});
-      
       useEffect(() => {
         if (!user || !FB || !currentProfile) return;
         setIsFetching(true);
@@ -1825,10 +1746,6 @@
           console.error(e);
           alert('狀態更新失敗');
         }
-      };
-
-      const toggleSection = (id, type) => {
-          setHiddenSections(prev => ({...prev, [`${id}_${type}`]: !prev[`${id}_${type}`]}));
       };
 
       const handleSubjectChange = (sub) => { setFilterSubject(sub); setFilterVolume('All'); setFilterSubSubject('All'); };
@@ -1989,9 +1906,9 @@
                     </div>
                   </div>
                   
-                  {/* 列印時保留影像 (移除了 print:hidden) */}
-                  <div className="mb-5 bg-white">
-                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto block bg-white" />
+                  {/* 列印時強制隱藏影像 */}
+                  <div className="mb-5 bg-white print:hidden">
+                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl mx-auto block bg-white" />
                   </div>
 
                   {/* 列印時強制隱藏 AI 教學與筆記 */}
@@ -1999,30 +1916,16 @@
                     <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 print:hidden space-y-5">
                       {(item.ai_tutor || item.answer) && (
                         <div>
-                          <div className="font-bold text-gray-800 text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'ai')}>
-                             <div className="flex items-center gap-2">🤖 AI老師教學 / 解答</div>
-                             <button className="text-gray-400 hover:text-amber-600 transition-colors no-print">
-                                 {hiddenSections[`${item.id}_ai`] ? '👁️ 顯示' : '🙈 隱藏'}
-                             </button>
+                          <div className="font-bold text-gray-800 text-xl mb-2 flex items-center gap-2">🤖 AI老師教學 / 解答</div>
+                          <div className="text-gray-800 text-lg whitespace-pre-wrap leading-relaxed bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
+                             {item.ai_tutor || item.answer}
                           </div>
-                          {!hiddenSections[`${item.id}_ai`] && (
-                              <div className="text-gray-800 text-lg whitespace-pre-wrap leading-relaxed bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
-                                 {item.ai_tutor || item.answer}
-                              </div>
-                          )}
                         </div>
                       )}
                       {item.notes && (
                         <div>
-                          <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'note')}>
-                             <div className="flex items-center gap-2">📝 錯題筆記 / 訂正過程</div>
-                             <button className="text-gray-400 hover:text-amber-600 transition-colors no-print">
-                                 {hiddenSections[`${item.id}_note`] ? '👁️ 顯示' : '🙈 隱藏'}
-                             </button>
-                          </div>
-                          {!hiddenSections[`${item.id}_note`] && (
-                              <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain bg-white border border-amber-200 rounded-xl shadow-sm" style={{ maxHeight: '600px' }} />
-                          )}
+                          <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center gap-2">📝 錯題筆記 / 訂正過程</div>
+                          <img src={item.notes} alt="Handwritten Notes" className="w-full bg-white border border-amber-200 rounded-xl shadow-sm" />
                         </div>
                       )}
                     </div>
@@ -2032,7 +1935,7 @@
             )}
             
             <div className="no-print text-center py-8 text-base text-gray-400 font-bold">
-              💡 列印時會自動隱藏解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」>「列印」功能。
+              💡 列印時會自動隱藏影像、解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」>「列印」功能。
             </div>
           </div>
         </div>
