@@ -1739,14 +1739,14 @@
                        </div>
                     ) : (
                        /* 非編輯模式 - 正常顯示分類與熟練度 */
-                       <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
-                         <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
+                       <div className="flex flex-wrap gap-3 items-center w-full">
+                         <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 rounded-full text-base font-bold border border-amber-200">
                            #{index + 1} {item.subject} {item.volume ? item.volume : ''}
                          </span>
                          {item.sub_subject && (
-                            <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
+                            <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 rounded-full text-base font-semibold">{item.sub_subject}</span>
                          )}
-                         <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
+                         <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 rounded-full text-base font-bold">🎯 {item.concept}</span>
                          
                          {/* 顯示並在網頁端提供點擊切換熟練度 */}
                          <button 
@@ -1756,6 +1756,11 @@
                          >
                             {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
                          </button>
+                         
+                         {/* 列印時僅顯示靜態 Emoji */}
+                         <span className="hidden print:inline-block ml-2 text-2xl">
+                            {(!item.mastery || item.mastery === 'need_review') ? '🔴' : '🟢'}
+                         </span>
                        </div>
                     )}
 
