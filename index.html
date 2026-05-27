@@ -15,19 +15,9 @@
   <!-- 引入 Babel 讓瀏覽器可以編譯 JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- 引入 MathJax 數學渲染套件 -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      },
-      startup: {
-        typeset: false // 取消自動渲染，改由 React 內部精確控制
-      }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <!-- 引入 KaTeX 數學渲染套件 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
   <style>
     /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
@@ -37,7 +27,7 @@
       overflow-y: scroll;
     }
 
-    /* 統一的影像顯示設定：維持字體大小絕對一致 */
+    /* 統一的影像顯示設定：依原始比例顯示，再透過 zoom 等比縮放，維持字體大小絕對一致 */
     .question-img {
       width: auto !important;
       max-width: 100% !important;
@@ -45,11 +35,10 @@
       object-fit: contain;
       margin: 0 auto;
       display: block;
-      /* 螢幕上顯示約為真實 14pt 的 2 倍大小 (因為紅框是 2.5 倍，0.8 * 2.5 = 2 倍) */
-      zoom: 0.8; 
+      zoom: 1.25; /* 螢幕上統一放大 1.25 倍，方便 iPad Pro 閱讀 */
     }
 
-    /* 列印專用樣式 - 強制純白背景與精準 14pt 縮放 */
+    /* 列印專用樣式 - 強制純白背景 */
     @media print {
       body, html, #root, .min-h-screen, .bg-\[\#fffbeb\] { background-color: #ffffff !important; }
       body * { visibility: hidden; }
@@ -61,10 +50,7 @@
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
       
       .question-img {
-        /* 精準還原為 1 倍，也就是實體 14pt (4.94mm) */
-        zoom: 0.4 !important; 
-        /* 允許在 0.4 縮放情況下使用更寬的原圖，避免撞到邊界被壓縮 */
-        max-width: 250% !important; 
+        zoom: 0.75 !important; /* 列印時縮小基礎比例，避免寬圖撞到邊界被強制壓縮而導致字體變小 */
       }
     }
     
@@ -210,20 +196,22 @@
       StatusDot: ({ color }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg>
     };
 
-    // --- MathJax 數學渲染元件 ---
+    // --- KaTeX 數學渲染元件 ---
     function MathText({ text, className }) {
-        const containerRef = useRef(null);
-
-        useEffect(() => {
-            if (window.MathJax && containerRef.current) {
-                // 將換行符號取代為 <br/>，讓排版段落更分明
-                containerRef.current.innerHTML = (text || '').replace(/\n/g, '<br/>');
-                window.MathJax.typesetClear([containerRef.current]);
-                window.MathJax.typesetPromise([containerRef.current]).catch(err => console.error(err));
-            }
-        }, [text]);
-
-        return <div ref={containerRef} className={className} />;
+        const renderHTML = () => {
+            if (!text) return { __html: '' };
+            let html = String(text)
+                .replace(/\$\$(.*?)\$\$/gs, (m, p1) => {
+                    try { return katex.renderToString(p1, { displayMode: true, throwOnError: false }); }
+                    catch(e) { return m; }
+                })
+                .replace(/\$(.*?)\$/gs, (m, p1) => {
+                    try { return katex.renderToString(p1, { displayMode: false, throwOnError: false }); }
+                    catch(e) { return m; }
+                });
+            return { __html: html };
+        };
+        return <div className={className} dangerouslySetInnerHTML={renderHTML()} />;
     }
 
     // --- 高效能手寫板元件 (用於筆記欄位) ---
@@ -1420,14 +1408,8 @@
         const rad = rotation * Math.PI / 180;
         const absCos = Math.abs(Math.cos(rad));
         const absSin = Math.abs(Math.sin(rad));
-        
-        // 注意：因為視覺上將紅框放大了 2.5 倍 (scale(2.5))，我們在匯出時需要將比例縮小回 1 倍，
-        // 這樣能保證當初「縮小至符合紅框」的字體，在此刻產生的圖片中物理尺寸會恰好等於真實的 4.94mm (14pt)。
-        const VISUAL_BOX_SCALE = 2.5; 
-        const trueScale = exportScale / VISUAL_BOX_SCALE;
-        
-        const w = canvas.width * trueScale;
-        const h = canvas.height * trueScale;
+        const w = canvas.width * exportScale;
+        const h = canvas.height * exportScale;
         
         finalCanvas.width = w * absCos + h * absSin;
         finalCanvas.height = w * absSin + h * absCos;
@@ -1563,13 +1545,13 @@
               }} 
             />
 
-            {/* 尺寸校正 - 參考方框與動態隱藏的教學黑框 (紅框放大 2.5 倍，實際 CSS 仍維持 4.94mm 絕對值基準) */}
+            {/* 尺寸校正 - 參考方框與動態隱藏的教學黑框 (紅框放大 2倍，實際 CSS 仍為 4.94mm) */}
             {(mode === 'scale' || mode === 'rotate') && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
-                 <div style={{ width: '4.94mm', height: '4.94mm', transform: 'scale(2.5)' }} className="border-[3px] border-red-500 bg-red-500/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
-                 <div className={`mt-12 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${hasInteracted ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                 <div style={{ width: '4.94mm', height: '4.94mm', transform: 'scale(2)' }} className="border-[3px] border-red-500 bg-red-500/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
+                 <div className={`mt-10 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${hasInteracted ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                    {mode === 'scale' ? (
-                       <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字縮小至符合紅框 (14pt)</span></>
+                       <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至塞滿上方紅框</span></>
                    ) : (
                        <>🔄 請用雙指旋轉或單指平移<br/><span className="text-amber-300">將題目調整至完美水平狀態</span></>
                    )}
@@ -1821,7 +1803,7 @@
                 <label className="block text-base font-bold text-gray-700 mb-2">🤖 AI 老師教學</label>
                 <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed mb-3" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
                 
-                {/* MathJax 數學即時預覽 */}
+                {/* 加上 KaTeX 數學即時預覽 */}
                 {formData.ai_tutor && (
                     <div className="p-4 bg-white border border-amber-200 rounded-xl shadow-inner">
                        <span className="text-sm text-gray-500 font-bold mb-2 block">✨ 排版預覽：</span>
@@ -2083,8 +2065,9 @@
                              </button>
                           </div>
                           {showSections[`${item.id}_note`] && (
-                              <div className="mt-3 flex justify-center bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden p-2">
-                                  <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain" />
+                              <div className="mt-3 flex justify-center bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
+                                  {/* 手寫筆記的解析度固定，可以直接 w-full 適應容器 */}
+                                  <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain max-h-[600px]" />
                               </div>
                           )}
                         </div>
