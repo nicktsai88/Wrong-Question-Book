@@ -27,6 +27,17 @@
       overflow-y: scroll;
     }
 
+    /* 統一的影像顯示設定：依原始比例顯示，再透過 zoom 等比縮放，維持字體大小絕對一致 */
+    .question-img {
+      width: auto !important;
+      max-width: 100% !important;
+      max-height: none !important;
+      object-fit: contain;
+      margin: 0 auto;
+      display: block;
+      zoom: 1.25; /* 螢幕上統一放大 1.25 倍，方便 iPad Pro 閱讀 */
+    }
+
     /* 列印專用樣式 - 強制純白背景 */
     @media print {
       body, html, #root, .min-h-screen, .bg-\[\#fffbeb\] { background-color: #ffffff !important; }
@@ -36,9 +47,11 @@
       .no-print { display: none !important; }
       @page { margin: 0.5cm; size: A4 portrait; }
       .print-card { padding: 0.5rem !important; margin-bottom: 2rem !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; }
-      /* 取消 width: 100% 強制放大，改為依原始圖片比例顯示，確保字體大小一致 */
-      .print-img { max-width: 100% !important; width: auto !important; max-height: none !important; object-fit: contain; }
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
+      
+      .question-img {
+        zoom: 0.75 !important; /* 列印時縮小基礎比例，避免寬圖撞到邊界被強制壓縮而導致字體變小 */
+      }
     }
     
     /* 避免觸控裝置上的橡皮筋效果與選取 */
@@ -2020,9 +2033,9 @@
                     </div>
                   </div>
                   
-                  {/* 列印時保留影像 (確保滿版展開，移除 maxHeight 限制) */}
-                  <div className="mb-5 bg-white">
-                     <img src={item.image} alt="Question" className="w-full h-auto object-contain border border-gray-200 rounded-xl print:border-none print-img mx-auto block bg-white" style={{ maxHeight: 'none' }} />
+                  {/* 錯題影像顯示 (去除 w-full 改為 question-img 確保字體比例一致，且列印保留) */}
+                  <div className="mb-5 bg-white print:m-0 print:mb-4">
+                     <img src={item.image} alt="Question" className="question-img border border-gray-200 rounded-xl print:border-none bg-white" />
                   </div>
 
                   {/* 列印時強制隱藏 AI 教學與筆記 */}
@@ -2052,7 +2065,10 @@
                              </button>
                           </div>
                           {showSections[`${item.id}_note`] && (
-                              <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain bg-white border border-amber-200 rounded-xl shadow-sm mt-3" style={{ maxHeight: '600px' }} />
+                              <div className="mt-3 flex justify-center bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
+                                  {/* 手寫筆記的解析度固定，可以直接 w-full 適應容器 */}
+                                  <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain max-h-[600px]" />
+                              </div>
                           )}
                         </div>
                       )}
