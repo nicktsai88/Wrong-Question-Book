@@ -15,22 +15,11 @@
   <!-- 引入 Babel 讓瀏覽器可以編譯 JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- 引入 MathJax 數學渲染套件 -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      },
-      startup: {
-        typeset: false
-      }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <!-- 引入 KaTeX 數學渲染套件 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
   <style>
-    /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
     /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
     html {
       -webkit-text-size-adjust: 100%;
@@ -38,15 +27,15 @@
       overflow-y: scroll;
     }
 
-    /* 統一的影像顯示設定：確保 1 CSS pixel = 1 image pixel，使裁切時的實體比例正確對位 */
+    /* 統一的影像顯示設定：依原始比例顯示，再透過 zoom 等比縮放，維持字體大小絕對一致 */
     .question-img {
       width: auto !important;
       max-width: 100% !important;
-      height: auto !important;
       max-height: none !important;
       object-fit: contain;
       margin: 0 auto;
       display: block;
+      zoom: 1.25; /* 螢幕上統一放大 1.25 倍，方便 iPad Pro 閱讀 */
     }
 
     /* 列印專用樣式 - 強制純白背景 */
@@ -59,6 +48,10 @@
       @page { margin: 0.5cm; size: A4 portrait; }
       .print-card { padding: 0.5rem !important; margin-bottom: 2rem !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; }
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
+      
+      .question-img {
+        zoom: 0.75 !important; /* 列印時縮小基礎比例，避免寬圖撞到邊界被強制壓縮而導致字體變小 */
+      }
     }
     
     /* 避免觸控裝置上的橡皮筋效果與選取 */
@@ -203,40 +196,22 @@
       StatusDot: ({ color }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg>
     };
 
-    // --- MathJax 數學渲染元件 ---
+    // --- KaTeX 數學渲染元件 ---
     function MathText({ text, className }) {
-        const nodeRef = useRef(null);
-
-        useEffect(() => {
-            let isMounted = true;
-            const renderMath = async () => {
-                while (!window.MathJax && isMounted) {
-                    await new Promise(r => setTimeout(r, 100));
-                }
-                if (!isMounted) return;
-                
-                if (nodeRef.current) {
-                    nodeRef.current.innerHTML = '';
-                    const contentDiv = document.createElement('div');
-                    contentDiv.style.whiteSpace = 'pre-wrap';
-                    contentDiv.textContent = text || '';
-                    nodeRef.current.appendChild(contentDiv);
-                    
-                    try {
-                        if (window.MathJax.typesetPromise) {
-                            await window.MathJax.typesetPromise([nodeRef.current]);
-                        }
-                    } catch (err) {
-                        console.error("MathJax render error:", err);
-                    }
-                }
-            };
-            renderMath();
-            
-            return () => { isMounted = false; };
-        }, [text]);
-
-        return <div ref={nodeRef} className={className} />;
+        const renderHTML = () => {
+            if (!text) return { __html: '' };
+            let html = String(text)
+                .replace(/\$\$(.*?)\$\$/gs, (m, p1) => {
+                    try { return katex.renderToString(p1, { displayMode: true, throwOnError: false }); }
+                    catch(e) { return m; }
+                })
+                .replace(/\$(.*?)\$/gs, (m, p1) => {
+                    try { return katex.renderToString(p1, { displayMode: false, throwOnError: false }); }
+                    catch(e) { return m; }
+                });
+            return { __html: html };
+        };
+        return <div className={className} dangerouslySetInnerHTML={renderHTML()} />;
     }
 
     // --- 高效能手寫板元件 (用於筆記欄位) ---
@@ -1570,13 +1545,13 @@
               }} 
             />
 
-            {/* 尺寸校正 - 參考方框與動態隱藏的教學黑框 */}
+            {/* 尺寸校正 - 參考方框與動態隱藏的教學黑框 (紅框放大 2倍，實際 CSS 仍為 4.94mm) */}
             {(mode === 'scale' || mode === 'rotate') && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
-                 <div style={{ width: '4.94mm', height: '4.94mm' }} className="border-[2px] border-red-500 bg-red-500/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
+                 <div style={{ width: '4.94mm', height: '4.94mm', transform: 'scale(2)' }} className="border-[3px] border-red-500 bg-red-500/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
                  <div className={`mt-10 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${hasInteracted ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                    {mode === 'scale' ? (
-                       <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至符合上方紅框 (固定 14pt)</span></>
+                       <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至塞滿上方紅框</span></>
                    ) : (
                        <>🔄 請用雙指旋轉或單指平移<br/><span className="text-amber-300">將題目調整至完美水平狀態</span></>
                    )}
