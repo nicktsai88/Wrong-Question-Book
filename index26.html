@@ -179,133 +179,6 @@
       StatusDot: ({ color }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg>
     };
 
-    // --- 高效能手寫板元件 (用於筆記欄位) ---
-    function NoteCanvas({ initialDataUrl, onChange }) {
-      const canvasRef = useRef(null);
-      const [mode, setMode] = useState('pen');
-      const [color, setColor] = useState('#000000');
-      const isDrawing = useRef(false);
-      const lastPos = useRef({x: 0, y: 0});
-
-      useEffect(() => {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext('2d');
-          // 固定高解析度，確保筆跡細膩
-          canvas.width = 1200;
-          canvas.height = 800;
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          if (initialDataUrl && initialDataUrl.startsWith('data:image')) {
-              const img = new Image();
-              img.onload = () => {
-                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-              };
-              img.src = initialDataUrl;
-          }
-      }, []); // 空陣列確保只初始化一次
-
-      const getPos = (e) => {
-          const canvas = canvasRef.current;
-          const rect = canvas.getBoundingClientRect();
-          return {
-              x: (e.clientX - rect.left) * (canvas.width / rect.width),
-              y: (e.clientY - rect.top) * (canvas.height / rect.height)
-          };
-      };
-
-      const startDraw = (e) => {
-          e.preventDefault();
-          try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
-          isDrawing.current = true;
-          const p = getPos(e);
-          lastPos.current = p;
-          
-          const ctx = canvasRef.current.getContext('2d');
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, mode === 'eraser' ? 20 : 3, 0, Math.PI * 2);
-          ctx.fillStyle = mode === 'eraser' ? '#ffffff' : color;
-          ctx.fill();
-      };
-
-      const moveDraw = (e) => {
-          if (!isDrawing.current) return;
-          e.preventDefault();
-          
-          const ctx = canvasRef.current.getContext('2d');
-          ctx.lineWidth = mode === 'eraser' ? 40 : 6;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : color;
-          
-          const eventsToProcess = (e.nativeEvent && typeof e.nativeEvent.getCoalescedEvents === 'function')
-              ? e.nativeEvent.getCoalescedEvents()
-              : [e.nativeEvent || e];
-
-          ctx.beginPath();
-          ctx.moveTo(lastPos.current.x, lastPos.current.y);
-          
-          let currentLast = lastPos.current;
-          for (let i = 0; i < eventsToProcess.length; i++) {
-              const p = getPos(eventsToProcess[i]);
-              ctx.lineTo(p.x, p.y);
-              currentLast = p;
-          }
-          ctx.stroke();
-          lastPos.current = currentLast;
-      };
-
-      const endDraw = (e) => {
-          if (isDrawing.current) {
-              isDrawing.current = false;
-              try { e.target.releasePointerCapture(e.pointerId); } catch(err) {}
-              onChange(canvasRef.current.toDataURL('image/jpeg', 0.8));
-          }
-      };
-
-      const handleClear = () => {
-          if(window.confirm('確定要清除所有手寫筆記嗎？')) {
-              const canvas = canvasRef.current;
-              const ctx = canvas.getContext('2d');
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              onChange('');
-          }
-      };
-
-      return (
-          <div className="border border-amber-200 rounded-xl overflow-hidden bg-white">
-              {/* 工具列 */}
-              <div className="flex items-center gap-4 p-3 bg-amber-50 border-b border-amber-200">
-                  <div className="flex gap-2">
-                      <button onClick={() => { setMode('pen'); setColor('#000000'); }} className={`w-8 h-8 rounded-full border-2 transition-transform ${mode === 'pen' && color === '#000000' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#000000'}} title="黑筆"></button>
-                      <button onClick={() => { setMode('pen'); setColor('#ef4444'); }} className={`w-8 h-8 rounded-full border-2 transition-transform ${mode === 'pen' && color === '#ef4444' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#ef4444'}} title="紅筆"></button>
-                      <button onClick={() => { setMode('pen'); setColor('#3b82f6'); }} className={`w-8 h-8 rounded-full border-2 transition-transform ${mode === 'pen' && color === '#3b82f6' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#3b82f6'}} title="藍筆"></button>
-                  </div>
-                  <div className="w-px h-6 bg-amber-200"></div>
-                  <button onClick={() => setMode('eraser')} className={`p-2 rounded-lg transition-colors flex items-center gap-1 font-bold text-sm ${mode === 'eraser' ? 'bg-amber-600 text-white' : 'text-gray-600 hover:bg-amber-100'}`}>
-                      <Icons.Eraser /> 橡皮擦
-                  </button>
-                  <button onClick={handleClear} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-auto flex items-center gap-1 font-bold text-sm">
-                      <Icons.Trash /> 全部清除
-                  </button>
-              </div>
-              {/* 繪圖區 */}
-              <div className="w-full bg-gray-100 touch-none" style={{ height: '300px' }}>
-                  <canvas 
-                      ref={canvasRef}
-                      className="w-full h-full cursor-crosshair touch-none"
-                      onPointerDown={startDraw}
-                      onPointerMove={moveDraw}
-                      onPointerUp={endDraw}
-                      onPointerCancel={endDraw}
-                      onPointerOut={endDraw}
-                  />
-              </div>
-          </div>
-      );
-    }
-
     // --- 主應用程式元件 ---
     function App() {
       // 系統與雲端狀態
@@ -326,12 +199,8 @@
       const [croppedImage, setCroppedImage] = useState(null);
       const [editedImage, setEditedImage] = useState(null);
       
-      // 編輯既有資料狀態
-      const [editTargetId, setEditTargetId] = useState(null);
-      const [isEditingExisting, setIsEditingExisting] = useState(false);
-
       // AI 分類結果
-      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '' });
+      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '' });
       const [loadingMsg, setLoadingMsg] = useState('');
 
       // --- 載入 Firebase 環境 ---
@@ -407,29 +276,18 @@
 
       const handleImageSelected = (dataUrl) => {
         setRawImage(dataUrl);
-        setEditTargetId(null);
-        setIsEditingExisting(false);
         setCurrentView('crop');
-      };
-
-      // 完整編輯雲端既有資料
-      const handleFullEdit = (item) => {
-        setEditTargetId(item.id);
-        setAiAnalysis(item); // 載入原本的全部資料，包含分類、筆記、AI教學
-        setEditedImage(item.image); // 編輯基礎圖預設為已完成的圖
-        setIsEditingExisting(true);
-        setCurrentView('form');
       };
 
       // AI 分析
       const callGeminiAI = async (base64Image) => {
-        setLoadingMsg('AI 老師正在進行分析與教學中...');
+        setLoadingMsg('AI 正在準備分析中...');
         setCurrentView('classify');
         
         try {
           const base64Data = base64Image.split(',')[1];
           const dbStr = JSON.stringify(CURRICULUM_DB);
-          const prompt = `你是一個台灣國中教育會考的頂尖專家老師。請仔細閱讀這張錯題圖片，提取出該題目的「核心知識點」(concept)。然後，根據這個核心知識點，反推並從下方的「標題資料庫」中，挑選出最精準對應的「次標題/大單元」(sub_subject)。
+          const prompt = `你是一個台灣國中教育會考的專家。請仔細閱讀這張錯題圖片，提取出該題目的「核心知識點」(concept)。然後，根據這個核心知識點，反推並從下方的「標題資料庫」中，挑選出最精準對應的「次標題/大單元」(sub_subject)。
           
           資料庫：${dbStr}
 
@@ -438,21 +296,19 @@
           特別注意：
           1. 判斷邏輯：請【先】找出這題真正在考的觀念（例如：外角定理、等差級數、被動語態），再【反推】尋找資料庫中對應的 sub_subject。
           2. 【極致防呆】幾何與代數的嚴格區分：
-             - 若題目出現「幾何圖形、面積、角度、四邊形、平行、對角線、三角形、圓、梯形」等幾何特徵，【絕對不可】分類至「數列與級數」或方程式等代數單元。必須強制作為幾何題，分類至如「平行與四邊形」、「三角形的基本性質」等幾何章節。
+             - 若題目出現「幾何圖形、面積、角度、四邊形、平行、對角線、三角形、圓、梯形」等幾何元素，【絕對不可】分類至「數列與級數」或方程式等代數單元。必須強制作為幾何題，分類至如「平行與四邊形」、「三角形的基本性質」等幾何章節。
              - 只有純粹的數字規律、等差/等比數列，才能分類至「數列與級數」。
           3. "subject" 必須是 [${SUBJECT_ORDER.join(', ')}] 其中之一。
           4. "volume" 必須是該科目的冊別 (如 "第1冊")。若該科目無冊別(國文、英文)，請填 null。
           5. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。若無完全相同的字眼，請挑選涵蓋該知識點的單元。
           6. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
-          7. "ai_tutor": 這是「AI老師教學」欄位。如果是數學題，請提供「詳細的解題步驟」；如果是其他科目，請提供「題目的詳細解析，並分析每個選項正確或錯誤的原因」。請務必詳盡且易於理解，適合國中生閱讀。
 
           JSON 格式必須嚴格如下：
           {
             "subject": "科目名稱",
             "volume": "冊別名稱(或null)",
             "sub_subject": "單元/章節名稱",
-            "concept": "核心知識",
-            "ai_tutor": "教學解析內容"
+            "concept": "核心知識"
           }`;
 
           const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -479,7 +335,7 @@
             let delay = 2000; 
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
-              setLoadingMsg(`AI 老師分析教學中...\n(模型: ${targetModel}, 嘗試: ${attempt}/${maxRetries})`);
+              setLoadingMsg(`AI 分析中...\n(模型: ${targetModel}, 嘗試: ${attempt}/${maxRetries})`);
               
               try {
                 const isOldVision = targetModel.includes('vision');
@@ -525,7 +381,7 @@
           const aiResponseText = successData.candidates?.[0]?.content?.parts?.[0]?.text;
           
           if (aiResponseText) {
-            let parsed = { subject: '國文', volume: null, sub_subject: '單元1 (「相似詞語」的分辨)', concept: '未定單元', ai_tutor: '' };
+            let parsed = { subject: '國文', volume: null, sub_subject: '單元1 (「相似詞語」的分辨)', concept: '未定單元' };
             try {
                const cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                parsed = JSON.parse(cleanedText);
@@ -534,14 +390,13 @@
               subject: parsed.subject || '國文',
               volume: parsed.volume || null,
               sub_subject: parsed.sub_subject || '',
-              concept: parsed.concept || '未定知識點',
-              ai_tutor: parsed.ai_tutor || ''
+              concept: parsed.concept || '未定知識點'
             });
           }
         } catch (error) {
           console.error(error);
           alert('AI 分析失敗：\n' + error.message + '\n\n您可以先手動輸入分類。');
-          setAiAnalysis({ subject: '國文', volume: null, sub_subject: '', concept: '', ai_tutor: '' });
+          setAiAnalysis({ subject: '國文', volume: null, sub_subject: '', concept: '' });
         }
         
         setLoadingMsg('');
@@ -555,28 +410,15 @@
         setCurrentView('classify');
 
         try {
-          if (editTargetId) {
-             // 更新現有資料
-             await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), {
-               ...formData,
-               image: editedImage, // 儲存可能的二次編輯
-               updated_at: Date.now()
-             });
-             setLoadingMsg('');
-             alert('更新成功！已安全同步至雲端。');
-             setCurrentView('list');
-          } else {
-             // 新增資料
-             const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
-             await FB.addDoc(colRef, {
-               ...formData,
-               image: editedImage || croppedImage,
-               timestamp: Date.now()
-             });
-             setLoadingMsg('');
-             alert('儲存成功！已安全同步至雲端。');
-             setCurrentView('dashboard');
-          }
+          const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
+          await FB.addDoc(colRef, {
+            ...formData,
+            image: editedImage || croppedImage,
+            timestamp: Date.now()
+          });
+          setLoadingMsg('');
+          alert('儲存成功！已安全同步至雲端。');
+          setCurrentView('dashboard');
         } catch (e) {
           setLoadingMsg('');
           alert('雲端儲存失敗：' + e.message);
@@ -605,10 +447,10 @@
           {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={resetFbConfig} savedKey={apiKey} />}
           {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} isDbConnected={user && FB} />}
           {currentView === 'crop' && <CropView imageUrl={rawImage} onCancel={() => setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} onUpdateRawImage={setRawImage} />}
-          {currentView === 'edit' && <EditView imageUrl={isEditingExisting ? editedImage : croppedImage} onCancel={() => { if(isEditingExisting) setCurrentView('form'); else setCurrentView('crop'); }} onComplete={(edited) => { setEditedImage(edited); if(!isEditingExisting) { callGeminiAI(edited); } else { setCurrentView('form'); } }} />}
+          {currentView === 'edit' && <EditView imageUrl={croppedImage} onCancel={() => setCurrentView('crop')} onComplete={(edited) => { setEditedImage(edited); callGeminiAI(edited); }} />}
           {currentView === 'classify' && <LoadingView message={loadingMsg} />}
-          {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} onReEditImage={() => setCurrentView('edit')} onCancel={() => { if(isEditingExisting) setCurrentView('list'); else setCurrentView('edit'); }} onSave={saveMistake} />}
-          {currentView === 'list' && <ListView currentProfile={currentProfile} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} isDbConnected={user && FB} onFullEdit={handleFullEdit} />}
+          {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} onCancel={() => setCurrentView('edit')} onSave={saveMistake} />}
+          {currentView === 'list' && <ListView currentProfile={currentProfile} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} isDbConnected={user && FB} />}
         </div>
       );
     }
@@ -874,16 +716,17 @@
           const next = [...prev];
           next[draggingIdx] = { x: nx, y: ny };
           
-          if (draggingIdx === 0) { 
+          // ★ 更新1：矩形同步裁切 - 拖曳一角時，相鄰兩點同步維持水平與垂直 ★
+          if (draggingIdx === 0) { // 左上角
             next[1] = { ...next[1], y: ny }; 
             next[3] = { ...next[3], x: nx }; 
-          } else if (draggingIdx === 1) { 
+          } else if (draggingIdx === 1) { // 右上角
             next[0] = { ...next[0], y: ny }; 
             next[2] = { ...next[2], x: nx }; 
-          } else if (draggingIdx === 2) { 
+          } else if (draggingIdx === 2) { // 右下角
             next[3] = { ...next[3], y: ny }; 
             next[1] = { ...next[1], x: nx }; 
-          } else if (draggingIdx === 3) { 
+          } else if (draggingIdx === 3) { // 左下角
             next[2] = { ...next[2], y: ny }; 
             next[0] = { ...next[0], x: nx }; 
           }
@@ -1570,7 +1413,7 @@
       );
     }
 
-    function FormView({ initialData, image, onCancel, onSave, onReEditImage }) {
+    function FormView({ initialData, image, onCancel, onSave }) {
       const initSubj = SUBJECT_ORDER.includes(initialData.subject) ? initialData.subject : '國文';
       const dbSubj = CURRICULUM_DB[initSubj];
       let initVol = initialData.volume || null;
@@ -1589,10 +1432,9 @@
         volume: initVol,
         sub_subject: initSubSubj,
         concept: initialData.concept || '',
-        notes: initialData.notes || '',
-        answer: initialData.answer || '',
-        ai_tutor: initialData.ai_tutor || '',
-        mastery: initialData.mastery || 'need_review'
+        notes: '',
+        answer: '',
+        mastery: 'need_review'
       });
 
       const handleSubjectChange = (e) => {
@@ -1619,7 +1461,7 @@
       return (
         <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
           <div className="bg-white p-5 shadow-sm sticky top-0 flex justify-between items-center z-10">
-            <button onClick={onCancel} className="p-2 text-gray-500 hover:text-gray-800 transition-colors"><Icons.ArrowLeft /></button>
+            <button onClick={onCancel} className="p-2 text-gray-500"><Icons.ArrowLeft /></button>
             <span className="font-bold text-xl text-gray-800">💾 確認並儲存</span>
             <button onClick={() => onSave(formData)} className="px-6 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold text-lg flex items-center gap-2">
               <Icons.Cloud /> ☁️ 同步至雲端
@@ -1627,13 +1469,8 @@
           </div>
 
           <div className="p-4 md:p-6 w-[98%] max-w-[1000px] mx-auto space-y-6">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative group">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-[400px] border border-gray-200 mx-auto" />
-               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
-                  <button onClick={onReEditImage} className="bg-white text-gray-800 px-6 py-3 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 hover:bg-gray-100 transition-colors">
-                     <Icons.Edit /> 重新編輯影像
-                  </button>
-               </div>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
@@ -1688,12 +1525,12 @@
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">🤖 AI 老師教學</label>
-                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
+                <label className="block text-base font-bold text-gray-700 mb-2">💡 正確解答 (選填)</label>
+                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-32" value={formData.answer} onChange={e => setFormData({...formData, answer: e.target.value})} />
               </div>
               <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
-                <NoteCanvas initialDataUrl={formData.notes} onChange={(dataUrl) => setFormData({...formData, notes: dataUrl})} />
+                <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (選填)</label>
+                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-40" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
               </div>
             </div>
           </div>
@@ -1701,7 +1538,7 @@
       );
     }
 
-    function ListView({ currentProfile, onBack, FB, user, isDbConnected, onFullEdit }) {
+    function ListView({ currentProfile, onBack, FB, user, isDbConnected }) {
       const [mistakes, setMistakes] = useState([]);
       const [filterSubject, setFilterSubject] = useState('All');
       const [filterVolume, setFilterVolume] = useState('All');
@@ -1710,13 +1547,17 @@
       const [searchQuery, setSearchQuery] = useState(''); 
       const [isFetching, setIsFetching] = useState(true);
       
+      // 編輯狀態
+      const [editingId, setEditingId] = useState(null);
+      const [editFormData, setEditFormData] = useState({});
+      
       useEffect(() => {
         if (!user || !FB || !currentProfile) return;
         setIsFetching(true);
         const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            data.sort((a, b) => (b.updated_at || b.timestamp) - (a.updated_at || a.timestamp));
+            data.sort((a, b) => b.timestamp - a.timestamp);
             setMistakes(data);
             setIsFetching(false);
         }, (error) => {
@@ -1731,6 +1572,57 @@
         if(window.confirm('確定要從雲端刪除這題嗎？(刪除後無法復原)')) {
           try { await FB.deleteDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, id)); } 
           catch(e) { alert('刪除失敗'); }
+        }
+      };
+
+      // 觸發編輯模式
+      const handleEditClick = (item) => {
+        setEditingId(item.id);
+        const subj = SUBJECT_ORDER.includes(item.subject) ? item.subject : '國文';
+        setEditFormData({
+          subject: subj,
+          volume: item.volume || (CURRICULUM_DB[subj].hasVolume ? Object.keys(CURRICULUM_DB[subj].volumes)[0] : null),
+          sub_subject: item.sub_subject || '',
+          concept: item.concept || ''
+        });
+      };
+
+      // 編輯模式的連動選單處理
+      const handleEditSubjectChange = (e) => {
+        const newSubj = e.target.value;
+        const info = CURRICULUM_DB[newSubj];
+        let newVol = null;
+        let newSubSubj = '';
+        if (info && info.hasVolume) {
+            newVol = Object.keys(info.volumes)[0];
+            newSubSubj = info.volumes[newVol][0];
+        } else if (info) {
+            newSubSubj = info.chapters[0];
+        }
+        setEditFormData({ ...editFormData, subject: newSubj, volume: newVol, sub_subject: newSubSubj });
+      };
+
+      const handleEditVolumeChange = (e) => {
+        const newVol = e.target.value;
+        const info = CURRICULUM_DB[editFormData.subject];
+        const newSubSubj = info.volumes[newVol]?.[0] || '';
+        setEditFormData({ ...editFormData, volume: newVol, sub_subject: newSubSubj });
+      };
+
+      // 儲存編輯結果
+      const handleSaveEdit = async (id) => {
+        if (!user || !FB || !currentProfile) return;
+        try {
+          await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, id), {
+            subject: editFormData.subject,
+            volume: editFormData.volume,
+            sub_subject: editFormData.sub_subject,
+            concept: editFormData.concept
+          });
+          setEditingId(null);
+        } catch (e) {
+          console.error(e);
+          alert('更新失敗');
         }
       };
 
@@ -1760,7 +1652,7 @@
          const q = searchQuery.toLowerCase().trim();
          filteredData = filteredData.filter(m => 
             (m.concept && m.concept.toLowerCase().includes(q)) || 
-            (m.ai_tutor && m.ai_tutor.toLowerCase().includes(q)) ||
+            (m.notes && m.notes.toLowerCase().includes(q)) ||
             (m.sub_subject && m.sub_subject.toLowerCase().includes(q)) ||
             (m.subject && m.subject.toLowerCase().includes(q)) ||
             (m.volume && m.volume.toLowerCase().includes(q))
@@ -1879,53 +1771,79 @@
                 <div key={item.id} className="bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 print:mb-3">
                     
-                    {/* 分類與熟練度顯示 (列印時保留) */}
-                    <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
-                        <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
-                          #{index + 1} {item.subject} {item.volume ? item.volume : ''}
-                        </span>
-                        {item.sub_subject && (
-                          <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
-                        )}
-                        <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
-                        
-                        {/* 顯示並在網頁端提供點擊切換熟練度 */}
-                        <button 
-                          onClick={() => handleUpdateMastery(item.id, item.mastery)}
-                          className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
-                          title="點擊切換熟練度"
-                        >
-                          {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
-                        </button>
-                    </div>
+                    {/* 若目前項目為編輯模式 */}
+                    {editingId === item.id ? (
+                       <div className="flex flex-col gap-3 w-full bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-inner no-print">
+                          <div className="flex flex-wrap gap-2 items-center font-bold text-gray-700">
+                             <span className="text-[#b45309]">✏️ 編輯分類：</span>
+                             <select className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none" value={editFormData.subject} onChange={handleEditSubjectChange}>
+                               {SUBJECT_ORDER.map(s => <option key={s} value={s}>{s}</option>)}
+                             </select>
+                             {CURRICULUM_DB[editFormData.subject]?.hasVolume && (
+                               <select className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none" value={editFormData.volume || ''} onChange={handleEditVolumeChange}>
+                                 {Object.keys(CURRICULUM_DB[editFormData.subject].volumes).map(v => <option key={v} value={v}>{v}</option>)}
+                               </select>
+                             )}
+                             <select className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none max-w-full sm:max-w-xs truncate" value={editFormData.sub_subject || ''} onChange={e => setEditFormData({...editFormData, sub_subject: e.target.value})}>
+                               {CURRICULUM_DB[editFormData.subject]?.hasVolume
+                                  ? (CURRICULUM_DB[editFormData.subject].volumes[editFormData.volume] || []).map(c => <option key={c} value={c}>{c}</option>)
+                                  : (CURRICULUM_DB[editFormData.subject]?.chapters || []).map(c => <option key={c} value={c}>{c}</option>)
+                               }
+                             </select>
+                             <input className="p-2 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f59e0b] outline-none flex-grow min-w-[150px]" value={editFormData.concept} onChange={e => setEditFormData({...editFormData, concept: e.target.value})} placeholder="核心知識" />
+                          </div>
+                          <div className="flex justify-end gap-3 mt-1">
+                             <button onClick={() => setEditingId(null)} className="px-5 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg font-bold transition-colors">❌ 取消</button>
+                             <button onClick={() => handleSaveEdit(item.id)} className="px-5 py-2 bg-[#f59e0b] text-white hover:bg-[#d97706] rounded-lg font-bold transition-colors">💾 儲存</button>
+                          </div>
+                       </div>
+                    ) : (
+                       /* 非編輯模式 - 正常顯示分類與熟練度 */
+                       <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
+                         <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
+                           #{index + 1} {item.subject} {item.volume ? item.volume : ''}
+                         </span>
+                         {item.sub_subject && (
+                            <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
+                         )}
+                         <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
+                         
+                         {/* 顯示並在網頁端提供點擊切換熟練度 */}
+                         <button 
+                           onClick={() => handleUpdateMastery(item.id, item.mastery)}
+                           className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
+                           title="點擊切換熟練度"
+                         >
+                            {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
+                         </button>
+                       </div>
+                    )}
 
-                    {/* 操作按鈕 - 僅在網頁顯示 */}
-                    <div className="flex items-center gap-2 self-end sm:self-auto no-print flex-shrink-0">
-                        <button onClick={() => onFullEdit(item)} className="text-gray-500 hover:text-[#f59e0b] bg-gray-100 hover:bg-amber-50 px-3 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 shadow-sm" title="完整編輯內容"><Icons.Edit /> 完整編輯</button>
-                        <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="刪除錯題"><Icons.Trash /></button>
-                    </div>
+                    {/* 操作按鈕 (編輯 / 刪除) - 僅在非編輯模式顯示 */}
+                    {editingId !== item.id && (
+                       <div className="flex items-center gap-1 self-end sm:self-auto no-print flex-shrink-0">
+                         <button onClick={() => handleEditClick(item)} className="text-gray-400 hover:text-[#f59e0b] p-2 transition-colors" title="編輯分類"><Icons.Edit /></button>
+                         <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 p-2 transition-colors" title="刪除錯題"><Icons.Trash /></button>
+                       </div>
+                    )}
                   </div>
                   
-                  {/* 列印時強制隱藏影像 */}
-                  <div className="mb-5 bg-white print:hidden">
-                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl mx-auto block bg-white" />
+                  <div className="mb-5 print:mb-4 bg-white print:bg-white">
+                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto block bg-white" />
                   </div>
 
-                  {/* 列印時強制隱藏 AI 教學與筆記 */}
-                  {(item.ai_tutor || item.answer || item.notes) && (
-                    <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 print:hidden space-y-5">
-                      {(item.ai_tutor || item.answer) && (
-                        <div>
-                          <div className="font-bold text-gray-800 text-xl mb-2 flex items-center gap-2">🤖 AI老師教學 / 解答</div>
-                          <div className="text-gray-800 text-lg whitespace-pre-wrap leading-relaxed bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
-                             {item.ai_tutor || item.answer}
-                          </div>
+                  {(item.answer || item.notes) && (
+                    <div className="bg-amber-50 print:bg-white p-5 print:p-3 print:pl-4 rounded-2xl border border-amber-200 print:border-l-4 print:border-t-0 print:border-r-0 print:border-b-0 print:border-gray-800">
+                      {item.answer && (
+                        <div className="mb-4 print:mb-3">
+                          <span className="font-bold text-gray-800 print:text-black text-xl">解答：</span>
+                          <span className="text-gray-800 print:text-black text-xl whitespace-pre-wrap leading-relaxed">{item.answer}</span>
                         </div>
                       )}
                       {item.notes && (
                         <div>
-                          <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center gap-2">📝 錯題筆記 / 訂正過程</div>
-                          <img src={item.notes} alt="Handwritten Notes" className="w-full bg-white border border-amber-200 rounded-xl shadow-sm" />
+                          <span className="font-bold text-[#b45309] print:text-black text-xl">筆記：</span>
+                          <p className="text-gray-700 print:text-black text-xl whitespace-pre-wrap mt-2 leading-relaxed">{item.notes}</p>
                         </div>
                       )}
                     </div>
@@ -1935,7 +1853,7 @@
             )}
             
             <div className="no-print text-center py-8 text-base text-gray-400 font-bold">
-              💡 列印時會自動隱藏影像、解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」>「列印」功能。
+              💡 若點擊「輸出 PDF」無反應或被阻擋，請使用瀏覽器右上角的「分享」>「列印」功能。
             </div>
           </div>
         </div>
