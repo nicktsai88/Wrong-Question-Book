@@ -859,10 +859,11 @@
       const containerRef = useRef(null);
       const canvasRef = useRef(null);
       const cursorRef = useRef(null); // 使用 Ref 控制游標，啟動 GPU 加速
+      const ctxRef = useRef(null); // 快取 Canvas Context 以節省效能
       const isDrawingRef = useRef(false); // 使用 Ref 紀錄書寫狀態，大幅提升流暢度
       const lastPosRef = useRef({ x: 0, y: 0 }); // 紀錄上一個筆畫座標，使線條平滑不中斷
       
-      // 新增：指標狀態追蹤與邊界快取，用於大幅提升高效能書寫
+      // 🌟 新增：指標狀態追蹤與邊界快取，用於大幅提升高效能書寫 🌟
       const activePointers = useRef(new Map());
       const canvasRectRef = useRef(null);
 
@@ -875,7 +876,7 @@
       const [penSize, setPenSize] = useState(6);
       const [penColor, setPenColor] = useState('#ef4444'); // 預設紅筆
       
-      const [showCursor, setShowCursor] = useState(false);
+      // 移除原有的 showCursor React State，改為直接操作 DOM，根除渲染卡頓
       const [showSizePicker, setShowSizePicker] = useState(false);
       const [showPenPicker, setShowPenPicker] = useState(false);
       
@@ -890,6 +891,7 @@
       useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
+        ctxRef.current = ctx; // 建立 Canvas Context 快取
         const img = new Image();
         img.onload = () => {
           // 增加解析度限制，防止高倍率放大時爆記憶體
@@ -912,19 +914,43 @@
         img.src = imageUrl;
       }, [imageUrl]);
 
+      // 🌟 神級優化：從底層徹底阻斷 Safari 背景手勢干擾 🌟
+      // 這能解決 Apple Pencil 畫到一半突然被瀏覽器「取消」導致沒畫上去的問題
+      useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const handleTouchMove = (e) => {
+           if (mode !== 'none' && e.cancelable) {
+              e.preventDefault();
+           }
+        };
+        container.addEventListener('touchmove', handleTouchMove, { passive: false });
+        return () => container.removeEventListener('touchmove', handleTouchMove);
+      }, [mode]);
+
       const saveState = () => {
         const cvs = canvasRef.current;
-        historyRef.current.push(cvs.getContext('2d').getImageData(0, 0, cvs.width, cvs.height));
+        historyRef.current.push(ctxRef.current.getImageData(0, 0, cvs.width, cvs.height));
         if (historyRef.current.length > 10) historyRef.current.shift(); // 最多存 10 步
-        setCanUndo(true);
+        // 避免不必要的 React 渲染
+        setCanUndo(prev => prev ? true : true); 
       };
 
       const handleUndo = () => {
         if (historyRef.current.length === 0) return;
-        const cvs = canvasRef.current;
         const lastState = historyRef.current.pop();
-        cvs.getContext('2d').putImageData(lastState, 0, 0);
+        ctxRef.current.putImageData(lastState, 0, 0);
         setCanUndo(historyRef.current.length > 0);
+      };
+
+      // 🌟 取代 state：直接操作 DOM 的游標控制，完全避免 React 觸發重新渲染 🌟
+      const toggleCursor = (visible) => {
+          if (!cursorRef.current) return;
+          if (visible && (mode === 'eraser' || mode === 'pen')) {
+              cursorRef.current.style.opacity = mode === 'pen' ? '0.8' : '1';
+          } else {
+              cursorRef.current.style.opacity = '0';
+          }
       };
 
       // 高效更新游標位置 (繞過 React 狀態更新，並使用 GPU 加速達到 120Hz 零卡頓)
@@ -934,7 +960,7 @@
         cursorRef.current.style.transform = `translate3d(calc(${clientX}px - 50%), calc(${clientY}px - 50%), 0)`;
       };
 
-      // 取得畫布精確座標 (加上高效的快取機制)
+      // 取得畫布精確座標 (加上高效的邊界快取機制)
       const getCanvasPos = (clientX, clientY) => {
         const canvas = canvasRef.current;
         const rect = canvasRectRef.current || canvas.getBoundingClientRect();
@@ -950,7 +976,7 @@
       // 統一整合的原生指標事件 (支援多點觸控與 Apple Pencil 極致最佳化)
       const startAction = (e) => {
         activePointers.current.set(e.pointerId, e);
-        try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
 
         // --- 處理雙指縮放 ---
         if (activePointers.current.size >= 2) {
@@ -969,7 +995,7 @@
             panRef.current = { startX: pointer.clientX, startY: pointer.clientY, startPanX: pan.x, startPanY: pan.y };
         } else if (mode === 'eraser' || mode === 'pen') {
             updateCursorPos(pointer.clientX, pointer.clientY);
-            setShowCursor(true);
+            toggleCursor(true);
             saveState();
             isDrawingRef.current = true;
             
@@ -978,10 +1004,11 @@
             const { x, y, scaleX } = getCanvasPos(pointer.clientX, pointer.clientY);
             lastPosRef.current = { x, y };
 
-            const ctx = canvasRef.current.getContext('2d');
+            const ctx = ctxRef.current;
             const currentSize = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
             ctx.fillStyle = mode === 'eraser' ? '#ffffff' : penColor;
             
+            // 點擊時畫一個圓，確保輕觸也能留下完美圓潤的痕跡
             ctx.beginPath();
             ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2);
             ctx.fill();
@@ -1015,7 +1042,7 @@
         } else if ((mode === 'eraser' || mode === 'pen') && isDrawingRef.current) {
             updateCursorPos(pointer.clientX, pointer.clientY);
             
-            const ctx = canvasRef.current.getContext('2d');
+            const ctx = ctxRef.current;
             const { scaleX } = getCanvasPos(pointer.clientX, pointer.clientY);
             
             ctx.lineWidth = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
@@ -1023,7 +1050,7 @@
             ctx.lineJoin = 'round';
             ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : penColor;
             
-            // 🔥 Apple Pencil 終極優化：抓取硬體層級的原始高頻率事件 (Coalesced Events)
+            // 🌟 Apple Pencil 終極優化：抓取硬體層級的原始高頻率事件 (Coalesced Events) 🌟
             // 解決 120Hz/240Hz 觸控點跟不上螢幕刷新率所導致的「多邊形」不連續感
             const eventsToProcess = (pointer.nativeEvent && typeof pointer.nativeEvent.getCoalescedEvents === 'function')
                 ? pointer.nativeEvent.getCoalescedEvents()
@@ -1049,7 +1076,7 @@
       const endAction = (e) => {
         if (e && e.pointerId) {
             activePointers.current.delete(e.pointerId);
-            try { e.target.releasePointerCapture(e.pointerId); } catch(err) {}
+            try { e.currentTarget.releasePointerCapture(e.pointerId); } catch(err) {}
         } else {
             activePointers.current.clear();
         }
@@ -1058,12 +1085,10 @@
             if (isPanning) setIsPanning(false);
             if (isDrawingRef.current) {
                 isDrawingRef.current = false;
-                const ctx = canvasRef.current?.getContext('2d');
-                if (ctx) ctx.beginPath();
+                if (ctxRef.current) ctxRef.current.beginPath();
             }
             touchRef.current.dist = 0;
             canvasRectRef.current = null; // 清除邊界快取
-            if (mode === 'eraser' || mode === 'pen') setShowCursor(false);
         }
       };
 
@@ -1094,7 +1119,7 @@
         setShowPenPicker(false);
         setMode('none');
         saveState();
-        const canvas = canvasRef.current, ctx = canvas.getContext('2d');
+        const canvas = canvasRef.current, ctx = ctxRef.current || canvas.getContext('2d');
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height), data = imgData.data;
         
         for (let i = 0; i < data.length; i += 4) {
@@ -1115,7 +1140,7 @@
         setShowPenPicker(false);
         setMode('none');
         saveState();
-        const canvas = canvasRef.current, ctx = canvas.getContext('2d');
+        const canvas = canvasRef.current, ctx = ctxRef.current || canvas.getContext('2d');
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height), data = imgData.data;
         
         for (let i = 0; i < data.length; i += 4) {
@@ -1137,7 +1162,7 @@
         setShowPenPicker(false);
         setMode('none');
         saveState();
-        const canvas = canvasRef.current, ctx = canvas.getContext('2d');
+        const canvas = canvasRef.current, ctx = ctxRef.current || canvas.getContext('2d');
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height), data = imgData.data;
         const threshold = 170; 
         for (let i = 0; i < data.length; i += 4) {
@@ -1158,15 +1183,15 @@
              ref={cursorRef}
              className="fixed z-50 pointer-events-none rounded-full"
              style={{
-               display: (mode === 'eraser' || mode === 'pen') && showCursor ? 'block' : 'none',
+               display: (mode === 'eraser' || mode === 'pen') ? 'block' : 'none',
                left: 0, top: 0, // 修改為 0，靠 transform 位移
                width: mode === 'eraser' ? eraserSize : penSize, 
                height: mode === 'eraser' ? eraserSize : penSize,
                transform: 'translate3d(-1000px, -1000px, 0)', // 初始隱藏
                boxShadow: mode === 'eraser' ? '0 0 0 2px black, inset 0 0 0 2px white' : '0 0 0 1px white, inset 0 0 0 1px black',
                backgroundColor: mode === 'eraser' ? 'rgba(255,255,255,0.3)' : penColor,
-               opacity: mode === 'pen' ? 0.8 : 1,
-               willChange: 'transform' // 開啟 GPU 加速，讓游標跟隨零延遲
+               opacity: 0, // 初始隱藏，由 DOM 直接控制
+               willChange: 'transform, opacity' // 開啟 GPU 加速，讓游標跟隨零延遲
              }}
            />
 
@@ -1190,12 +1215,18 @@
                onPointerDown={startAction} 
                onPointerMove={moveAction} 
                onPointerUp={endAction} 
-               onPointerCancel={endAction}>
+               onPointerCancel={endAction}
+               onPointerEnter={() => toggleCursor(true)}
+               onPointerLeave={(e) => { 
+                   toggleCursor(false); 
+                   // 防呆：若筆刷意外離開範圍，安全結束目前的筆畫
+                   if (isDrawingRef.current && activePointers.current.size === 0) {
+                       endAction(e);
+                   }
+               }}>
             
             <canvas ref={canvasRef} 
               className={`absolute top-1/2 left-1/2 shadow-md bg-white border border-gray-300 ${(mode === 'eraser' || mode === 'pen') ? 'cursor-none' : (mode === 'scale' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : '')}`}
-              onPointerEnter={() => (mode === 'eraser' || mode === 'pen') && setShowCursor(true)}
-              onPointerLeave={(e) => { setShowCursor(false); endAction(e); }}
               style={{ 
                  width: canvasDim.w, height: canvasDim.h,
                  transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${exportScale})`,
