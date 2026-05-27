@@ -287,18 +287,17 @@
         try {
           const base64Data = base64Image.split(',')[1];
           const dbStr = JSON.stringify(CURRICULUM_DB);
-          const prompt = `你是一個台灣國中教育會考的專家。請仔細閱讀這張錯題圖片，提取出該題目的「核心知識點」(concept)。然後，根據這個核心知識點，反推並從下方的「標題資料庫」中，挑選出最精準對應的「次標題/大單元」(sub_subject)。
-          
+          const prompt = `你是一個台灣國中教育會考的專家。請分析這張錯題圖片，根據108課綱，從下列「標題資料庫」中挑選最適合的分類。
           資料庫：${dbStr}
 
           請務必只回傳一個 JSON 格式的物件，不要包含其他文字說明或 Markdown 語法（例如 \`\`\`json ）。
           
           特別注意：
-          1. 判斷邏輯：請【先】找出這題真正在考的觀念（例如：外角定理、等差級數、被動語態），再【反推】尋找資料庫中對應的 sub_subject。
-          2. "subject" 必須是 [${SUBJECT_ORDER.join(', ')}] 其中之一。
-          3. "volume" 必須是該科目的冊別 (如 "第1冊")。若該科目無冊別(國文、英文)，請填 null。
-          4. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。若無完全相同的字眼，請挑選涵蓋該知識點的單元。
-          5. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
+          1. "subject" 必須是 [${SUBJECT_ORDER.join(', ')}] 其中之一。
+          2. "volume" 必須是該科目的冊別 (如 "第1冊")。若該科目無冊別(國文、英文)，請填 null。
+          3. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。
+          4. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
+          5. 【極度重要】次標題(sub_subject)請務必仔細分析題目內容所屬的學科概念，例如「幾何圖形、角度、外角」相關的必須歸類在幾何章節(如：平行與四邊形)，請勿僅憑題目出現的數字或非關鍵字誤判為數列或代數。
 
           JSON 格式必須嚴格如下：
           {
@@ -712,21 +711,6 @@
         setPts(prev => {
           const next = [...prev];
           next[draggingIdx] = { x: nx, y: ny };
-          
-          // ★ 更新1：矩形同步裁切 - 拖曳一角時，相鄰兩點同步維持水平與垂直 ★
-          if (draggingIdx === 0) { // 左上角
-            next[1] = { ...next[1], y: ny }; 
-            next[3] = { ...next[3], x: nx }; 
-          } else if (draggingIdx === 1) { // 右上角
-            next[0] = { ...next[0], y: ny }; 
-            next[2] = { ...next[2], x: nx }; 
-          } else if (draggingIdx === 2) { // 右下角
-            next[3] = { ...next[3], y: ny }; 
-            next[1] = { ...next[1], x: nx }; 
-          } else if (draggingIdx === 3) { // 左下角
-            next[2] = { ...next[2], y: ny }; 
-            next[0] = { ...next[0], x: nx }; 
-          }
           return next;
         });
       }, [draggingIdx]);
@@ -874,39 +858,43 @@
     function EditView({ imageUrl, onCancel, onComplete }) {
       const containerRef = useRef(null);
       const canvasRef = useRef(null);
-      const cursorRef = useRef(null);
-      const ctxRef = useRef(null); 
-      const isDrawingRef = useRef(false);
-      const lastPosRef = useRef({ x: 0, y: 0 });
+      const cursorRef = useRef(null); // 使用 Ref 控制游標，啟動 GPU 加速
+      const ctxRef = useRef(null); // 快取 Canvas Context 以節省效能
+      const isDrawingRef = useRef(false); // 使用 Ref 紀錄書寫狀態，大幅提升流暢度
+      const lastPosRef = useRef({ x: 0, y: 0 }); // 紀錄上一個筆畫座標，使線條平滑不中斷
       
+      // 🌟 新增：指標狀態追蹤與邊界快取，用於大幅提升高效能書寫 🌟
       const activePointers = useRef(new Map());
       const canvasRectRef = useRef(null);
 
       const [mode, setMode] = useState('none');
-      const historyRef = useRef([]); 
+      const historyRef = useRef([]); // 用於存放 Undo 的歷史紀錄
       const [canUndo, setCanUndo] = useState(false);
       
+      // 橡皮擦與畫筆狀態
       const [eraserSize, setEraserSize] = useState(40);
       const [penSize, setPenSize] = useState(6);
-      const [penColor, setPenColor] = useState('#ef4444');
+      const [penColor, setPenColor] = useState('#ef4444'); // 預設紅筆
       
+      // 移除原有的 showCursor React State，改為直接操作 DOM，根除渲染卡頓
       const [showSizePicker, setShowSizePicker] = useState(false);
       const [showPenPicker, setShowPenPicker] = useState(false);
       
+      // 縮放與平移狀態 (尺寸校正引擎)
       const [canvasDim, setCanvasDim] = useState({ w: 0, h: 0 });
       const [exportScale, setExportScale] = useState(1);
       const [pan, setPan] = useState({ x: 0, y: 0 });
-      const [rotation, setRotation] = useState(0); // ★ 更新2：增加旋轉 State ★
       const [isPanning, setIsPanning] = useState(false);
-      const touchRef = useRef({ dist: 0, angle: 0 }); // 加入 angle 儲存
+      const touchRef = useRef({ dist: 0 });
       const panRef = useRef({ startX: 0, startY: 0, startPanX: 0, startPanY: 0 });
 
       useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
-        ctxRef.current = ctx; 
+        ctxRef.current = ctx; // 建立 Canvas Context 快取
         const img = new Image();
         img.onload = () => {
+          // 增加解析度限制，防止高倍率放大時爆記憶體
           const maxWidth = 1500;
           let w = img.width, h = img.height;
           if (w > maxWidth) { h = (maxWidth / w) * h; w = maxWidth; }
@@ -916,6 +904,7 @@
           historyRef.current = [];
           setCanUndo(false);
 
+          // 計算初始適應螢幕比例
           if (containerRef.current) {
              const rect = containerRef.current.getBoundingClientRect();
              const initScale = Math.min((rect.width - 40) / w, (rect.height - 100) / h, 1);
@@ -925,6 +914,8 @@
         img.src = imageUrl;
       }, [imageUrl]);
 
+      // 🌟 神級優化：從底層徹底阻斷 Safari 背景手勢干擾 🌟
+      // 這能解決 Apple Pencil 畫到一半突然被瀏覽器「取消」導致沒畫上去的問題
       useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -940,7 +931,8 @@
       const saveState = () => {
         const cvs = canvasRef.current;
         historyRef.current.push(ctxRef.current.getImageData(0, 0, cvs.width, cvs.height));
-        if (historyRef.current.length > 10) historyRef.current.shift(); 
+        if (historyRef.current.length > 10) historyRef.current.shift(); // 最多存 10 步
+        // 避免不必要的 React 渲染
         setCanUndo(prev => prev ? true : true); 
       };
 
@@ -951,6 +943,7 @@
         setCanUndo(historyRef.current.length > 0);
       };
 
+      // 🌟 取代 state：直接操作 DOM 的游標控制，完全避免 React 觸發重新渲染 🌟
       const toggleCursor = (visible) => {
           if (!cursorRef.current) return;
           if (visible && (mode === 'eraser' || mode === 'pen')) {
@@ -960,44 +953,37 @@
           }
       };
 
+      // 高效更新游標位置 (繞過 React 狀態更新，並使用 GPU 加速達到 120Hz 零卡頓)
       const updateCursorPos = (clientX, clientY) => {
         if ((mode !== 'eraser' && mode !== 'pen') || !cursorRef.current) return;
+        // 改用 transform translate3d 直接觸發 GPU 渲染，效能遠高於修改 left/top
         cursorRef.current.style.transform = `translate3d(calc(${clientX}px - 50%), calc(${clientY}px - 50%), 0)`;
       };
 
-      // 取得畫布精確座標 (加上包含旋轉與平移的精準快取運算)
+      // 取得畫布精確座標 (加上高效的邊界快取機制)
       const getCanvasPos = (clientX, clientY) => {
         const canvas = canvasRef.current;
         const rect = canvasRectRef.current || canvas.getBoundingClientRect();
-        
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        let dx = clientX - centerX;
-        let dy = clientY - centerY;
-        
-        const rad = -rotation * (Math.PI / 180);
-        const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
-        const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
-        
-        const x = rx / exportScale + canvas.width / 2;
-        const y = ry / exportScale + canvas.height / 2;
-        
-        return { x, y, scaleX: 1 / exportScale };
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY,
+            scaleX // 回傳 scaleX 供調整筆刷比例使用
+        };
       };
 
+      // 統一整合的原生指標事件 (支援多點觸控與 Apple Pencil 極致最佳化)
       const startAction = (e) => {
         activePointers.current.set(e.pointerId, e);
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
 
-        // --- 處理雙指縮放與旋轉 ---
+        // --- 處理雙指縮放 ---
         if (activePointers.current.size >= 2) {
-            if (isDrawingRef.current) return; 
+            if (isDrawingRef.current) return; // 書寫中防干擾
             const pts = Array.from(activePointers.current.values());
-            const dx = pts[1].clientX - pts[0].clientX;
-            const dy = pts[1].clientY - pts[0].clientY;
-            touchRef.current.dist = Math.hypot(dx, dy);
-            touchRef.current.angle = Math.atan2(dy, dx) * (180 / Math.PI); // 紀錄初始角度
+            const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+            touchRef.current.dist = dist;
             return;
         }
 
@@ -1013,6 +999,7 @@
             saveState();
             isDrawingRef.current = true;
             
+            // 快取畫布邊界，避免高頻書寫時產生 Layout Thrashing
             canvasRectRef.current = canvasRef.current.getBoundingClientRect();
             const { x, y, scaleX } = getCanvasPos(pointer.clientX, pointer.clientY);
             lastPosRef.current = { x, y };
@@ -1021,6 +1008,7 @@
             const currentSize = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
             ctx.fillStyle = mode === 'eraser' ? '#ffffff' : penColor;
             
+            // 點擊時畫一個圓，確保輕觸也能留下完美圓潤的痕跡
             ctx.beginPath();
             ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2);
             ctx.fill();
@@ -1031,29 +1019,16 @@
         if (!activePointers.current.has(e.pointerId)) return;
         activePointers.current.set(e.pointerId, e);
 
-        // --- 處理雙指縮放與旋轉 ---
+        // --- 處理雙指縮放 ---
         if (activePointers.current.size >= 2) {
             if (isDrawingRef.current) return;
             const pts = Array.from(activePointers.current.values());
-            const dx = pts[1].clientX - pts[0].clientX;
-            const dy = pts[1].clientY - pts[0].clientY;
-            const dist = Math.hypot(dx, dy);
-            const angle = Math.atan2(dy, dx) * (180 / Math.PI); // 計算當前角度
-
+            const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
             if (touchRef.current.dist > 0) {
-                const deltaScale = dist / touchRef.current.dist;
-                setExportScale(prev => Math.min(Math.max(prev * deltaScale, 0.2), 5));
+                const delta = dist / touchRef.current.dist;
+                setExportScale(prev => Math.min(Math.max(prev * delta, 0.2), 5));
             }
-            if (touchRef.current.angle !== undefined) {
-                let deltaAngle = angle - touchRef.current.angle;
-                // 防止超過 180 度界線時的角度突跳
-                if (deltaAngle > 180) deltaAngle -= 360;
-                if (deltaAngle < -180) deltaAngle += 360;
-                setRotation(prev => prev + deltaAngle);
-            }
-
             touchRef.current.dist = dist;
-            touchRef.current.angle = angle;
             return;
         }
 
@@ -1075,6 +1050,8 @@
             ctx.lineJoin = 'round';
             ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : penColor;
             
+            // 🌟 Apple Pencil 終極優化：抓取硬體層級的原始高頻率事件 (Coalesced Events) 🌟
+            // 解決 120Hz/240Hz 觸控點跟不上螢幕刷新率所導致的「多邊形」不連續感
             const eventsToProcess = (pointer.nativeEvent && typeof pointer.nativeEvent.getCoalescedEvents === 'function')
                 ? pointer.nativeEvent.getCoalescedEvents()
                 : [pointer.nativeEvent || pointer];
@@ -1091,6 +1068,7 @@
             }
             ctx.stroke();
 
+            // 更新最後座標供下一幀使用
             lastPosRef.current = lastPos;
         }
       };
@@ -1110,10 +1088,11 @@
                 if (ctxRef.current) ctxRef.current.beginPath();
             }
             touchRef.current.dist = 0;
-            canvasRectRef.current = null; 
+            canvasRectRef.current = null; // 清除邊界快取
         }
       };
 
+      // 加入電腦滑鼠滾輪縮放支援
       const handleWheel = (e) => {
         if (mode === 'scale') {
            e.preventDefault();
@@ -1122,28 +1101,16 @@
         }
       };
 
-      // ★ 匯出時包含使用者調整好的旋轉角度與縮放大小 ★
+      // 最終匯出處理，將 exportScale 乘以解析度重新渲染
       const handleComplete = () => {
         const canvas = canvasRef.current;
         const finalCanvas = document.createElement('canvas');
-        
-        const rad = rotation * Math.PI / 180;
-        const absCos = Math.abs(Math.cos(rad));
-        const absSin = Math.abs(Math.sin(rad));
-        const w = canvas.width * exportScale;
-        const h = canvas.height * exportScale;
-        
-        finalCanvas.width = w * absCos + h * absSin;
-        finalCanvas.height = w * absSin + h * absCos;
-        
+        finalCanvas.width = canvas.width * exportScale;
+        finalCanvas.height = canvas.height * exportScale;
         const ctx = finalCanvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        
-        ctx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
-        ctx.rotate(rad);
-        ctx.drawImage(canvas, -w / 2, -h / 2, w, h);
-        
+        ctx.drawImage(canvas, 0, 0, finalCanvas.width, finalCanvas.height);
         onComplete(finalCanvas.toDataURL('image/jpeg', 0.9));
       };
 
@@ -1159,6 +1126,7 @@
           const r = data[i], g = data[i+1], b = data[i+2];
           const max = Math.max(r, g, b), min = Math.min(r, g, b);
           const diff = max - min;
+          // 排除偏黃色的考卷紙張背景
           const isYellowishPaper = r > 160 && g > 150 && b < r - 20;
           if (diff > 30 && !isYellowishPaper) {
             data[i] = 255; data[i+1] = 255; data[i+2] = 255;
@@ -1261,7 +1229,7 @@
               className={`absolute top-1/2 left-1/2 shadow-md bg-white border border-gray-300 ${(mode === 'eraser' || mode === 'pen') ? 'cursor-none' : (mode === 'scale' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : '')}`}
               style={{ 
                  width: canvasDim.w, height: canvasDim.h,
-                 transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${exportScale}) rotate(${rotation}deg)`,
+                 transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${exportScale})`,
                  transformOrigin: 'center center',
                  transition: isPanning || mode === 'scale' ? 'none' : 'transform 0.1s ease-out'
               }} 
@@ -1272,7 +1240,7 @@
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
                  <div style={{ width: '4.94mm', height: '4.94mm' }} className="border-2 border-red-500 bg-red-500/10 ring-2 ring-white shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
                  <div className="mt-6 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed">
-                   🔍 請用雙指縮放或旋轉，單指平移<br/><span className="text-amber-300">將題目文字調整至水平並塞滿上方紅框</span>
+                   🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至塞滿上方紅框</span>
                  </div>
               </div>
             )}
