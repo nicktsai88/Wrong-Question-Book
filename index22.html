@@ -862,10 +862,6 @@
       const isDrawingRef = useRef(false); // 使用 Ref 紀錄書寫狀態，大幅提升流暢度
       const lastPosRef = useRef({ x: 0, y: 0 }); // 紀錄上一個筆畫座標，使線條平滑不中斷
       
-      // 新增：指標狀態追蹤與邊界快取，用於大幅提升高效能書寫
-      const activePointers = useRef(new Map());
-      const canvasRectRef = useRef(null);
-
       const [mode, setMode] = useState('none');
       const historyRef = useRef([]); // 用於存放 Undo 的歷史紀錄
       const [canUndo, setCanUndo] = useState(false);
@@ -934,10 +930,10 @@
         cursorRef.current.style.transform = `translate3d(calc(${clientX}px - 50%), calc(${clientY}px - 50%), 0)`;
       };
 
-      // 取得畫布精確座標 (加上高效的快取機制)
+      // 取得畫布精確座標
       const getCanvasPos = (clientX, clientY) => {
         const canvas = canvasRef.current;
-        const rect = canvasRectRef.current || canvas.getBoundingClientRect();
+        const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         return {
@@ -947,41 +943,50 @@
         };
       };
 
-      // 統一整合的原生指標事件 (支援多點觸控與 Apple Pencil 極致最佳化)
+      // 統一整合的觸控/滑鼠起始事件
       const startAction = (e) => {
-        activePointers.current.set(e.pointerId, e);
-        try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+        const isTouch = !!e.touches;
 
         // --- 處理雙指縮放 ---
-        if (activePointers.current.size >= 2) {
-            if (isDrawingRef.current) return; // 書寫中防干擾
-            const pts = Array.from(activePointers.current.values());
-            const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+        if (isTouch && e.touches.length >= 2) {
+            // 如果正在書寫中，手掌誤觸產生兩點，應直接忽略，不打斷書寫
+            if (isDrawingRef.current) return; 
+
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
             touchRef.current.dist = dist;
             return;
         }
 
-        // --- 單點處理 ---
-        const pointer = e;
+        // --- 取得單點觸控/滑鼠座標 ---
+        const touch = isTouch ? e.touches[0] : null;
+        
+        // 🌟 Apple Pencil 嚴格防手掌誤觸機制 🌟
+        // 如果是觸控螢幕，且目前處於畫筆或橡皮擦模式，我們檢查 touchType
+        // 若 touchType 存在且不等於 'stylus' (例如手指/手掌的 'direct')，則直接忽略，完全防呆！
+        if (isTouch && (mode === 'pen' || mode === 'eraser') && touch.touchType && touch.touchType !== 'stylus') {
+            return;
+        }
+
+        const clientX = isTouch ? touch.clientX : e.clientX;
+        const clientY = isTouch ? touch.clientY : e.clientY;
 
         if (mode === 'scale') {
             setIsPanning(true);
-            panRef.current = { startX: pointer.clientX, startY: pointer.clientY, startPanX: pan.x, startPanY: pan.y };
+            panRef.current = { startX: clientX, startY: clientY, startPanX: pan.x, startPanY: pan.y };
         } else if (mode === 'eraser' || mode === 'pen') {
-            updateCursorPos(pointer.clientX, pointer.clientY);
+            updateCursorPos(clientX, clientY);
             setShowCursor(true);
             saveState();
             isDrawingRef.current = true;
             
-            // 快取畫布邊界，避免高頻書寫時產生 Layout Thrashing
-            canvasRectRef.current = canvasRef.current.getBoundingClientRect();
-            const { x, y, scaleX } = getCanvasPos(pointer.clientX, pointer.clientY);
+            const { x, y, scaleX } = getCanvasPos(clientX, clientY);
             lastPosRef.current = { x, y };
 
             const ctx = canvasRef.current.getContext('2d');
             const currentSize = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
             ctx.fillStyle = mode === 'eraser' ? '#ffffff' : penColor;
             
+            // 點擊時畫一個圓，確保輕觸也能留下完美圓潤的痕跡
             ctx.beginPath();
             ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2);
             ctx.fill();
@@ -989,14 +994,13 @@
       };
 
       const moveAction = (e) => {
-        if (!activePointers.current.has(e.pointerId)) return;
-        activePointers.current.set(e.pointerId, e);
+        const isTouch = !!e.touches;
 
         // --- 處理雙指縮放 ---
-        if (activePointers.current.size >= 2) {
-            if (isDrawingRef.current) return;
-            const pts = Array.from(activePointers.current.values());
-            const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+        if (isTouch && e.touches.length >= 2) {
+            if (isDrawingRef.current) return; // 書寫中防干擾
+            e.preventDefault(); 
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
             if (touchRef.current.dist > 0) {
                 const delta = dist / touchRef.current.dist;
                 setExportScale(prev => Math.min(Math.max(prev * delta, 0.2), 5));
@@ -1005,66 +1009,55 @@
             return;
         }
 
-        // --- 單點處理 ---
-        const pointer = e;
+        // --- 取得單點觸控/滑鼠座標 ---
+        const touch = isTouch ? e.touches[0] : null;
+
+        // 🌟 Apple Pencil 嚴格防手掌誤觸機制 🌟
+        if (isTouch && (mode === 'pen' || mode === 'eraser') && touch.touchType && touch.touchType !== 'stylus') {
+            return;
+        }
+
+        const clientX = isTouch ? touch.clientX : e.clientX;
+        const clientY = isTouch ? touch.clientY : e.clientY;
 
         if (mode === 'scale' && isPanning) {
-            const dx = pointer.clientX - panRef.current.startX;
-            const dy = pointer.clientY - panRef.current.startY;
+            e.preventDefault();
+            const dx = clientX - panRef.current.startX;
+            const dy = clientY - panRef.current.startY;
             setPan({ x: panRef.current.startPanX + dx, y: panRef.current.startPanY + dy });
-        } else if ((mode === 'eraser' || mode === 'pen') && isDrawingRef.current) {
-            updateCursorPos(pointer.clientX, pointer.clientY);
+        } else if (mode === 'eraser' || mode === 'pen') {
+            updateCursorPos(clientX, clientY);
+            if (!isDrawingRef.current) return;
+            e.preventDefault(); // 防止 Safari 畫面滑動
             
+            const { x, y, scaleX } = getCanvasPos(clientX, clientY);
             const ctx = canvasRef.current.getContext('2d');
-            const { scaleX } = getCanvasPos(pointer.clientX, pointer.clientY);
             
             ctx.lineWidth = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : penColor;
             
-            // 🔥 Apple Pencil 終極優化：抓取硬體層級的原始高頻率事件 (Coalesced Events)
-            // 解決 120Hz/240Hz 觸控點跟不上螢幕刷新率所導致的「多邊形」不連續感
-            const eventsToProcess = (pointer.nativeEvent && typeof pointer.nativeEvent.getCoalescedEvents === 'function')
-                ? pointer.nativeEvent.getCoalescedEvents()
-                : [pointer.nativeEvent || pointer];
-
+            // 使用連續線段繪製，徹底解決筆劃間卡頓不連續的問題
             ctx.beginPath();
             ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
-            
-            let lastPos = lastPosRef.current;
-            for (let i = 0; i < eventsToProcess.length; i++) {
-                const ev = eventsToProcess[i];
-                const { x, y } = getCanvasPos(ev.clientX, ev.clientY);
-                ctx.lineTo(x, y);
-                lastPos = { x, y };
-            }
+            ctx.lineTo(x, y);
             ctx.stroke();
 
             // 更新最後座標供下一幀使用
-            lastPosRef.current = lastPos;
+            lastPosRef.current = { x, y };
         }
       };
 
-      const endAction = (e) => {
-        if (e && e.pointerId) {
-            activePointers.current.delete(e.pointerId);
-            try { e.target.releasePointerCapture(e.pointerId); } catch(err) {}
-        } else {
-            activePointers.current.clear();
+      const endAction = () => {
+        if (isPanning) setIsPanning(false);
+        if (isDrawingRef.current) {
+            isDrawingRef.current = false;
+            const ctx = canvasRef.current?.getContext('2d');
+            if (ctx) ctx.beginPath();
         }
-
-        if (activePointers.current.size === 0) {
-            if (isPanning) setIsPanning(false);
-            if (isDrawingRef.current) {
-                isDrawingRef.current = false;
-                const ctx = canvasRef.current?.getContext('2d');
-                if (ctx) ctx.beginPath();
-            }
-            touchRef.current.dist = 0;
-            canvasRectRef.current = null; // 清除邊界快取
-            if (mode === 'eraser' || mode === 'pen') setShowCursor(false);
-        }
+        touchRef.current.dist = 0;
+        if (!isDrawingRef.current && (mode === 'eraser' || mode === 'pen')) setShowCursor(false);
       };
 
       // 加入電腦滑鼠滾輪縮放支援
@@ -1187,15 +1180,13 @@
 
           <div ref={containerRef} className="flex-grow overflow-hidden flex items-center justify-center p-4 touch-none relative bg-gray-200 shadow-inner"
                onWheel={handleWheel}
-               onPointerDown={startAction} 
-               onPointerMove={moveAction} 
-               onPointerUp={endAction} 
-               onPointerCancel={endAction}>
+               onMouseDown={startAction} onMouseMove={moveAction} onMouseUp={endAction} onMouseOut={endAction}
+               onTouchStart={startAction} onTouchMove={moveAction} onTouchEnd={endAction}>
             
             <canvas ref={canvasRef} 
               className={`absolute top-1/2 left-1/2 shadow-md bg-white border border-gray-300 ${(mode === 'eraser' || mode === 'pen') ? 'cursor-none' : (mode === 'scale' ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : '')}`}
-              onPointerEnter={() => (mode === 'eraser' || mode === 'pen') && setShowCursor(true)}
-              onPointerLeave={(e) => { setShowCursor(false); endAction(e); }}
+              onMouseEnter={() => (mode === 'eraser' || mode === 'pen') && setShowCursor(true)}
+              onMouseLeave={() => { setShowCursor(false); endAction(); }}
               style={{ 
                  width: canvasDim.w, height: canvasDim.h,
                  transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${exportScale})`,
