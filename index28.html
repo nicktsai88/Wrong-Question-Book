@@ -15,11 +15,6 @@
   <!-- 引入 Babel 讓瀏覽器可以編譯 JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- 引入 KaTeX 數學渲染套件 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
-
   <style>
     /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
     html {
@@ -183,26 +178,6 @@
       Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
       StatusDot: ({ color }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg>
     };
-
-    // --- LaTeX 數學/化學式渲染組件 ---
-    function LatexText({ content, className }) {
-      const containerRef = useRef(null);
-      useEffect(() => {
-        if (containerRef.current && window.renderMathInElement) {
-          window.renderMathInElement(containerRef.current, {
-            delimiters: [
-              {left: '$$', right: '$$', display: true},
-              {left: '$', right: '$', display: false},
-              {left: '\\(', right: '\\)', display: false},
-              {left: '\\[', right: '\\]', display: true}
-            ],
-            throwOnError: false,
-            output: 'html'
-          });
-        }
-      }, [content]);
-      return <div ref={containerRef} className={className}>{content}</div>;
-    }
 
     // --- 高效能手寫板元件 (用於筆記欄位) ---
     function NoteCanvas({ initialDataUrl, onChange }) {
@@ -1696,8 +1671,6 @@
         mastery: initialData.mastery || 'need_review'
       });
 
-      const [showTutorPreview, setShowTutorPreview] = useState(false);
-
       const handleSubjectChange = (e) => {
         const newSubj = e.target.value;
         const info = CURRICULUM_DB[newSubj];
@@ -1791,19 +1764,8 @@
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-base font-bold text-gray-700">🤖 AI 老師教學</label>
-                  <button onClick={() => setShowTutorPreview(!showTutorPreview)} className="text-sm font-bold text-amber-600 hover:bg-amber-50 px-3 py-1 rounded-lg transition-colors border border-amber-200">
-                    {showTutorPreview ? '✏️ 切換為編輯模式' : '✨ 預覽數學/化學式'}
-                  </button>
-                </div>
-                {showTutorPreview ? (
-                  <div className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/30 min-h-[12rem] overflow-y-auto">
-                    <LatexText content={formData.ai_tutor} className="whitespace-pre-wrap leading-relaxed text-gray-800" />
-                  </div>
-                ) : (
-                  <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
-                )}
+                <label className="block text-base font-bold text-gray-700 mb-2">🤖 AI 老師教學</label>
+                <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
               </div>
               <div>
                 <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
@@ -1824,8 +1786,8 @@
       const [searchQuery, setSearchQuery] = useState(''); 
       const [isFetching, setIsFetching] = useState(true);
       
-      // 控制閱覽列表中的 AI 教學與筆記摺疊狀態 (預設隱藏，使用 expandedSections 記錄已展開的項目)
-      const [expandedSections, setExpandedSections] = useState({});
+      // 控制閱覽列表中的 AI 教學與筆記摺疊狀態
+      const [hiddenSections, setHiddenSections] = useState({});
       
       useEffect(() => {
         if (!user || !FB || !currentProfile) return;
@@ -1866,7 +1828,7 @@
       };
 
       const toggleSection = (id, type) => {
-          setExpandedSections(prev => ({...prev, [`${id}_${type}`]: !prev[`${id}_${type}`]}));
+          setHiddenSections(prev => ({...prev, [`${id}_${type}`]: !prev[`${id}_${type}`]}));
       };
 
       const handleSubjectChange = (sub) => { setFilterSubject(sub); setFilterVolume('All'); setFilterSubSubject('All'); };
@@ -2039,13 +2001,13 @@
                         <div>
                           <div className="font-bold text-gray-800 text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'ai')}>
                              <div className="flex items-center gap-2">🤖 AI老師教學 / 解答</div>
-                             <button className="text-gray-500 hover:text-amber-600 transition-colors no-print font-bold flex items-center gap-1">
-                                 {expandedSections[`${item.id}_ai`] ? '🐾 收起' : '✨ 顯示'}
+                             <button className="text-gray-400 hover:text-amber-600 transition-colors no-print">
+                                 {hiddenSections[`${item.id}_ai`] ? '👁️ 顯示' : '🙈 隱藏'}
                              </button>
                           </div>
-                          {expandedSections[`${item.id}_ai`] && (
-                              <div className="text-gray-800 text-lg bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
-                                 <LatexText content={item.ai_tutor || item.answer} className="whitespace-pre-wrap leading-relaxed" />
+                          {!hiddenSections[`${item.id}_ai`] && (
+                              <div className="text-gray-800 text-lg whitespace-pre-wrap leading-relaxed bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
+                                 {item.ai_tutor || item.answer}
                               </div>
                           )}
                         </div>
@@ -2054,11 +2016,11 @@
                         <div>
                           <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'note')}>
                              <div className="flex items-center gap-2">📝 錯題筆記 / 訂正過程</div>
-                             <button className="text-gray-500 hover:text-amber-600 transition-colors no-print font-bold flex items-center gap-1">
-                                 {expandedSections[`${item.id}_note`] ? '🐾 收起' : '✨ 顯示'}
+                             <button className="text-gray-400 hover:text-amber-600 transition-colors no-print">
+                                 {hiddenSections[`${item.id}_note`] ? '👁️ 顯示' : '🙈 隱藏'}
                              </button>
                           </div>
-                          {expandedSections[`${item.id}_note`] && (
+                          {!hiddenSections[`${item.id}_note`] && (
                               <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain bg-white border border-amber-200 rounded-xl shadow-sm" style={{ maxHeight: '600px' }} />
                           )}
                         </div>
