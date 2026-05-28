@@ -1542,28 +1542,16 @@
 
             {/* 尺寸校正 - 參考方框與動態隱藏的教學黑框 */}
             {(mode === 'scale' || mode === 'rotate') && (
-              <>
-                {mode === 'scale' && (
-                  <div className="absolute top-[20%] left-[15%] pointer-events-none z-40 font-mono tracking-[0.2em] font-bold" 
-                       style={{ 
-                         fontSize: '4.94mm', 
-                         lineHeight: '4.94mm', 
-                         color: 'rgba(100, 100, 100, 0.85)', 
-                         textShadow: '1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white, 0px 0px 3px rgba(255,255,255,0.9)' 
-                       }}>
-                    0123456789
-                  </div>
-                )}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
-                   <div className={`text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${isInteracting ? 'opacity-0' : 'opacity-100'}`}>
-                     {mode === 'scale' ? (
-                         <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目數字與左上方灰階數字重疊並調整至等大</span></>
-                     ) : (
-                         <>🔄 請用雙指旋轉或單指平移<br/><span className="text-amber-300">將題目調整至完美水平狀態</span></>
-                     )}
-                   </div>
-                </div>
-              </>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
+                 <div style={{ width: '4.94mm', height: '4.94mm' }} className="border-[3px] border-red-500 bg-red-500/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
+                 <div className={`mt-6 text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${isInteracting ? 'opacity-0' : 'opacity-100'}`}>
+                   {mode === 'scale' ? (
+                       <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目文字調整至塞滿上方紅框</span></>
+                   ) : (
+                       <>🔄 請用雙指旋轉或單指平移<br/><span className="text-amber-300">將題目調整至完美水平狀態</span></>
+                   )}
+                 </div>
+              </div>
             )}
           </div>
 
