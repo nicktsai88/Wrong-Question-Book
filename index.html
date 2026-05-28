@@ -189,6 +189,8 @@
       const containerRef = useRef(null);
       useEffect(() => {
         if (containerRef.current && window.renderMathInElement) {
+          // 確保每次重新渲染時，先還原為純文字，避免 KaTeX 修改的 DOM 與 React 產生衝突
+          containerRef.current.innerText = content || '';
           window.renderMathInElement(containerRef.current, {
             delimiters: [
               {left: '$$', right: '$$', display: true},
@@ -201,7 +203,7 @@
           });
         }
       }, [content]);
-      return <div ref={containerRef} className={className}>{content}</div>;
+      return <div ref={containerRef} className={className}></div>;
     }
 
     // --- 高效能手寫板元件 (用於筆記欄位) ---
@@ -542,6 +544,10 @@
           5. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。若無完全相同的字眼，請挑選涵蓋該知識點的單元。
           6. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
           7. "ai_tutor": 這是「AI老師教學」欄位。如果是數學題，請提供「詳細的解題步驟」；如果是其他科目，請提供「題目的詳細解析，並分析每個選項正確或錯誤的原因」。請務必詳盡且易於理解，適合國中生閱讀。
+          8. 【最重要：數學與化學式排版】為了讓系統能優美地渲染公式，你在 ai_tutor 中的「所有數學式、化學式、方程式、變數符號、上標、下標」都「必須」使用 LaTeX 語法包裝！
+             - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\Delta = b^2-4ac$、變數 $x$。
+             - 獨立成行的公式：請使用雙錢字號包裝，例如：$$ x = \frac{-b \pm \sqrt{b^2-4ac}}{2a} $$
+             - 絕對禁止直接輸出純文字的指數 (例如 x^2) 或未包裝的變數，請一定要寫成 $x^2$。
 
           JSON 格式必須嚴格如下：
           {
