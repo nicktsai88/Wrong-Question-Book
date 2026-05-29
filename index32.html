@@ -1429,10 +1429,6 @@
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
-        // ★ 修復：在旋轉畫布前，先將背景填滿純白，避免匯出 JPEG 時產生黑邊
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, finalW, finalH);
-        
         ctx.translate(finalW / 2, finalH / 2);
         ctx.rotate(rad);
         ctx.drawImage(canvas, -w / 2, -h / 2, w, h);
