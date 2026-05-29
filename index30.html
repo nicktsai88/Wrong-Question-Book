@@ -36,7 +36,7 @@
       #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; background-color: #ffffff !important; }
       .no-print { display: none !important; }
       @page { margin: 0.5cm; size: A4 portrait; }
-      .print-card { padding: 0.25rem 0 !important; margin-bottom: 0.75rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
+      .print-card { padding: 0.5rem !important; margin-bottom: 2rem !important; border: none !important; box-shadow: none !important; background-color: #ffffff !important; }
       /* 取消 width: 100% 強制放大，改為依原始圖片比例顯示，確保字體大小一致 */
       .print-img { max-width: 100% !important; width: auto !important; max-height: none !important; object-fit: contain; }
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
@@ -1544,10 +1544,8 @@
             {(mode === 'scale' || mode === 'rotate') && (
               <>
                 {mode === 'scale' && (
-                  <div className="absolute top-[20%] left-[15%] pointer-events-none z-40 font-bold" 
+                  <div className="absolute top-[20%] left-[15%] pointer-events-none z-40 font-mono tracking-[0.2em] font-bold" 
                        style={{ 
-                         fontFamily: '"Times New Roman", Times, serif',
-                         letterSpacing: '0.4em',
                          fontSize: '4.94mm', 
                          lineHeight: '4.94mm', 
                          color: 'rgba(100, 100, 100, 0.85)', 
