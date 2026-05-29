@@ -37,8 +37,8 @@
       .no-print { display: none !important; }
       @page { margin: 0.5cm; size: A4 portrait; }
       .print-card { padding: 0.25rem 0 !important; margin-bottom: 0.75rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
-      /* 取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示 */
-      .print-img { max-width: 100% !important; max-height: none !important; object-fit: contain; }
+      /* 取消 width: 100% 強制放大，改為依原始圖片比例顯示，確保字體大小一致 */
+      .print-img { max-width: 100% !important; width: auto !important; max-height: none !important; object-fit: contain; }
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
     }
     
@@ -428,7 +428,6 @@
       // 編輯既有資料狀態
       const [editTargetId, setEditTargetId] = useState(null);
       const [isEditingExisting, setIsEditingExisting] = useState(false);
-      const [printWidth, setPrintWidth] = useState(null); // 新增：用於記錄維持高畫質的實體寬度
 
       // AI 分類結果
       const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '' });
@@ -509,7 +508,6 @@
         setRawImage(dataUrl);
         setEditTargetId(null);
         setIsEditingExisting(false);
-        setPrintWidth(null);
         setCurrentView('crop');
       };
 
@@ -518,7 +516,6 @@
         setEditTargetId(item.id);
         setAiAnalysis(item); // 載入原本的全部資料，包含分類、筆記、AI教學
         setEditedImage(item.image); // 編輯基礎圖預設為已完成的圖
-        setPrintWidth(item.printWidth || null);
         setIsEditingExisting(true);
         setCurrentView('form');
       };
@@ -549,7 +546,7 @@
           7. "ai_tutor": 這是「AI老師教學」欄位。如果是數學題，請提供「詳細的解題步驟」；如果是其他科目，請提供「題目的詳細解析，並分析每個選項正確或錯誤的原因」。請務必詳盡且易於理解，適合國中生閱讀。
           8. 【最重要：數學與化學式排版】為了讓系統能優美地渲染公式，你在 ai_tutor 中的「所有數學式、化學式、方程式、變數符號、上標、下標」都「必須」使用 LaTeX 語法包裝！
              - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\Delta = b^2-4ac$、變數 $x$。
-             - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$$
+             - 獨立成行的公式：請使用雙錢字號包裝，例如：$$ x = \frac{-b \pm \sqrt{b^2-4ac}}{2a} $$
              - 絕對禁止直接輸出純文字的指數 (例如 x^2) 或未包裝的變數，請一定要寫成 $x^2$。
 
           JSON 格式必須嚴格如下：
@@ -661,13 +658,11 @@
         setCurrentView('classify');
 
         try {
-          const finalPrintWidth = printWidth !== null ? printWidth : (aiAnalysis.printWidth || null);
           if (editTargetId) {
              // 更新現有資料
              await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), {
                ...formData,
                image: editedImage, // 儲存可能的二次編輯
-               printWidth: finalPrintWidth,
                updated_at: Date.now()
              });
              setLoadingMsg('');
@@ -679,7 +674,6 @@
              await FB.addDoc(colRef, {
                ...formData,
                image: editedImage || croppedImage,
-               printWidth: finalPrintWidth,
                timestamp: Date.now()
              });
              setLoadingMsg('');
@@ -714,7 +708,7 @@
           {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={resetFbConfig} savedKey={apiKey} />}
           {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} isDbConnected={user && FB} />}
           {currentView === 'crop' && <CropView imageUrl={rawImage} onCancel={() => setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} onUpdateRawImage={setRawImage} />}
-          {currentView === 'edit' && <EditView imageUrl={isEditingExisting ? editedImage : croppedImage} onCancel={() => { if(isEditingExisting) setCurrentView('form'); else setCurrentView('crop'); }} onComplete={(edited, baseW) => { setEditedImage(edited); if(baseW) setPrintWidth(baseW); if(!isEditingExisting) { callGeminiAI(edited); } else { setCurrentView('form'); } }} />}
+          {currentView === 'edit' && <EditView imageUrl={isEditingExisting ? editedImage : croppedImage} onCancel={() => { if(isEditingExisting) setCurrentView('form'); else setCurrentView('crop'); }} onComplete={(edited) => { setEditedImage(edited); if(!isEditingExisting) { callGeminiAI(edited); } else { setCurrentView('form'); } }} />}
           {currentView === 'classify' && <LoadingView message={loadingMsg} />}
           {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} onReEditImage={() => setCurrentView('edit')} onCancel={() => { if(isEditingExisting) setCurrentView('list'); else setCurrentView('edit'); }} onSave={saveMistake} />}
           {currentView === 'list' && <ListView currentProfile={currentProfile} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} isDbConnected={user && FB} onFullEdit={handleFullEdit} />}
@@ -1177,7 +1171,7 @@
         ctxRef.current = ctx; 
         const img = new Image();
         img.onload = () => {
-          const maxWidth = 2500; // 從 1500 提升基礎極限解析度
+          const maxWidth = 1500;
           let w = img.width, h = img.height;
           if (w > maxWidth) { h = (maxWidth / w) * h; w = maxWidth; }
           canvas.width = w; canvas.height = h;
@@ -1409,33 +1403,21 @@
         const rad = rotation * Math.PI / 180;
         const absCos = Math.abs(Math.cos(rad));
         const absSin = Math.abs(Math.sin(rad));
+        const w = canvas.width * exportScale;
+        const h = canvas.height * exportScale;
         
-        // 基礎顯示的實體寬高 (依照使用者在畫面上校正的大小)
-        const baseW = canvas.width * exportScale;
-        const baseH = canvas.height * exportScale;
-        
-        // ★ 核心優化：提升解析度乘數，大約等同於 300 DPI，解決列印失真模糊問題
-        const RESOLUTION_MULTIPLIER = 3;
-        const w = baseW * RESOLUTION_MULTIPLIER;
-        const h = baseH * RESOLUTION_MULTIPLIER;
-        
-        const finalW = w * absCos + h * absSin;
-        const finalH = w * absSin + h * absCos;
-        
-        finalCanvas.width = finalW;
-        finalCanvas.height = finalH;
+        finalCanvas.width = w * absCos + h * absSin;
+        finalCanvas.height = w * absSin + h * absCos;
         
         const ctx = finalCanvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
-        ctx.translate(finalW / 2, finalH / 2);
+        ctx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
         ctx.rotate(rad);
         ctx.drawImage(canvas, -w / 2, -h / 2, w, h);
         
-        // 傳回高畫質圖片，同時將原本的實體顯示寬度傳回，讓外部 CSS 知道該壓縮到多大
-        const baseBoundingW = baseW * absCos + baseH * absSin;
-        onComplete(finalCanvas.toDataURL('image/jpeg', 0.92), baseBoundingW);
+        onComplete(finalCanvas.toDataURL('image/jpeg', 0.9));
       };
 
       const handleRemoveColoredPen = () => {
@@ -2067,12 +2049,7 @@
                   
                   {/* 列印時保留影像 (移除了 print:hidden) */}
                   <div className="mb-5 bg-white">
-                     <img 
-                       src={item.image} 
-                       alt="Question" 
-                       className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto block bg-white" 
-                       style={item.printWidth ? { width: `${item.printWidth}px` } : {}}
-                     />
+                     <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto block bg-white" />
                   </div>
 
                   {/* 列印時強制隱藏 AI 教學與筆記 */}
