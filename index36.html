@@ -2043,33 +2043,26 @@
             ) : (
               filteredData.map((item, index) => (
                 <div key={item.id} className="bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-3">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 print:mb-3">
                     
                     {/* 分類與熟練度顯示 (列印時保留) */}
-                    <div className="flex items-start gap-3 sm:gap-4 w-full">
-                        {/* 明顯的獨立流水題號 */}
-                        <div className="text-4xl print:text-3xl font-black text-[#f59e0b] print:text-black leading-none pt-1">
-                          {String(index + 1).padStart(2, '0')}
-                        </div>
+                    <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
+                        <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
+                          #{index + 1} {item.subject} {item.volume ? item.volume : ''}
+                        </span>
+                        {item.sub_subject && (
+                          <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
+                        )}
+                        <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
                         
-                        <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
-                            <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
-                              {item.subject} {item.volume ? item.volume : ''}
-                            </span>
-                            {item.sub_subject && (
-                              <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
-                            )}
-                            <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
-                            
-                            {/* 顯示並在網頁端提供點擊切換熟練度 */}
-                            <button 
-                              onClick={() => handleUpdateMastery(item.id, item.mastery)}
-                              className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
-                              title="點擊切換熟練度"
-                            >
-                              {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
-                            </button>
-                        </div>
+                        {/* 顯示並在網頁端提供點擊切換熟練度 */}
+                        <button 
+                          onClick={() => handleUpdateMastery(item.id, item.mastery)}
+                          className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
+                          title="點擊切換熟練度"
+                        >
+                          {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
+                        </button>
                     </div>
 
                     {/* 操作按鈕 - 僅在網頁顯示 */}
