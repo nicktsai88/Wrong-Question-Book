@@ -36,7 +36,6 @@
       #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; background-color: #ffffff !important; }
       .no-print { display: none !important; }
       @page { margin: 0.5cm; size: A4 portrait; }
-      /* 縮小卡片間距，塞入更多錯題 */
       .print-card { padding: 0.25rem 0 !important; margin-bottom: 0.75rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
       /* 取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示 */
       .print-img { max-width: 100% !important; max-height: none !important; object-fit: contain; }
@@ -429,7 +428,7 @@
       // 編輯既有資料狀態
       const [editTargetId, setEditTargetId] = useState(null);
       const [isEditingExisting, setIsEditingExisting] = useState(false);
-      const [printWidth, setPrintWidth] = useState(null); // 用於記錄維持高畫質的實體寬度
+      const [printWidth, setPrintWidth] = useState(null); // 新增：用於記錄維持高畫質的實體寬度
 
       // AI 分類結果
       const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '' });
@@ -547,7 +546,7 @@
           4. "volume" 必須是該科目的冊別 (如 "第1冊")。若該科目無冊別(國文、英文)，請填 null。
           5. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。若無完全相同的字眼，請挑選涵蓋該知識點的單元。
           6. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
-          7. "ai_tutor": 這是「AI老師教學」欄位。⚠️【強制要求】：你的教學對象是「台灣的國中學生」，請務必使用國中生能輕鬆理解的白話口吻、生動比喻來解說！絕對要避免使用超出國中範圍的艱澀名詞或高中以上的公式。如果是數理題，請提供「一步一步詳細且直白的解題邏輯與步驟」；如果是文科，請提供「易懂的解析，並用國中生聽得懂的話說明每個選項為什麼對或錯」。
+          7. "ai_tutor": 這是「AI老師教學」欄位。如果是數學題，請提供「詳細的解題步驟」；如果是其他科目，請提供「題目的詳細解析，並分析每個選項正確或錯誤的原因」。請務必詳盡且易於理解，適合國中生閱讀。
           8. 【最重要：數學與化學式排版】為了讓系統能優美地渲染公式，你在 ai_tutor 中的「所有數學式、化學式、方程式、變數符號、上標、下標」都「必須」使用 LaTeX 語法包裝！
              - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\Delta = b^2-4ac$、變數 $x$。
              - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$$
@@ -1427,13 +1426,12 @@
         finalCanvas.height = finalH;
         
         const ctx = finalCanvas.getContext('2d');
-        
-        // ★ 填滿白底，防止旋轉後出現黑邊
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, finalW, finalH);
-
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
+        
+        // ★ 修復：在旋轉畫布前，先將背景填滿純白，避免匯出 JPEG 時產生黑邊
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, finalW, finalH);
         
         ctx.translate(finalW / 2, finalH / 2);
         ctx.rotate(rad);
