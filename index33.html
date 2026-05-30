@@ -1875,8 +1875,7 @@
         const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // 改為依照建立時間（舊到新）排序，確保最先建立的題目排在最上面
-            data.sort((a, b) => (a.timestamp || a.updated_at) - (b.timestamp || b.updated_at));
+            data.sort((a, b) => (b.updated_at || b.timestamp) - (a.updated_at || a.timestamp));
             setMistakes(data);
             setIsFetching(false);
         }, (error) => {
