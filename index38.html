@@ -549,10 +549,9 @@
           6. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
           7. "ai_tutor": 這是「AI老師教學」欄位。⚠️【強制要求】：你的教學對象是「台灣的國中學生」，請務必使用國中生能輕鬆理解的白話口吻、生動比喻來解說！絕對要避免使用超出國中範圍的艱澀名詞或高中以上的公式。如果是數理題，請提供「一步一步詳細且直白的解題邏輯與步驟」；如果是文科，請提供「易懂的解析，並用國中生聽得懂的話說明每個選項為什麼對或錯」。
           8. 【最重要：數學與化學式排版】為了讓系統能優美地渲染公式，你在 ai_tutor 中的「所有數學式、化學式、方程式、變數符號、上標、下標」都「必須」使用 LaTeX 語法包裝！
-             - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\\\\Delta = b^2-4ac$、變數 $x$。
-             - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}$$
+             - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\Delta = b^2-4ac$、變數 $x$。
+             - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$$
              - 絕對禁止直接輸出純文字的指數 (例如 x^2) 或未包裝的變數，請一定要寫成 $x^2$。
-             - ⚠️【JSON 格式防呆】：因為你要回傳 JSON 格式，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線！例如：乘號必須寫成 \\\\times，化學式必須寫成 \\\\text{CH}_4，分數寫成 \\\\frac{1}{2}。如果只用單反斜線 (例如 \\times)，會導致 JSON 解析失敗變成 imes！
 
           JSON 格式必須嚴格如下：
           {
@@ -635,15 +634,7 @@
           if (aiResponseText) {
             let parsed = { subject: '國文', volume: null, sub_subject: '單元1 (「相似詞語」的分辨)', concept: '未定單元', ai_tutor: '' };
             try {
-               let cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
-               // 防止 AI 忘記跳脫常見化學與數學符號，導致 \t 被 JSON 當成 Tab 解析而消失
-               cleanedText = cleanedText.replace(/(?<!\\)\\times/g, '\\\\times')
-                                        .replace(/(?<!\\)\\text/g, '\\\\text')
-                                        .replace(/(?<!\\)\\frac/g, '\\\\frac')
-                                        .replace(/(?<!\\)\\Delta/g, '\\\\Delta')
-                                        .replace(/(?<!\\)\\pm/g, '\\\\pm')
-                                        .replace(/(?<!\\)\\sqrt/g, '\\\\sqrt')
-                                        .replace(/(?<!\\)\\rightarrow/g, '\\\\rightarrow');
+               const cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                parsed = JSON.parse(cleanedText);
             } catch (e) { console.error("JSON Parse Error:", e, aiResponseText); }
             setAiAnalysis({
