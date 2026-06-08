@@ -28,9 +28,9 @@
       overflow-y: scroll;
     }
 
-    /* 列印專用樣式 - 強制純白背景與色彩精準列印 */
+    /* 列印專用樣式 - 強制純白背景 */
     @media print {
-      body, html, #root, .min-h-screen, .bg-\[\#fffbeb\] { background-color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body, html, #root, .min-h-screen, .bg-\[\#fffbeb\] { background-color: #ffffff !important; }
       body * { visibility: hidden; }
       #print-area, #print-area * { visibility: visible; }
       #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; background-color: #ffffff !important; }
@@ -1869,7 +1869,6 @@
     }
 
     function ListView({ currentProfile, onBack, FB, user, isDbConnected, onFullEdit }) {
-      const [activeTab, setActiveTab] = useState('stats'); // 'stats' 弱點分析 | 'list' 錯題列表
       const [mistakes, setMistakes] = useState([]);
       const [filterSubject, setFilterSubject] = useState('All');
       const [filterVolume, setFilterVolume] = useState('All');
@@ -1887,7 +1886,7 @@
         const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // 依照建立時間（舊到新）排序，確保最先建立的題目排在最上面
+            // 改為依照建立時間（舊到新）排序，確保最先建立的題目排在最上面
             data.sort((a, b) => (a.timestamp || a.updated_at) - (b.timestamp || b.updated_at));
             setMistakes(data);
             setIsFetching(false);
@@ -1963,25 +1962,6 @@
          }
       }
 
-      // 產生弱點統計資料
-      const statsData = SUBJECT_ORDER.map(sub => {
-         const subMistakes = mistakes.filter(m => m.subject === sub);
-         if (subMistakes.length === 0) return null;
-
-         const chapterMap = {};
-         subMistakes.forEach(m => {
-            const key = (m.volume ? m.volume + ' - ' : '') + m.sub_subject;
-            chapterMap[key] = (chapterMap[key] || 0) + 1;
-         });
-         const chapters = Object.entries(chapterMap).sort((a, b) => b[1] - a[1]);
-
-         return {
-            subject: sub,
-            total: subMistakes.length,
-            chapters: chapters
-         };
-      }).filter(Boolean);
-
       const handlePrint = () => { setTimeout(() => { window.print(); }, 100); };
 
       if (isFetching) return <LoadingView message={`正在從雲端載入 ${currentProfile} 的錯題本...`} />;
@@ -2000,242 +1980,164 @@
           </div>
 
           <div className="p-4 md:p-5 bg-white border-b no-print space-y-5">
-            {/* 模式切換按鈕 (弱點分析 vs 錯題列表) */}
-            <div className="w-[98%] max-w-[1400px] mx-auto flex justify-center mb-2">
-                <div className="bg-gray-100 p-1.5 rounded-2xl flex gap-2 w-full max-w-md shadow-inner">
-                   <button onClick={() => setActiveTab('stats')} className={`flex-1 py-3 rounded-xl font-bold text-lg transition-all flex justify-center items-center gap-2 ${activeTab === 'stats' ? 'bg-white text-[#b45309] shadow-md transform scale-105' : 'text-gray-500 hover:text-gray-700'}`}>📊 弱點分析</button>
-                   <button onClick={() => setActiveTab('list')} className={`flex-1 py-3 rounded-xl font-bold text-lg transition-all flex justify-center items-center gap-2 ${activeTab === 'list' ? 'bg-white text-[#b45309] shadow-md transform scale-105' : 'text-gray-500 hover:text-gray-700'}`}>📝 錯題列表</button>
-                </div>
+            {/* 搜尋列 */}
+            <div className="w-[98%] max-w-[1400px] mx-auto relative">
+               <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
+               <input 
+                  type="text" placeholder="搜尋核心知識、單元或筆記關鍵字..." 
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg"
+                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+               />
             </div>
 
-            {/* 僅在錯題列表模式下顯示搜尋與篩選列 */}
-            {activeTab === 'list' && (
-              <>
-                {/* 搜尋列 */}
-                <div className="w-[98%] max-w-[1400px] mx-auto relative mt-4">
-                   <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
-                   <input 
-                      type="text" placeholder="搜尋核心知識、單元或筆記關鍵字..." 
-                      className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg"
-                      value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                   />
-                </div>
-
-                {/* 科目與熟練度篩選列 */}
-                <div className="flex flex-col sm:flex-row gap-4 w-[98%] max-w-[1400px] mx-auto justify-between items-start sm:items-center">
-                    <div className="flex gap-3 overflow-x-auto whitespace-nowrap w-full sm:w-auto scrollbar-hide pb-2">
-                      {subjects.map(sub => (
-                        <button key={sub} onClick={() => handleSubjectChange(sub)}
-                          className={`px-5 py-2.5 rounded-full text-base font-bold transition-colors flex-shrink-0 ${filterSubject === sub ? 'bg-[#f59e0b] text-[#ffffff]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                          {sub === 'All' ? '綜合' : sub}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <div className="flex gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
-                        <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500'}`}>全部熟練度</button>
-                        <button onClick={() => setFilterMastery('need_review')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'need_review' ? 'bg-white shadow-md text-red-600' : 'text-gray-500'}`}>🔴 需複習</button>
-                        <button onClick={() => setFilterMastery('mastered')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'mastered' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}`}>🟢 已掌握</button>
-                    </div>
+            {/* 科目與熟練度篩選列 */}
+            <div className="flex flex-col sm:flex-row gap-4 w-[98%] max-w-[1400px] mx-auto justify-between items-start sm:items-center">
+                <div className="flex gap-3 overflow-x-auto whitespace-nowrap w-full sm:w-auto scrollbar-hide pb-2">
+                  {subjects.map(sub => (
+                    <button key={sub} onClick={() => handleSubjectChange(sub)}
+                      className={`px-5 py-2.5 rounded-full text-base font-bold transition-colors flex-shrink-0 ${filterSubject === sub ? 'bg-[#f59e0b] text-[#ffffff]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                      {sub === 'All' ? '綜合' : sub}
+                    </button>
+                  ))}
                 </div>
                 
-                {/* 冊別篩選 */}
-                {filterSubject !== 'All' && CURRICULUM_DB[filterSubject]?.hasVolume && availableVolumes.length > 1 && (
-                  <div className="flex gap-3 w-[98%] max-w-[1400px] mx-auto pt-2 overflow-x-auto scrollbar-hide pb-2">
-                    {availableVolumes.map(vol => (
-                      <button key={vol} onClick={() => handleVolumeChange(vol)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterVolume === vol ? 'bg-[#b45309] text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}>
-                        {vol === 'All' ? '全部冊別' : vol}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="flex gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
+                    <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500'}`}>全部熟練度</button>
+                    <button onClick={() => setFilterMastery('need_review')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'need_review' ? 'bg-white shadow-md text-red-600' : 'text-gray-500'}`}>🔴 需複習</button>
+                    <button onClick={() => setFilterMastery('mastered')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'mastered' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}`}>🟢 已掌握</button>
+                </div>
+            </div>
+            
+            {/* 冊別篩選 */}
+            {filterSubject !== 'All' && CURRICULUM_DB[filterSubject]?.hasVolume && availableVolumes.length > 1 && (
+              <div className="flex gap-3 w-[98%] max-w-[1400px] mx-auto pt-2 overflow-x-auto scrollbar-hide pb-2">
+                {availableVolumes.map(vol => (
+                  <button key={vol} onClick={() => handleVolumeChange(vol)}
+                    className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterVolume === vol ? 'bg-[#b45309] text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}>
+                    {vol === 'All' ? '全部冊別' : vol}
+                  </button>
+                ))}
+              </div>
+            )}
 
-                {/* 次標題篩選 */}
-                {filterSubject !== 'All' && availableSubSubjects.length > 1 && (
-                  <div className="flex gap-3 w-[98%] max-w-[1400px] mx-auto pt-4 border-t border-gray-100 border-dashed overflow-x-auto scrollbar-hide pb-2">
-                    {availableSubSubjects.map(subSub => (
-                      <button key={subSub} onClick={() => setFilterSubSubject(subSub)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterSubSubject === subSub ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}>
-                        {subSub === 'All' ? '全部單元' : subSub}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
+            {/* 次標題篩選 */}
+            {filterSubject !== 'All' && availableSubSubjects.length > 1 && (
+              <div className="flex gap-3 w-[98%] max-w-[1400px] mx-auto pt-4 border-t border-gray-100 border-dashed overflow-x-auto scrollbar-hide pb-2">
+                {availableSubSubjects.map(subSub => (
+                  <button key={subSub} onClick={() => setFilterSubSubject(subSub)}
+                    className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterSubSubject === subSub ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}>
+                    {subSub === 'All' ? '全部單元' : subSub}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
-          <div id="print-area" className="w-full">
-             {/* --- 弱點分析模式 --- */}
-             {activeTab === 'stats' && (
-                <div className="p-4 md:p-6 w-[98%] max-w-[1400px] mx-auto space-y-8 bg-gray-50 print:bg-white">
-                   <div className="text-center mb-8 no-print">
-                      <h2 className="text-3xl sm:text-4xl font-black text-gray-800 mb-3">📊 錯題弱點分析</h2>
-                      <p className="text-gray-500 font-bold text-lg">依照科目與章節彙總，快速找出最需要補強的單元！</p>
-                   </div>
-                   
-                   <div className="hidden print:block text-center mb-8 print-header border-b-2 border-black pb-4">
-                      <h1 className="text-4xl font-bold text-black">{currentProfile} 的 錯題弱點分析</h1>
-                      <p className="text-gray-500 mt-2 text-lg">列印日期：{new Date().toLocaleDateString()}</p>
-                   </div>
+          <div id="print-area" className="p-4 md:p-5 print:p-0 w-[98%] max-w-[1400px] mx-auto space-y-8 print:space-y-0 bg-[#fffbeb] print:bg-white">
+            
+            <div className="hidden print:block text-center mb-8 print-header border-b-2 border-black pb-4">
+              <h1 className="text-4xl font-bold text-black">
+                {currentProfile} 的 {filterSubject === 'All' ? '綜合' : filterSubject} 
+                {filterVolume !== 'All' && ` - ${filterVolume}`}
+                {filterSubSubject !== 'All' && ` - ${filterSubSubject}`} 錯題本
+              </h1>
+              <p className="text-gray-500 mt-2 text-lg">列印日期：{new Date().toLocaleDateString()}</p>
+            </div>
 
-                   {statsData.length === 0 ? (
-                      <div className="text-center py-24 text-gray-400 no-print">
-                         <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
-                         <p className="mt-5 text-2xl font-bold">🔍 目前沒有錯題資料可供分析</p>
-                      </div>
-                   ) : (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                         {statsData.map(stat => {
-                           const maxChapterCount = Math.max(...stat.chapters.map(c => c[1]));
-                           return (
-                             <div key={stat.subject} className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 transition-all hover:shadow-md print:shadow-none print:border-black print:mb-6 break-inside-avoid">
-                                <div className="flex justify-between items-center mb-6 border-b border-amber-100 print:border-gray-400 pb-4">
-                                   <h3 className="text-2xl sm:text-3xl font-black text-[#b45309] print:text-black flex items-center gap-2"><Icons.Book /> {stat.subject}</h3>
-                                   <span className="bg-[#fffbeb] border border-amber-200 print:border-black text-[#b45309] print:text-black px-4 py-1.5 rounded-xl font-bold text-lg">共 {stat.total} 題</span>
-                                </div>
-                                <div className="space-y-6">
-                                   {stat.chapters.map(([chapName, count]) => {
-                                      const pct = (count / maxChapterCount) * 100;
-                                      // 高亮標記條件：若是該科目錯最多且超過1題，視為需補強弱點
-                                      const isWeakness = count === maxChapterCount && count > 1;
-                                      const barColor = isWeakness ? 'bg-red-500 print:bg-black' : 'bg-[#f59e0b] print:bg-gray-500';
-                                      const textColor = isWeakness ? 'text-red-600 print:text-black' : 'text-gray-700 print:text-black';
-                                      
-                                      return (
-                                         <div key={chapName} className="flex flex-col gap-2">
-                                            <div className="flex justify-between items-end gap-4">
-                                               <span className={`font-bold text-sm sm:text-base break-words flex-1 ${textColor}`}>
-                                                  {chapName}
-                                                  {isWeakness && <span className="ml-2 text-xs bg-red-100 text-red-600 print:border print:border-black print:bg-white print:text-black px-2 py-0.5 rounded-full inline-block align-middle transform -translate-y-px">🚨 需補強</span>}
-                                               </span>
-                                               <span className={`font-black text-base sm:text-lg whitespace-nowrap ${textColor}`}>{count} 題</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 print:bg-transparent print:border print:border-gray-300 rounded-full h-3 overflow-hidden shadow-inner print:shadow-none">
-                                               <div className={`${barColor} h-full rounded-full transition-all duration-1000`} style={{ width: `${pct}%` }}></div>
-                                            </div>
-                                         </div>
-                                      );
-                                   })}
-                                </div>
-                             </div>
-                           );
-                         })}
-                      </div>
-                   )}
-                </div>
-             )}
-
-             {/* --- 錯題列表模式 --- */}
-             {activeTab === 'list' && (
-                <div className="p-4 md:p-5 print:p-0 w-[98%] max-w-[1400px] mx-auto space-y-8 print:space-y-0 bg-[#fffbeb] print:bg-white">
-                  
-                  <div className="hidden print:block text-center mb-8 print-header border-b-2 border-black pb-4">
-                    <h1 className="text-4xl font-bold text-black">
-                      {currentProfile} 的 {filterSubject === 'All' ? '綜合' : filterSubject} 
-                      {filterVolume !== 'All' && ` - ${filterVolume}`}
-                      {filterSubSubject !== 'All' && ` - ${filterSubSubject}`} 錯題本
-                    </h1>
-                    <p className="text-gray-500 mt-2 text-lg">列印日期：{new Date().toLocaleDateString()}</p>
-                  </div>
-
-                  {filteredData.length === 0 ? (
-                     <div className="text-center py-24 text-gray-400 no-print">
-                        <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
-                        <p className="mt-5 text-2xl font-bold">🔍 找不到符合條件的錯題</p>
-                     </div>
-                  ) : (
-                    filteredData.map((item, index) => (
-                      <div key={item.id} className="bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-3">
-                          
-                          {/* 分類與熟練度顯示 (列印時保留) */}
-                          <div className="flex items-start gap-3 sm:gap-4 w-full">
-                              {/* 明顯的獨立流水題號 */}
-                              <div className="text-4xl print:text-3xl font-black text-[#f59e0b] print:text-black leading-none pt-1">
-                                {String(index + 1).padStart(2, '0')}
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
-                                  <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
-                                    {item.subject} {item.volume ? item.volume : ''}
-                                  </span>
-                                  {item.sub_subject && (
-                                    <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
-                                  )}
-                                  <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
-                                  
-                                  {/* 顯示並在網頁端提供點擊切換熟練度 */}
-                                  <button 
-                                    onClick={() => handleUpdateMastery(item.id, item.mastery)}
-                                    className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
-                                    title="點擊切換熟練度"
-                                  >
-                                    {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
-                                  </button>
-                              </div>
-                          </div>
-
-                          {/* 操作按鈕 - 僅在網頁顯示 */}
-                          <div className="flex items-center gap-2 self-end sm:self-auto no-print flex-shrink-0">
-                              <button onClick={() => onFullEdit(item)} className="text-gray-500 hover:text-[#f59e0b] bg-gray-100 hover:bg-amber-50 px-3 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 shadow-sm" title="完整編輯內容"><Icons.Edit /> 完整編輯</button>
-                              <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="刪除錯題"><Icons.Trash /></button>
-                          </div>
+            {filteredData.length === 0 ? (
+               <div className="text-center py-24 text-gray-400 no-print">
+                  <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
+                  <p className="mt-5 text-2xl font-bold">🔍 找不到符合條件的錯題</p>
+               </div>
+            ) : (
+              filteredData.map((item, index) => (
+                <div key={item.id} className="bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-3">
+                    
+                    {/* 分類與熟練度顯示 (列印時保留) */}
+                    <div className="flex items-start gap-3 sm:gap-4 w-full">
+                        {/* 明顯的獨立流水題號 */}
+                        <div className="text-4xl print:text-3xl font-black text-[#f59e0b] print:text-black leading-none pt-1">
+                          {String(index + 1).padStart(2, '0')}
                         </div>
                         
-                        {/* 列印時保留影像 (移除了 print:hidden) */}
-                        <div className="mb-5 bg-white">
-                           <img 
-                             src={item.image} 
-                             alt="Question" 
-                             className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto print:ml-0 print:mr-auto block bg-white" 
-                             style={item.printWidth ? { width: `${item.printWidth}px` } : {}}
-                           />
+                        <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
+                            <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
+                              {item.subject} {item.volume ? item.volume : ''}
+                            </span>
+                            {item.sub_subject && (
+                              <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
+                            )}
+                            <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
+                            
+                            {/* 顯示並在網頁端提供點擊切換熟練度 */}
+                            <button 
+                              onClick={() => handleUpdateMastery(item.id, item.mastery)}
+                              className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}
+                              title="點擊切換熟練度"
+                            >
+                              {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
+                            </button>
                         </div>
+                    </div>
 
-                        {/* 列印時強制隱藏 AI 教學與筆記 */}
-                        {(item.ai_tutor || item.answer || item.notes) && (
-                          <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 print:hidden space-y-5">
-                            {(item.ai_tutor || item.answer) && (
-                              <div>
-                                <div className="font-bold text-gray-800 text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'ai')}>
-                                   <div className="flex items-center gap-2">🤖 AI老師教學 / 解答</div>
-                                   <button className="text-gray-500 hover:text-amber-600 transition-colors no-print font-bold flex items-center gap-1">
-                                       {expandedSections[`${item.id}_ai`] ? '🐾 收起' : '✨ 顯示'}
-                                   </button>
-                                </div>
-                                {expandedSections[`${item.id}_ai`] && (
-                                    <div className="text-gray-800 text-lg bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
-                                       <LatexText content={item.ai_tutor || item.answer} className="whitespace-pre-wrap leading-relaxed" />
-                                    </div>
-                                )}
-                              </div>
-                            )}
-                            {item.notes && (
-                              <div>
-                                <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'note')}>
-                                   <div className="flex items-center gap-2">📝 錯題筆記 / 訂正過程</div>
-                                   <button className="text-gray-500 hover:text-amber-600 transition-colors no-print font-bold flex items-center gap-1">
-                                       {expandedSections[`${item.id}_note`] ? '🐾 收起' : '✨ 顯示'}
-                                   </button>
-                                </div>
-                                {expandedSections[`${item.id}_note`] && (
-                                    <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain bg-white border border-amber-200 rounded-xl shadow-sm" style={{ maxHeight: '600px' }} />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                  
-                  <div className="no-print text-center py-8 text-base text-gray-400 font-bold">
-                    💡 列印時會自動隱藏解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」>「列印」功能。
+                    {/* 操作按鈕 - 僅在網頁顯示 */}
+                    <div className="flex items-center gap-2 self-end sm:self-auto no-print flex-shrink-0">
+                        <button onClick={() => onFullEdit(item)} className="text-gray-500 hover:text-[#f59e0b] bg-gray-100 hover:bg-amber-50 px-3 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 shadow-sm" title="完整編輯內容"><Icons.Edit /> 完整編輯</button>
+                        <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="刪除錯題"><Icons.Trash /></button>
+                    </div>
                   </div>
+                  
+                  {/* 列印時保留影像 (移除了 print:hidden) */}
+                  <div className="mb-5 bg-white">
+                     <img 
+                       src={item.image} 
+                       alt="Question" 
+                       className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto print:ml-0 print:mr-auto block bg-white" 
+                       style={item.printWidth ? { width: `${item.printWidth}px` } : {}}
+                     />
+                  </div>
+
+                  {/* 列印時強制隱藏 AI 教學與筆記 */}
+                  {(item.ai_tutor || item.answer || item.notes) && (
+                    <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 print:hidden space-y-5">
+                      {(item.ai_tutor || item.answer) && (
+                        <div>
+                          <div className="font-bold text-gray-800 text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'ai')}>
+                             <div className="flex items-center gap-2">🤖 AI老師教學 / 解答</div>
+                             <button className="text-gray-500 hover:text-amber-600 transition-colors no-print font-bold flex items-center gap-1">
+                                 {expandedSections[`${item.id}_ai`] ? '🐾 收起' : '✨ 顯示'}
+                             </button>
+                          </div>
+                          {expandedSections[`${item.id}_ai`] && (
+                              <div className="text-gray-800 text-lg bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
+                                 <LatexText content={item.ai_tutor || item.answer} className="whitespace-pre-wrap leading-relaxed" />
+                              </div>
+                          )}
+                        </div>
+                      )}
+                      {item.notes && (
+                        <div>
+                          <div className="font-bold text-[#b45309] text-xl mb-2 flex items-center justify-between cursor-pointer" onClick={() => toggleSection(item.id, 'note')}>
+                             <div className="flex items-center gap-2">📝 錯題筆記 / 訂正過程</div>
+                             <button className="text-gray-500 hover:text-amber-600 transition-colors no-print font-bold flex items-center gap-1">
+                                 {expandedSections[`${item.id}_note`] ? '🐾 收起' : '✨ 顯示'}
+                             </button>
+                          </div>
+                          {expandedSections[`${item.id}_note`] && (
+                              <img src={item.notes} alt="Handwritten Notes" className="w-full h-auto object-contain bg-white border border-amber-200 rounded-xl shadow-sm" style={{ maxHeight: '600px' }} />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-             )}
+              ))
+            )}
+            
+            <div className="no-print text-center py-8 text-base text-gray-400 font-bold">
+              💡 列印時會自動隱藏解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」>「列印」功能。
+            </div>
           </div>
         </div>
       );
