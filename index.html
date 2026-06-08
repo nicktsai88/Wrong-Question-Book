@@ -2088,14 +2088,23 @@
         const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
             // 依照建立時間（舊到新）排序，確保最先建立的題目排在最上面
-            data.sort((a, b) => (a.timestamp || a.updated_at) - (b.timestamp || b.updated_at));
+            // 【修復 PC 顯示問題】：強制轉換為 Number 並給予預設值 0，避免產生 NaN 導致 Chrome 引擎崩潰
+            data.sort((a, b) => {
+                const timeA = Number(a.timestamp || a.updated_at || 0);
+                const timeB = Number(b.timestamp || b.updated_at || 0);
+                return timeA - timeB;
+            });
+            
             setMistakes(data);
             setIsFetching(false);
         }, (error) => {
             console.error("雲端讀取錯誤:", error);
+            alert("雲端讀取發生異常，請確認網路連線。\n" + error.message);
             setIsFetching(false);
         });
+        
         return () => unsubscribe();
       }, [user, FB, currentProfile]);
 
