@@ -69,7 +69,7 @@
       red: '#ef4444' // Red 500
     };
 
-    // --- 課綱標題資料庫 ---
+    // --- 課綱標題資料庫 (完整內建大綱版) ---
     const SUBJECT_ORDER = ['國文', '英文', '數學', '自然科學', '歷史', '地理', '公民'];
 
     const CURRICULUM_DB = {
@@ -95,66 +95,256 @@
       '英文': {
         hasVolume: false,
         chapters: [
-          "第1章 (時態:現在簡單式與過去簡單式)", "第2章 (時態:現在進行式與過去進行式)", "第3章 (時態:未來簡單式與現在/過去完成式)",
-          "第4章 (助動詞)", "第5章 (介系詞)", "第6章 (名詞與代名詞)", "第7章 (形容詞)", "第8章 (副詞)",
-          "第9章 (形容詞與副詞的級)", "第10章 (動名詞與不定詞)", "第11章 (情緒動詞與情緒形容詞)", "第12章 (被動語態)",
-          "第13章 (特殊動詞(一))", "第14章 (特殊動詞(二))", "第15章 (倒裝句型)", "第16章 (疑問詞)", "第17章 (連接詞)",
-          "第18章 (關係代名詞)", "第19章 (其他重要句型文法)", "第20章 (假設語氣)"
+          "第1章 時態:現在簡單式與過去簡單式", "第2章 時態:現在進行式與過去進行式", "第3章 時態:未來簡單式與現在/過去完成式",
+          "第4章 助動詞", "第5章 介系詞", "第6章 名詞與代名詞", "第7章 形容詞", "第8章 副詞",
+          "第9章 形容詞與副詞的級", "第10章 動名詞與不定詞", "第11章 情緒動詞與情緒形容詞", "第12章 被動語態",
+          "第13章 特殊動詞(一)", "第14章 特殊動詞(二)", "第15章 倒裝句型", "第16章 疑問詞", "第17章 連接詞",
+          "第18章 關係代名詞", "第19章 其他重要句型文法", "第20章 假設語氣"
         ]
       },
       '數學': {
         hasVolume: true,
         volumes: {
-          '第1冊': ["第1章 數與數線", "第2章 標準分解式與分數運算", "第3章 一元一次方程式"],
-          '第2冊': ["第1章 二元一次聯立方程式", "第2章 直角坐標與二元一次方程式的圖形", "第3章 比例", "第4章 一元一次不等式", "第5章 統計圖表與統計數據", "第6章 線對稱與三視圖"],
-          '第3冊': ["第1章 乘法公式與多項式", "第2章 平方根與畢氏定理", "第3章 因式分解", "第4章 一元二次方程式", "第5章 統計資料處理"],
-          '第4冊': ["第1章 數列與級數", "第2章 線型函數與其圖形", "第3章 三角形的基本性質", "第4章 平行與四邊形"],
-          '第5冊': ["第1章 相似形與三角比", "第2章 圓形", "第3章 推理證明與三角形的心"],
-          '第6冊': ["第1章 二次函數", "第2章 統計與機率", "第3章 立體圖形"]
+          '第1冊': [
+            "第1章 數與數線 (1-1 正數與負數, 1-2 正負數的加減, 1-3 正負數的乘除, 1-4 指數記法與科學記號)", 
+            "第2章 標準分解式與分數運算 (2-1 質因數分解, 2-2 最大公因數與最小公倍數, 2-3 分數的4則運算, 2-4 指數律)", 
+            "第3章 1元1次方程式 (3-1 式子的運算, 3-2 解1元1次方程式, 3-3 應用問題)"
+          ],
+          '第2冊': [
+            "第1章 2元1次聯立方程式 (1-1 2元1次方程式, 1-2 解2元1次聯立方程式, 1-3 應用問題)", 
+            "第2章 直角坐標與2元1次方程式的圖形 (2-1 直角坐標平面, 2-2 2元1次方程式的圖形)", 
+            "第3章 比例 (3-1 比例式, 3-2 正比與反比)", 
+            "第4章 1元1次不等式 (4-1 1元1次不等式的解及圖示, 4-2 解1元1次不等式及其應用)", 
+            "第5章 統計圖表與統計數據 (5-1 統計圖表與統計數據)", 
+            "第6章 線對稱與3視圖 (6-1 線對稱與3視圖)"
+          ],
+          '第3冊': [
+            "第1章 乘法公式與多項式 (1-1 乘法公式, 1-2 多項式的加減, 1-3 多項式的乘除)", 
+            "第2章 平方根與畢氏定理 (2-1 平方根的意義, 2-2 根式的運算, 2-3 畢氏定理)", 
+            "第3章 因式分解 (3-1 提出因式與乘法公式作因式分解, 3-2 利用十字交乘法因式分解)", 
+            "第4章 1元2次方程式 (4-1 因式分解法解1元2次方程式, 4-2 配方法與公式解, 4-3 應用問題)", 
+            "第5章 統計資料處理 (5-1 統計資料處理)"
+          ],
+          '第4冊': [
+            "第1章 數列與級數 (1-1 認識數列與等差數列, 1-2 等差級數, 1-3 等比數列)", 
+            "第2章 線型函數與其圖形 (2-1 線型函數與其圖形)", 
+            "第3章 三角形的基本性質 (3-1 內角與外角, 3-2 基本的尺規作圖, 3-3 三角形的全等性質, 3-4 中垂線與角平分線性質, 3-5 三角形的邊角關係)", 
+            "第4章 平行與四邊形 (4-1 平行線與截角性質, 4-2 平行四邊形, 4-3 特殊四邊形)"
+          ],
+          '第5冊': [
+            "第1章 相似形與3角比 (1-1 連比, 1-2 比例線段, 1-3 相似多邊形, 1-4 相似三角形的應用與3角比)", 
+            "第2章 圓形 (2-1 點、線、圓, 2-2 圓心角與圓周角)", 
+            "第3章 推理證明與三角形的心 (3-1 推理證明, 3-2 三角形的心)"
+          ],
+          '第6冊': [
+            "第1章 2次函數 (1-1 基本2次函數圖形, 1-2 2次函數圖形與最大值、最小值)", 
+            "第2章 統計與機率 (2-1 4分位數與盒狀圖, 2-2 機率)", 
+            "第3章 立體圖形 (3-1 角柱與圓柱, 3-2 角錐與圓錐)"
+          ]
         }
       },
       '自然科學': {
         hasVolume: true,
         volumes: {
-          '第1冊': ["第1章 生命世界與科學方法", "第2章 生物體的組成", "第3章 生物體的營養", "第4章 生物體的運輸作用", "第5章 生物體的協調作用", "第6章 生物體的恆定"],
-          '第2冊': ["第1章 生殖", "第2章 遺傳", "第3章 生物的演化與分類", "第4章 生物與環境", "第5章 生物多樣性與保育"],
-          '第3冊': ["緒論 實驗室常用器材", "第1章 基本測量", "第2章 物質的世界", "第3章 波動與聲音", "第4章 光、影像與顏色", "第5章 溫度與熱", "第6章 物質的基本結構"],
-          '第4冊': ["第1章 化學反應", "第2章 氧化還原反應", "第3章 電解質與酸鹼鹽", "第4章 反應速率與平衡", "第5章 有機化合物", "第6章 力與壓力"],
-          '第5冊': ["第1章 直線運動", "第2章 力與運動", "第3章 功與能", "第4章 電流、電壓與歐姆定律", "第5章 地球的環境", "第6章 板塊運動與岩層的祕密", "第7章 浩瀚的宇宙"],
-          '第6冊': ["第1章 電與生活", "第2章 電與磁", "第3章 變化莫測的天氣", "第4章 永續的地球"]
+          '第1冊': [
+            "第1章 生命世界與科學方法 (1-1 多彩多姿的生命世界, 1-2 探究自然的科學方法, 1-3 進入實驗室)", 
+            "第2章 生物體的組成 (2-1 生物體的基本單位, 2-2 細胞的構造, 2-3 物質進出細胞的方式, 2-4 生物體的組成層次)", 
+            "第3章 生物體的營養 (3-1 食物中的養分與能量, 3-2 酵素, 3-3 植物如何製造養分, 3-4 人體如何獲得養分)", 
+            "第4章 生物體的運輸作用 (4-1 植物的運輸構造, 4-2 植物體內物質的運輸, 4-3 人體心血管系統的組成, 4-4 人體的循環系統)", 
+            "第5章 生物體的協調作用 (5-1 刺激與反應, 5-2 神經系統, 5-3 內分泌系統, 5-4 行為與感應)", 
+            "第6章 生物體的恆定 (6-1 呼吸與氣體的恆定, 6-2 排泄與水分的恆定, 6-3 體溫的恆定與血糖的恆定)"
+          ],
+          '第2冊': [
+            "第1章 生殖 (1-1 細胞的分裂, 1-2 無性生殖, 1-3 有性生殖)", 
+            "第2章 遺傳 (2-1 遺傳、染色體與基因, 2-2 人類的遺傳, 2-3 突變與遺傳疾病, 2-4 生物技術)", 
+            "第3章 生物的演化與分類 (3-1 化石與演化, 3-2 生物的命名與分類, 3-3 原核、原生生物及真菌界, 3-4 植物界, 3-5 動物界)", 
+            "第4章 生物與環境 (4-1 族群、群集與演替, 4-2 生物間的互動關係, 4-3 生態系, 4-4 生態系的類型)", 
+            "第5章 生物多樣性與保育 (5-1 生物多樣性, 5-2 生物多樣性面臨的危機, 5-3 保育的落實)"
+          ],
+          '第3冊': [
+            "實驗室常用器材 (實驗室常用器材)", 
+            "第1章 基本測量 (1-1 長度、質量與時間, 1-2 測量與估計, 1-3 體積與密度)", 
+            "第2章 物質的世界 (2-1 認識物質, 2-2 溶液與濃度, 2-3 混合物的分離)", 
+            "第3章 波動與聲音 (3-1 波的傳播與特徵, 3-2 聲音的形成, 3-3 多變的聲音, 3-4 聲波傳播與應用)", 
+            "第4章 光、影像與顏色 (4-1 光的傳播, 4-2 光的反射與面鏡成像, 4-3 光的折射, 4-4 透鏡成像, 4-5 色散與顏色)", 
+            "第5章 溫度與熱 (5-1 溫度與溫度計, 5-2 熱量, 5-3 比熱, 5-4 熱對物質的影響, 5-5 熱的傳播)", 
+            "第6章 物質的基本結構 (6-1 元素與化合物, 6-2 生活中常見的元素, 6-3 原子結構, 6-4 週期表, 6-5 分子與化學式)"
+          ],
+          '第4冊': [
+            "第1章 化學反應 (1-1 常見的化學反應, 1-2 質量守恆定律, 1-3 反應式與化學計量)", 
+            "第2章 氧化還原反應 (2-1 氧化反應與活性, 2-2 氧化與還原, 2-3 氧化還原的應用)", 
+            "第3章 電解質與酸鹼鹽 (3-1 電解質, 3-2 酸和鹼, 3-3 酸鹼的強弱與pH值, 3-4 酸鹼反應)", 
+            "第4章 反應速率與平衡 (4-1 反應速率, 4-2 可逆反應與平衡)", 
+            "第5章 有機化合物 (5-1 有機化合物的組成, 5-2 常見的有機化合物, 5-3 聚合物與衣料纖維, 5-4 有機物在生活中的應用)", 
+            "第6章 力與壓力 (6-1 力與平衡, 6-2 摩擦力, 6-3 壓力, 6-4 浮力)"
+          ],
+          '第5冊': [
+            "第1章 直線運動 (1-1 位置、路徑長與位移, 1-2 速率與速度, 1-3 加速度運動, 1-4 自由落體運動)", 
+            "第2章 力與運動 (2-1 慣性定律, 2-2 運動定律, 2-3 作用力與反作用力定律, 2-4 圓周運動與萬有引力, 2-5 力矩與槓桿原理)", 
+            "第3章 功與能 (3-1 功與功率, 3-2 動能, 3-3 位能、能量守恆定律與能源, 3-4 簡單機械)", 
+            "第4章 電流、電壓與歐姆定律 (4-1 電荷與靜電現象, 4-2 電流, 4-3 電壓, 4-4 歐姆定律與電阻)", 
+            "第5章 地球的環境 (5-1 我們的地球, 5-2 地表的改變與平衡, 5-3 岩石與礦物)", 
+            "第6章 板塊運動與岩層的秘密 (6-1 地球的構造與板塊運動, 6-2 板塊運動與內營力的影響, 6-3 岩層的紀錄)", 
+            "第7章 浩瀚的宇宙 (7-1 宇宙與太陽系, 7-2 晝夜與4季, 7-3 日地月的相對運動)"
+          ],
+          '第6冊': [
+            "第1章 電與生活 (1-1 電流的熱效應, 1-2 生活用電, 1-3 電池, 1-4 電流的化學效應)", 
+            "第2章 電與磁 (2-1 磁鐵與磁場, 2-2 電流的磁效應, 2-3 電流與磁場的交互作用, 2-4 電磁感應)", 
+            "第3章 變化莫測的天氣 (3-1 地球的大氣, 3-2 天氣現象, 3-3 氣團與鋒面, 3-4 臺灣的災變天氣)", 
+            "第4章 永續的地球 (4-1 海洋與大氣的互動, 4-2 全球變遷, 4-3 人與自然的互動)"
+          ]
         }
       },
       '歷史': {
         hasVolume: true,
         volumes: {
-          '第1冊': ["第1章 史前臺灣與原住民文化", "第2章 大航海時代各方勢力的競逐", "第3章 大航海時代臺灣原住民與外來者", "第4章 清帝國統治政策的變遷", "第5章 清帝國時期農商業的發展", "第6章 清帝國時期社會文化的變遷"],
-          '第2冊': ["第1章 日治時期的政治", "第2章 日治時期的經濟", "第3章 日治時期的社會與文化", "第4章 戰後臺灣的政治", "第5章 戰後臺灣的外交", "第6章 戰後臺灣的經濟與社會"],
-          '第3冊': ["第1章 商周至隋唐時期的國家與社會", "第2章 商周至隋唐時期的民族與文化", "第3章 宋元多民族並立的時期", "第4章 明清時期東亞世界的變動", "第5章 西力衝擊下的東亞世界", "第6章 清末變局與社會文化的變遷"],
-          '第4冊': ["第1章 中華民國的建立", "第2章 舊傳統與新思潮", "第3章 現代國家的挑戰", "第4章 現代國家的變局", "第5章 共黨政權在中國", "第6章 當代東亞的局勢"],
-          '第5冊': ["第1章 古代文明的誕生", "第2章 古希臘羅馬文化的開展", "第3章 普世宗教的發展", "第4章 近代歐洲的興起", "第5章 多元世界的互動", "第6章 近代歐洲的變革"],
-          '第6冊': ["第1章 現代國家的建立", "第2章 帝國主義與第一次世界大戰", "第3章 戰間期與第二次世界大戰", "第4章 第二次世界大戰後的國際局勢"]
+          '第1冊': [
+            "導言歷史的基礎觀念 (導言歷史的基礎觀念)", 
+            "第1章 史前臺灣與原住民文化 (1-1 考古發掘與史前文化, 1-2 臺灣原住民的遷徙與傳說)", 
+            "第2章 大航海時代各方勢力的競逐 (2-1大航海時代的到來, 2-2 各方勢力在臺灣的競逐)", 
+            "第3章 大航海時代臺灣原住民與外來者 (3-1 歐洲人與原住民, 3-2 鄭氏政權與原住民)", 
+            "第4章 清帝國統治政策的變遷 (4-1 清初治臺政策與措施, 4-2 外力入侵與現代化建設)", 
+            "第5章 清帝國時期農商業的發展 (5-1 農業發展, 5-2 商業活動)", 
+            "第6章 清帝國時期社會文化的變遷 (6-1 漢人社會與文教的發展, 6-2 原住民的社會文化變遷)"
+          ],
+          '第2冊': [
+            "第1章 日治時期的政治 (1-1 殖民體制的建立, 1-2 日本治臺政策的演變, 1-3 理蕃政策與原住民的對應)", 
+            "第2章 日治時期的經濟 (2-1 基礎建設, 2-2 工業日本，農業臺灣, 2-3 工業臺灣，農業南洋)", 
+            "第3章 日治時期的社會與文化 (3-1 差別待遇的現代教育, 3-2 文化啟蒙與政治社會運動, 3-3 新舊文化的變遷)", 
+            "第4章 戰後臺灣的政治 (4-1 戰後初期與二二八事件, 4-2 戒嚴體制與白色恐怖, 4-3 政治民主化的歷程)", 
+            "第5章 戰後臺灣的外交 (5-1 臺灣的對外關係, 5-2 臺海兩岸關係的演變)", 
+            "第6章 戰後臺灣的經濟與社會 (6-1 經濟的發展, 6-2 社會與文化的變遷)"
+          ],
+          '第3冊': [
+            "第1章 商周至隋唐時期的國家與社會 (1-1 從封建到郡縣, 1-2 政權維繫與選才制度)", 
+            "第2章 商周至隋唐時期的民族與文化 (2-1 商周至隋唐的民族關係, 2-2 各民族文化的交流與影響)", 
+            "第3章 宋元多民族並立的時期 (3-1 宋元時期國際的對抗與征服, 3-2 宋元時期的經濟貿易, 3-3 宋元時期的文化交流)", 
+            "第4章 明清時期東亞世界的變動 (4-1 明清帝國的建立與擴張, 4-2 明清的經濟與全球貿易, 4-3 東亞世界與西方的文化交流)", 
+            "第5章 西力衝擊下的東亞世界 (5-1 西力對東亞世界的衝擊, 5-2 中日對西力衝擊的回應)", 
+            "第6章 清末變局與社會文化的變遷 (6-1 甲午戰爭後的變局, 6-2 城市風貌與社會文化變遷)"
+          ],
+          '第4冊': [
+            "第1章 中華民國的建立 (1-1 帝國崩解與民國的建立, 1-2 袁世凱與洪憲帝制, 1-3 軍閥統治與南北分裂)", 
+            "第2章 舊傳統與新思潮 (2-1 新文化運動, 2-2 五四運動, 2-3 社會變遷)", 
+            "第3章 現代國家的挑戰 (3-1 國民政府的成立與建設, 3-2 國民政府的內憂與外患)", 
+            "第4章 現代國家的變局 (4-1 中日戰爭, 4-2 從國共內戰到中華民國政府遷臺)", 
+            "第5章 共黨政權在中國 (5-1 中華人民共和國的成立, 5-2 文化大革命, 5-3 改革開放至今)", 
+            "第6章 當代東亞的局勢 (6-1 冷戰時期的東亞, 6-2 東南亞國際組織的蛻變)"
+          ],
+          '第5冊': [
+            "第1章 古代文明的誕生 (1-1 西亞古文明, 1-2 埃及古文明, 1-3 印度古文明)", 
+            "第2章 古希臘羅馬文化的開展 (2-1 希臘的古典文化, 2-2 羅馬的政治與文化發展)", 
+            "第3章 普世宗教的發展 (3-1 基督教的起源與傳布, 3-2 伊斯蘭教的興起與擴張)", 
+            "第4章 近代歐洲的興起 (4-1 文藝復興, 4-2 宗教改革)", 
+            "第5章 多元世界的互動 (5-1 歐洲的海外擴張, 5-2 美洲古文明與殖民統治, 5-3 近代東南亞與南亞, 5-4 澳洲原住民與殖民統治)", 
+            "第6章 近代歐洲的變革 (6-1 科學革命, 6-2 啟蒙運動, 6-3 工業革命)"
+          ],
+          '第6冊': [
+            "第1章 現代國家的建立 (1-1 美國獨立革命, 1-2 法國大革命, 1-3 拉丁美洲的獨立運動, 1-4 德國與義大利的建國)", 
+            "第2章 帝國主義與第一次世界大戰 (2-1 19世紀帝國主義, 2-2 第一次世界大戰, 2-3 巴黎和會與國際聯盟)", 
+            "第3章 戰間期與第二次世界大戰 (3-1 戰間期的政經發展, 3-2 第二次世界大戰)", 
+            "第4章 第二次世界大戰後的國際局勢 (4-1 冷戰時代, 4-2 從兩極走向多元的時代)"
+          ]
         }
       },
       '地理': {
         hasVolume: true,
         volumes: {
-          '第1冊': ["第1章 認識台灣的位置與地圖", "第2章 世界中的臺灣", "第3章 台灣的地形", "第4章 台灣的海岸與島嶼", "第5章 台灣的天氣與氣候", "第6章 台灣的水文"],
-          '第2冊': ["第1章 台灣的人口成長與分布", "第2章 台灣的人口組成與族群文化", "第3章 台灣的第一級產業", "第4章 台灣的第二、三級產業", "第5章 聚落體系與都市發展", "第6章 區域發展與差異"],
-          '第3冊': ["第1章 中國的地形", "第2章 中國的氣候", "第3章 中國的人口", "第4章 中國的經濟發展與全球關連", "第5章 東北亞的自然環境與文化", "第6章 東北亞的經濟發展與挑戰"],
-          '第4冊': ["第1章 東南亞", "第2章 南亞", "第3章 西亞與北非的自然環境與文化", "第4章 西亞與北非的衝突與轉變", "第5章 漠南非洲的自然環境與文化", "第6章 漠南非洲的產業與經濟發展"],
-          '第5冊': ["第1章 歐洲概述", "第2章 歐洲區域特色與俄羅斯", "第3章 北美洲", "第4章 中南美洲", "第5章 大洋洲", "第6章 兩極地區與全球氣候變遷"],
-          '第6冊': ["第1章 臺灣與行政區名", "第2章 臺灣聚落地名", "第3章 臺灣的農業發展與食品議題"]
+          '第1冊': [
+            "第1章 認識位置與地圖 (1-1 如何表示位置, 1-2 經緯線網格, 1-3 位置與生活的關聯, 1-4 如何閱讀地圖)", 
+            "第2章 世界中的臺灣 (2-1 全球海陸分布, 2-2 臺灣的位置及其影響, 2-3 臺灣地區的範圍)", 
+            "第3章 台灣的地形 (3-1 地形如何被形塑, 3-2 常見的地形表示方法, 3-3 臺灣地形的特徵與分布)", 
+            "第4章 台灣的海岸與島嶼 (4-1 海岸的類型與特色, 4-2 臺灣的海岸與利用, 4-3 臺灣離島的成因)", 
+            "第5章 台灣的天氣與氣候 (5-1 天氣, 5-2 氣候, 5-3 臺灣的氣候特徵, 5-4 臺灣的氣象災害)", 
+            "第6章 台灣的水文 (6-1 水循環, 6-2 水系與流域, 6-3 臺灣河川的特色, 6-4 臺灣水資源利用與保育)"
+          ],
+          '第2冊': [
+            "第1章 台灣的人口成長與分布 (1-1 人口成長, 1-2 人口分布, 1-3 人口遷移)", 
+            "第2章 台灣的人口組成與族群文化 (2-1 人口組成, 2-2 族群與文化)", 
+            "第3章 台灣的第一級產業 (3-1 產業類別, 3-2 臺灣的農、漁、牧業, 3-3 臺灣第一級產業的特徵與轉型)", 
+            "第4章 台灣的第二、三級產業 (4-1 工業, 4-2 國際貿易與全球關聯)", 
+            "第5章 台灣的聚落體系與都市發展 (5-1 聚落類型, 5-2 交通與聚落發展, 5-3 都市化與都市擴張)", 
+            "第6章 台灣的區域發展與差異 (6-1 臺灣的區域發展, 6-2 臺灣的區域差異)"
+          ],
+          '第3冊': [
+            "第1章 中國的地形 (1-1 地形特徵, 1-2 地形的區域差異)", 
+            "第2章 中國的氣候 (2-1 氣候特徵, 2-2 氣候類型)", 
+            "第3章 中國的人口 (3-1 傳統維生方式, 3-2 人口分布與遷移, 3-3 人口成長與問題)", 
+            "第4章 中國的經濟發展與全球關連 (4-1 農業發展與轉型, 4-2 工商業發展與區域差異, 4-3 經濟發展與全球關連)", 
+            "第5章 東北亞的自然環境與文化 (5-1 自然環境, 5-2 傳統農業與文化特色)", 
+            "第6章 東北亞的經濟發展與挑戰 (6-1 日本群島的經濟發展, 6-2 朝鮮半島的經濟發展)"
+          ],
+          '第4冊': [
+            "第1章 東南亞 (1-1 自然環境, 1-2 多元文化, 1-3 經濟發展與區域結盟)", 
+            "第2章 南亞 (2-1 自然環境, 2-2 人口與社會問題, 2-3 經濟發展與區域結盟)", 
+            "第3章 西亞與北非的自然環境與文化 (3-1 自然環境, 3-2 文化特色與生活方式)", 
+            "第4章 西亞與北非的衝突與轉變 (4-1 區域衝突與資源爭奪, 4-2 轉變中的伊斯蘭世界)", 
+            "第5章 漠南非洲的自然環境與文化 (5-1 自然環境, 5-2 族群與文化)", 
+            "第6章 漠南非洲的產業與經濟發展 (6-1 自然資源與產業, 6-2 經濟發展與挑戰)"
+          ],
+          '第5冊': [
+            "第1章 歐洲概述 (1-1 歐洲的自然環境, 1-2 歐洲的人口與經濟)", 
+            "第2章 歐洲區域特色與俄羅斯 (2-1 歐洲區域特色, 2-2 俄羅斯)", 
+            "第3章 北美洲 (3-1 美洲的區域劃分, 3-2 自然環境, 3-3 經濟發展)", 
+            "第4章 中南美洲 (4-1 自然環境, 4-2 經濟發展)", 
+            "第5章 大洋洲 (5-1 三大群島, 5-2 澳洲與紐西蘭, 5-3 大洋洲的戰略競合)", 
+            "第6章 兩極地區與全球氣候變遷 (6-1 兩極地區, 6-2 氣候變遷的衝擊)"
+          ],
+          '第6冊': [
+            "第1章 臺灣與行政區名 (1-1 臺灣的地名由來與演變, 1-2 行政區名的由來與演變)", 
+            "第2章 臺灣聚落地名 (2-1 聚落地名與環境, 2-2 聚落地名與族群文化)", 
+            "第3章 臺灣的農業發展與食品議題 (3-1 臺灣的農業發展, 3-2 食物運銷與食品安全問題, 3-3 食品安全的因應策略)"
+          ]
         }
       },
       '公民': {
         hasVolume: true,
         volumes: {
-          '第1冊': ["第1章 公民與公民德性", "第2章 人性尊嚴與人權保障", "第3章 家庭生活", "第4章 變遷中的家庭", "第5章 學生權利與校園生活", "第6章 部落與公民參與"],
-          '第2冊': ["第1章 多元文化", "第2章 社會規範", "第3章 團體與志願結社", "第4章 公共意見", "第5章 公平正義", "第6章 社會安全與國家責任"],
-          '第3冊': ["第1章 國家與民主政治", "第2章 憲法與權利保障", "第3章 法治與權力分立", "第4章 中央政府", "第5章 地方政府", "第6章 政治參與"],
-          '第4冊': ["第1章 生活中的契約", "第2章 民事糾紛的解決", "第3章 刑法與刑罰", "第4章 刑事案件的追訴", "第5章 行政法規與行政救濟", "第6章 兒少權益的維護"],
-          '第5冊': ["第1章 選擇與消費", "第2章 生產與資源分配", "第3章 市場與競爭", "第4章 分工與貿易", "第5章 貨幣的使用", "第6章 社會中的勞動參與"],
-          '第6冊': ["第1章 科技發展", "第2章 全球化的影響與挑戰", "第3章 國際參與"]
+          '第1冊': [
+            "第1章 公民與公民德性 (1-1 什麼是公民？, 1-2 現代公民應具備的基本德性)", 
+            "第2章 人性尊嚴與人權保障 (2-1 人性尊嚴與人權, 2-2 人權保障的落實)", 
+            "第3章 家庭生活 (3-1 家庭中的親屬關係, 3-2 家庭型態與生活模式, 3-3 家庭成員的權利與義務)", 
+            "第4章 變遷中的家庭 (4-1 家庭的功能與轉變, 4-2 政府如何協助家庭發揮功能？)", 
+            "第5章 學生權利與校園生活 (5-1 校園中的權利與維護, 5-2 如何參與校園公共事務？)", 
+            "第6章 部落與公民參與 (6-1 部落的意義與重要性, 6-2 部落的挑戰與公民參與)"
+          ],
+          '第2冊': [
+            "第1章 多元文化 (1-1 文化的特性與差異, 1-2 文化位階與不平等, 1-3 尊重和包容文化差異)", 
+            "第2章 社會規範 (2-1 為什麼會有社會規範？, 2-2 社會規範的內涵)", 
+            "第3章 團體與志願結社 (3-1 為什麼要參與團體？, 3-2 志願結社的特徵及影響)", 
+            "第4章 公共意見 (4-1 公共意見與其特性, 4-2 媒體與公共意見)", 
+            "第5章 公平正義 (5-1 社會地位與不公平處境, 5-2 社會中的不公平現象, 5-3 追求公平正義)", 
+            "第6章 社會安全與國家責任 (6-1 人性尊嚴與社會安全, 6-2 社會安全的起源與發展, 6-3 我國的社會福利制度)"
+          ],
+          '第3冊': [
+            "第1章 國家與民主政治 (1-1 什麼是國家？, 1-2 民主政治的特色)", 
+            "第2章 憲法與權利保障 (2-1 法律的位階, 2-2 憲法保障的基本權利)", 
+            "第3章 法治與權力分立 (3-1 人治與法治, 3-2 為什麼政府的體制需要權力分立？)", 
+            "第4章 中央政府 (4-1 中央政府的組成, 4-2 我國中央政府的互動關係)", 
+            "第5章 地方政府 (5-1 地方政府的組成, 5-2 地方政府的職權)", 
+            "第6章 政治參與 (6-1 為什麼要政治參與？, 6-2 為什麼投票是重要的參與形式？, 6-3 如何落實公平投票？)"
+          ],
+          '第4冊': [
+            "第1章 生活中的契約 (1-1 民法與契約, 1-2 如何訂立有效契約？, 1-3 行為能力與契約效力)", 
+            "第2章 民事糾紛的解決 (2-1 民事糾紛的法律責任, 2-2 民事糾紛的處理方式)", 
+            "第3章 刑法與刑罰 (3-1 為什麼要制定刑法？, 3-2 刑罰與責任能力)", 
+            "第4章 刑事案件的追訴 (4-1 犯罪的追訴過程, 4-2 警察、檢察官及法官的職權)", 
+            "第5章 行政法規與行政救濟 (5-1 行政法規與依法行政, 5-2 生活中有哪些常見的行政管制？, 5-3 行政救濟的方法)", 
+            "第6章 兒少權益的維護 (6-1 兒少權益誰來維護？, 6-2 少年犯罪行為的處理)"
+          ],
+          '第5冊': [
+            "第1章 選擇與消費 (1-1 選擇與機會成本, 1-2 誘因影響選擇行為, 1-3 影響消費者的因素)", 
+            "第2章 生產與資源分配 (2-1 生產與利潤, 2-2 影響生產者的因素, 2-3 資源分配與公平正義)", 
+            "第3章 市場與競爭 (3-1 市場與交易, 3-2 市場競爭方式與程度, 3-3 消費者權益的保障)", 
+            "第4章 分工與貿易 (4-1 分工合作的社會, 4-2 國際分工與國際貿易, 4-3 臺灣開放進口商品的利弊)", 
+            "第5章 貨幣的使用 (5-1 為什麼會出現貨幣？, 5-2 新型態的支付工具, 5-3 外幣與匯率)", 
+            "第6章 社會中的勞動參與 (6-1 為什麼勞動參與是重要的？, 6-2 為何要保障市場勞動參與？)"
+          ],
+          '第6冊': [
+            "第1章 科技發展 (1-1 科技發展的應用與影響, 1-2 尊重智慧財產權)", 
+            "第2章 全球化的影響與挑戰 (2-1 全球化的影響, 2-2 全球化面臨的挑戰)", 
+            "第3章 國際參與 (3-1 國際社會的互動, 3-2 我國身處的國際環境)"
+          ]
         }
       }
     };
@@ -532,34 +722,38 @@
         try {
           const base64Data = base64Image.split(',')[1];
           const dbStr = JSON.stringify(CURRICULUM_DB);
-          const prompt = `你是一個台灣國中教育會考的頂尖專家老師。請仔細閱讀這張錯題圖片，提取出該題目的「核心知識點」(concept)。然後，根據這個核心知識點，反推並從下方的「標題資料庫」中，挑選出最精準對應的「次標題/大單元」(sub_subject)。
+          const prompt = `你是一個台灣國中教育會考的頂尖專家老師。請仔細閱讀這張錯題圖片，找出這題真正在考的觀念。
           
           資料庫：${dbStr}
 
-          請務必只回傳一個 JSON 格式的物件，不要包含其他文字說明或 Markdown 語法（例如 \`\`\`json ）。
+          請務必只回傳一個 JSON 格式的物件，不要包含其他文字說明或 Markdown 語法。
           
-          特別注意：
-          1. 判斷邏輯：請【先】找出這題真正在考的觀念（例如：外角定理、等差級數、被動語態），再【反推】尋找資料庫中對應的 sub_subject。
+          1. 📍【極度重要：分類判斷順序】請務必依照以下順序思考與判斷，這將決定你的 JSON 輸出順序：
+             - 步驟一：先辨別出這題目的「核心知識」(concept)，例如：靜力平衡、摩擦力、重力。
+             - 步驟二：根據這個核心知識，在下方資料庫中進行全局檢索，找出最吻合的「次標題/大單元」(sub_subject)（請務必輸出包含括號在內的完整字串）。
+             - 步驟三：由找出的單元，確認它所屬的「冊別」(volume)。
+             - 步驟四：最後確認所屬的「科目」(subject)。
+          
           2. 【極致防呆】幾何與代數的嚴格區分：
              - 若題目出現「幾何圖形、面積、角度、四邊形、平行、對角線、三角形、圓、梯形」等幾何特徵，【絕對不可】分類至「數列與級數」或方程式等代數單元。必須強制作為幾何題，分類至如「平行與四邊形」、「三角形的基本性質」等幾何章節。
              - 只有純粹的數字規律、等差/等比數列，才能分類至「數列與級數」。
-          3. "subject" 必須是 [${SUBJECT_ORDER.join(', ')}] 其中之一。
-          4. "volume" 必須是該科目的冊別 (如 "第1冊")。若該科目無冊別(國文、英文)，請填 null。
-          5. "sub_subject" 必須完全符合資料庫中該科目/冊別底下的陣列字串之一。若無完全相同的字眼，請挑選涵蓋該知識點的單元。
-          6. "concept" 為核心知識(具體考點，限繁體中文，可包含小節或具體概念)。
-          7. "ai_tutor": 這是「AI老師教學」欄位。⚠️【強制要求】：你的教學對象是「台灣的國中學生」，請務必使用國中生能輕鬆理解的白話口吻、生動比喻來解說！絕對要避免使用超出國中範圍的艱澀名詞或高中以上的公式。如果是數理題，請提供「一步一步詳細且直白的解題邏輯與步驟」；如果是文科，請提供「易懂的解析，並用國中生聽得懂的話說明每個選項為什麼對或錯」。
-          8. 【最重要：數學與化學式排版】為了讓系統能優美地渲染公式，你在 ai_tutor 中的「所有數學式、化學式、方程式、變數符號、上標、下標」都「必須」使用 LaTeX 語法包裝！
+          
+          3. "ai_tutor": 這是「AI老師教學」欄位。⚠️【強制要求】：你的教學對象是「台灣的國中學生」，請務必使用國中生能輕鬆理解的白話口吻、生動比喻來解說！絕對要避免使用超出國中範圍的艱澀名詞或高中以上的公式。如果是數理題，請提供「一步一步詳細且直白的解題邏輯與步驟」；如果是文科，請提供「易懂的解析，並用國中生聽得懂的話說明每個選項為什麼對或錯」。【排版強制要求】：絕對禁止將所有文字擠成一整塊沒有分段！解析內容「必須」使用分段式，並且加上步驟標示的「條列式」教學（例如使用 1. 2. 3. 或是選項 A. B. C. 標示）。請清楚劃分「解題觀念」、「各選項分析」與「結論」，讓版面結構清晰、非常容易閱讀。
+          
+          4. 【最重要：數學與化學式排版】為了讓系統能優美地渲染公式，你在 ai_tutor 中的「所有數學式、化學式、方程式、變數符號、上標、下標」都「必須」使用 LaTeX 語法包裝！
              - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\\\\Delta = b^2-4ac$、變數 $x$。
              - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}$$
              - 絕對禁止直接輸出純文字的指數 (例如 x^2) 或未包裝的變數，請一定要寫成 $x^2$。
              - ⚠️【JSON 格式防呆】：因為你要回傳 JSON 格式，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線！例如：乘號必須寫成 \\\\times，化學式必須寫成 \\\\text{CH}_4，分數寫成 \\\\frac{1}{2}。如果只用單反斜線 (例如 \\times)，會導致 JSON 解析失敗變成 imes！
+             
+          5. ⚠️【極度重要：注音符號精準辨識】：當處理國文科題目，若圖片中包含「注音符號」（如：ㄋ、ㄠ、ㄎ、ㄜ等），請【務必逐字放大檢視、看清楚筆畫】，絕對不能辨識錯誤！例如「ㄋㄠˇ」絕對不可誤認為「ㄎㄜˇ」。請 100% 精準還原圖片上的真實注音符號再進行判斷與解說。
 
-          JSON 格式必須嚴格如下：
+          JSON 格式必須嚴格依照思考順序如下：
           {
-            "subject": "科目名稱",
-            "volume": "冊別名稱(或null)",
-            "sub_subject": "單元/章節名稱",
             "concept": "核心知識",
+            "sub_subject": "單元/章節名稱",
+            "volume": "冊別名稱(或null)",
+            "subject": "科目名稱",
             "ai_tutor": "教學解析內容"
           }`;
 
@@ -636,6 +830,8 @@
             let parsed = { subject: '國文', volume: null, sub_subject: '單元1 (「相似詞語」的分辨)', concept: '未定單元', ai_tutor: '' };
             try {
                let cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
+               // 修正 AI 輸出純文字 \n 導致無法正常換行與排版擠成一團的問題
+               cleanedText = cleanedText.replace(/\\\\n/g, '\\n');
                // 防止 AI 忘記跳脫常見化學與數學符號，導致 \t 被 JSON 當成 Tab 解析而消失
                cleanedText = cleanedText.replace(/(?<!\\)\\times/g, '\\\\times')
                                         .replace(/(?<!\\)\\text/g, '\\\\text')
@@ -927,7 +1123,6 @@
     }
 
     // --- 透視校正與影像處理 ---
-
     // 解 8x8 線性方程組 (用於計算透視變換矩陣)
     function solveMatrix(A, b) {
       const n = 8;
@@ -1629,10 +1824,10 @@
                     <span className="text-sm font-bold text-gray-700 hidden sm:inline">擦拭範圍</span>
                     <div className="flex items-center gap-2 sm:gap-4">
                       <button onClick={() => { setEraserSize(10); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 10 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="特小"><div className="w-1.5 h-1.5 rounded-full bg-current"></div></button>
-                      <button onClick={() => { setEraserSize(20); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 20 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="小"><div className="w-3 h-3 rounded-full bg-current"></div></button>
-                      <button onClick={() => { setEraserSize(40); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 40 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="中"><div className="w-5 h-5 rounded-full bg-current"></div></button>
-                      <button onClick={() => { setEraserSize(70); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 70 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="大"><div className="w-7 h-7 rounded-full bg-current"></div></button>
-                      <button onClick={() => { setEraserSize(100); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 100 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="特大"><div className="w-9 h-9 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(20); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 20 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="小"><div className="w-3 h-3 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(40); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 40 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="中"><div className="w-5 h-5 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(70); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 70 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="大"><div className="w-7 h-7 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(100); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 100 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="特大"><div className="w-9 h-9 rounded-full bg-current"></div></button>
                     </div>
                  </div>
               </div>
@@ -1725,17 +1920,28 @@
     }
 
     function FormView({ initialData, image, onCancel, onSave, onReEditImage }) {
-      const initSubj = SUBJECT_ORDER.includes(initialData.subject) ? initialData.subject : '國文';
+      // 安全保護：如果 AI 回傳了不存在的科目，強制退回「國文」
+      const initSubj = (CURRICULUM_DB && CURRICULUM_DB[initialData.subject]) ? initialData.subject : '國文';
       const dbSubj = CURRICULUM_DB[initSubj];
+      
       let initVol = initialData.volume || null;
       let initSubSubj = initialData.sub_subject || '';
 
-      if (dbSubj.hasVolume) {
+      if (dbSubj && dbSubj.hasVolume) {
          if (!dbSubj.volumes[initVol]) initVol = Object.keys(dbSubj.volumes)[0];
-         if (!dbSubj.volumes[initVol].includes(initSubSubj)) initSubSubj = dbSubj.volumes[initVol][0];
-      } else {
+         const chapterList = dbSubj.volumes[initVol];
+         if (!chapterList.includes(initSubSubj)) {
+             // 模糊比對容錯：看 AI 回傳的是否為章節名稱的一部分，或是章節包含 AI 回傳的字串
+             const matched = chapterList.find(c => c.includes(initSubSubj) || initSubSubj.includes(c.split('(')[0].trim()));
+             initSubSubj = matched ? matched : chapterList[0];
+         }
+      } else if (dbSubj && dbSubj.chapters) {
          initVol = null;
-         if (!dbSubj.chapters.includes(initSubSubj)) initSubSubj = dbSubj.chapters[0];
+         const chapterList = dbSubj.chapters;
+         if (!chapterList.includes(initSubSubj)) {
+             const matched = chapterList.find(c => c.includes(initSubSubj) || initSubSubj.includes(c.split('(')[0].trim()));
+             initSubSubj = matched ? matched : chapterList[0];
+         }
       }
 
       const [formData, setFormData] = useState({
@@ -1887,14 +2093,23 @@
         const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
             // 依照建立時間（舊到新）排序，確保最先建立的題目排在最上面
-            data.sort((a, b) => (a.timestamp || a.updated_at) - (b.timestamp || b.updated_at));
+            // 【修復 PC 顯示問題】：強制轉換為 Number 並給予預設值 0，避免產生 NaN 導致 Chrome 引擎崩潰
+            data.sort((a, b) => {
+                const timeA = Number(a.timestamp || a.updated_at || 0);
+                const timeB = Number(b.timestamp || b.updated_at || 0);
+                return timeA - timeB;
+            });
+            
             setMistakes(data);
             setIsFetching(false);
         }, (error) => {
             console.error("雲端讀取錯誤:", error);
+            alert("雲端讀取發生異常，請確認網路連線。\n" + error.message);
             setIsFetching(false);
         });
+        
         return () => unsubscribe();
       }, [user, FB, currentProfile]);
 
@@ -1963,6 +2178,18 @@
          }
       }
 
+      // 智慧格式化單元名稱
+      const getDisplayChapterName = (subject, chapterStr) => {
+          if (!chapterStr) return '';
+          if (chapterStr === 'All') return '全部單元';
+          if (subject === '國文' || subject === '英文') {
+              // 國文、英文保留完整單元名稱，但移除括號讓排版更美觀
+              return chapterStr.replace(/[()（）]/g, ' ').replace(/\s+/g, ' ').trim();
+          }
+          // 其他科目有(1-1..., 1-2...)等小節，利用 split 截斷隱藏
+          return chapterStr.split('(')[0].trim();
+      };
+
       // 產生弱點統計資料
       const statsData = SUBJECT_ORDER.map(sub => {
          const subMistakes = mistakes.filter(m => m.subject === sub);
@@ -1970,7 +2197,8 @@
 
          const chapterMap = {};
          subMistakes.forEach(m => {
-            const key = (m.volume ? m.volume + ' - ' : '') + m.sub_subject;
+            const displayChap = getDisplayChapterName(m.subject, m.sub_subject);
+            const key = (m.volume ? m.volume + ' - ' : '') + displayChap;
             chapterMap[key] = (chapterMap[key] || 0) + 1;
          });
          const chapters = Object.entries(chapterMap).sort((a, b) => b[1] - a[1]);
@@ -2054,12 +2282,15 @@
                 {/* 次標題篩選 */}
                 {filterSubject !== 'All' && availableSubSubjects.length > 1 && (
                   <div className="flex gap-3 w-[98%] max-w-[1400px] mx-auto pt-4 border-t border-gray-100 border-dashed overflow-x-auto scrollbar-hide pb-2">
-                    {availableSubSubjects.map(subSub => (
-                      <button key={subSub} onClick={() => setFilterSubSubject(subSub)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterSubSubject === subSub ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}>
-                        {subSub === 'All' ? '全部單元' : subSub}
-                      </button>
-                    ))}
+                    {availableSubSubjects.map(subSub => {
+                      const displaySubSub = getDisplayChapterName(filterSubject, subSub);
+                      return (
+                        <button key={subSub} onClick={() => setFilterSubSubject(subSub)}
+                          className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex-shrink-0 ${filterSubSubject === subSub ? 'bg-amber-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}>
+                          {displaySubSub}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </>
@@ -2135,7 +2366,7 @@
                     <h1 className="text-4xl font-bold text-black">
                       {currentProfile} 的 {filterSubject === 'All' ? '綜合' : filterSubject} 
                       {filterVolume !== 'All' && ` - ${filterVolume}`}
-                      {filterSubSubject !== 'All' && ` - ${filterSubSubject}`} 錯題本
+                      {filterSubSubject !== 'All' && ` - ${getDisplayChapterName(filterSubject, filterSubSubject)}`} 錯題本
                     </h1>
                     <p className="text-gray-500 mt-2 text-lg">列印日期：{new Date().toLocaleDateString()}</p>
                   </div>
@@ -2147,7 +2378,7 @@
                      </div>
                   ) : (
                     filteredData.map((item, index) => (
-                      <div key={item.id} className="bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white">
+                      <div key={item.id} className={`bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white ${item.mastery === 'mastered' ? 'print:hidden' : ''}`}>
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-3">
                           
                           {/* 分類與熟練度顯示 (列印時保留) */}
@@ -2162,7 +2393,9 @@
                                     {item.subject} {item.volume ? item.volume : ''}
                                   </span>
                                   {item.sub_subject && (
-                                    <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">{item.sub_subject}</span>
+                                    <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">
+                                        {getDisplayChapterName(item.subject, item.sub_subject)}
+                                    </span>
                                   )}
                                   <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
                                   
@@ -2184,7 +2417,7 @@
                           </div>
                         </div>
                         
-                        {/* 列印時保留影像 (移除了 print:hidden) */}
+                        {/* 列印時保留影像 */}
                         <div className="mb-5 bg-white">
                            <img 
                              src={item.image} 
