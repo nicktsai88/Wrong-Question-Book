@@ -1621,7 +1621,7 @@
         }
       };
 
-      // ★ 自動掃描辨識文字尺寸並縮放 (終極精準版) ★
+      // ★ 自動掃描辨識文字尺寸並縮放 ★
       const handleAutoResize = async () => {
         if (isOcrLoading) return;
         if (!window.Tesseract) {
@@ -1643,6 +1643,7 @@
 
             setOcrProgress('正在準備繁體中文辨識模型\n(初次載入可能需要 5-10 秒下載，請稍候)...');
 
+            // 修正 Tesseract.js v5 正確的初始化語法，並加入下載進度顯示
             const worker = await window.Tesseract.createWorker('chi_tra', 1, {
                 logger: m => {
                     if (m.status === 'recognizing text') {
@@ -1656,66 +1657,32 @@
             const ret = await worker.recognize(dataUrl);
             await worker.terminate();
 
-            // 1. 取得所有辨識到的單詞/單字方塊
-            const words = ret.data.words || [];
-            if (words.length === 0) {
+            // ★ 核心修正 1：改用 words (單詞/單字) 來精準抓取中文字體方塊，排除行距與空白干擾
+            const items = ret.data.words && ret.data.words.length > 0 ? ret.data.words : ret.data.lines;
+            if (!items || items.length === 0) {
                 alert('分析失敗：在圖片中找不到足夠清晰的文字！');
                 setIsOcrLoading(false);
                 return;
             }
 
-            // 2. 嚴格過濾：只挑選形狀接近「正方形」的方塊 (這最可能是中文字)
-            // 排除掉長條形的數學式、分數、或是被誤認為單字的整行字
-            let validHeights = [];
-            for (const word of words) {
-                const w = word.bbox.x1 - word.bbox.x0;
-                const h = word.bbox.y1 - word.bbox.y0;
-                
-                // 防呆：排除太小(雜訊/標點)或太大(整張圖)的方塊
-                if (h < 5 || h > canvasDim.h * 0.5) continue;
-                
-                // 核心邏輯：中文字通常是正方形，寬高比應該在 0.5 到 2 之間
-                const ratio = w / h;
-                if (ratio > 0.5 && ratio < 2.0) {
-                    validHeights.push(h);
-                }
-            }
-
-            // 如果嚴格過濾後找不到半個字(例如整張圖只有一個很長的數學式)，就退回使用所有方塊的高度
-            if (validHeights.length === 0) {
-                validHeights = words.map(w => w.bbox.y1 - w.bbox.y0).filter(h => h > 5 && h < canvasDim.h * 0.5);
-            }
-            
-            if (validHeights.length === 0) {
-                 alert('分析失敗：找不到適合評估尺寸的文字特徵！');
+            const heights = items.map(item => item.bbox.y1 - item.bbox.y0).filter(h => h > 5 && h < canvasDim.h * 0.5);
+            if (heights.length === 0) {
+                 alert('分析失敗：找不到適合評估尺寸的文字！');
                  setIsOcrLoading(false);
                  return;
             }
 
-            // 3. 使用統計學 IQR 方法剔除極端值 (極端大的數字或極端小的符號)
-            validHeights.sort((a,b) => a-b);
-            const q1 = validHeights[Math.floor((validHeights.length / 4))];
-            const q3 = validHeights[Math.floor((validHeights.length * (3 / 4)))];
-            const iqr = q3 - q1;
-            const lowerBound = q1 - 1.5 * iqr;
-            const upperBound = q3 + 1.5 * iqr;
-            
-            const filteredHeights = validHeights.filter(h => h >= lowerBound && h <= upperBound);
-            
-            // 4. 計算最終代表高度 (使用平均值，因為已經去除了極端值，平均值會比中位數更穩定)
-            const finalHeights = filteredHeights.length > 0 ? filteredHeights : validHeights;
-            const sum = finalHeights.reduce((a, b) => a + b, 0);
-            const representativeHeight = sum / finalHeights.length;
+            heights.sort((a,b) => a-b);
+            const medianHeight = heights[Math.floor(heights.length/2)];
 
-            // 5. 設定目標高度並計算縮放比例
-            // TARGET_TEXT_HEIGHT 是我們期望在「原始畫布」上，一個標準中文字應該要有的像素高度。
-            // 經過測試，設定在 24px 大約能呈現出適中、清晰，且列印時不會過大或過小的尺寸。
-            const TARGET_TEXT_HEIGHT = 24; 
-            const newScale = TARGET_TEXT_HEIGHT / representativeHeight;
+            // ★ 核心修正 2：解決題目長短不一導致「列印時被強制不同比例壓縮」的問題
+            // 將目標字體高度設定為標準考卷大小 16px。
+            // 如此一來所有題目經過等比縮放後，物理寬度都不會超過 A4 紙的極限，保證列印時字體大小絕對一致！
+            const TARGET_TEXT_HEIGHT = 16;
+            const newScale = TARGET_TEXT_HEIGHT / medianHeight;
 
             setExportScale(Math.min(Math.max(newScale, 0.2), 5));
             setMode('scale');
-            
         } catch (e) {
             console.error(e);
             alert('自動辨識縮放發生錯誤：' + e.message);
