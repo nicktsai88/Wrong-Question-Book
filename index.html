@@ -1643,15 +1643,17 @@
 
             setOcrProgress('正在準備繁體中文辨識模型\n(初次載入可能需要 5-10 秒下載，請稍候)...');
 
-            const worker = await window.Tesseract.createWorker({
+            // 修正 Tesseract.js v5 正確的初始化語法，並加入下載進度顯示
+            const worker = await window.Tesseract.createWorker('chi_tra', 1, {
                 logger: m => {
                     if (m.status === 'recognizing text') {
                         setOcrProgress(`正在深度掃描並分析字體大小... ${Math.round(m.progress * 100)}%`);
+                    } else if (m.status && m.progress) {
+                        setOcrProgress(`引擎模型準備中...\n(${m.status}: ${Math.round(m.progress * 100)}%)`);
                     }
                 }
             });
-            await worker.loadLanguage('chi_tra');
-            await worker.initialize('chi_tra');
+            
             const ret = await worker.recognize(dataUrl);
             await worker.terminate();
 
