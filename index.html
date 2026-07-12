@@ -1621,7 +1621,7 @@
         }
       };
 
-      // ★ 自動掃描辨識文字尺寸並縮放 (終極精準版) ★
+      // ★ 自動掃描辨識文字尺寸並縮放 (終極精準版 - 專注中文特徵) ★
       const handleAutoResize = async () => {
         if (isOcrLoading) return;
         if (!window.Tesseract) {
@@ -1656,34 +1656,46 @@
             const ret = await worker.recognize(dataUrl);
             await worker.terminate();
 
-            // 1. 取得所有辨識到的單詞/單字方塊
-            const words = ret.data.words || [];
-            if (words.length === 0) {
+            // 1. 改用更精細的 symbols (單一字元) 而非 words (詞彙/數學式組合)
+            const symbols = ret.data.symbols || [];
+            if (symbols.length === 0) {
                 alert('分析失敗：在圖片中找不到足夠清晰的文字！');
                 setIsOcrLoading(false);
                 return;
             }
 
-            // 2. 嚴格過濾：只挑選形狀接近「正方形」的方塊 (這最可能是中文字)
-            // 排除掉長條形的數學式、分數、或是被誤認為單字的整行字
             let validHeights = [];
-            for (const word of words) {
-                const w = word.bbox.x1 - word.bbox.x0;
-                const h = word.bbox.y1 - word.bbox.y0;
-                
-                // 防呆：排除太小(雜訊/標點)或太大(整張圖)的方塊
-                if (h < 5 || h > canvasDim.h * 0.5) continue;
-                
-                // 核心邏輯：中文字通常是正方形，寬高比應該在 0.5 到 2 之間
-                const ratio = w / h;
-                if (ratio > 0.5 && ratio < 2.0) {
-                    validHeights.push(h);
+            
+            // 2. 嚴格過濾：我們只測量「繁體中文字」的高度！這能 100% 排除所有數學式、分數、符號的干擾
+            for (const sym of symbols) {
+                const text = sym.text ? sym.text.trim() : '';
+                // 檢查是否為中文字 (利用 Unicode 範圍)
+                if (text && text.match(/[\u4e00-\u9fa5]/)) {
+                    const w = sym.bbox.x1 - sym.bbox.x0;
+                    const h = sym.bbox.y1 - sym.bbox.y0;
+
+                    // 防呆：排除明顯是辨識錯誤的超級大字或超級小字
+                    if (h < 10 || h > canvasDim.h * 0.3) continue;
+
+                    // 中文字體通常是正方形，寬高比應接近 1 (允許一定誤差)
+                    const ratio = w / h;
+                    if (ratio > 0.7 && ratio < 1.3) {
+                        validHeights.push(h);
+                    }
                 }
             }
 
-            // 如果嚴格過濾後找不到半個字(例如整張圖只有一個很長的數學式)，就退回使用所有方塊的高度
-            if (validHeights.length === 0) {
-                validHeights = words.map(w => w.bbox.y1 - w.bbox.y0).filter(h => h > 5 && h < canvasDim.h * 0.5);
+            // 如果圖片裡剛好沒有中文 (例如純算式)，退一步使用所有接近正方形的符號 (如英文字母/數字)
+            if (validHeights.length < 3) {
+                for (const sym of symbols) {
+                    const w = sym.bbox.x1 - sym.bbox.x0;
+                    const h = sym.bbox.y1 - sym.bbox.y0;
+                    if (h < 10 || h > canvasDim.h * 0.3) continue;
+                    const ratio = w / h;
+                    if (ratio > 0.7 && ratio < 1.3) {
+                        validHeights.push(h);
+                    }
+                }
             }
             
             if (validHeights.length === 0) {
@@ -1692,7 +1704,7 @@
                  return;
             }
 
-            // 3. 使用統計學 IQR 方法剔除極端值 (極端大的數字或極端小的符號)
+            // 3. 使用統計學 IQR 方法剔除極端值 (可能誤判的超大圖塊)
             validHeights.sort((a,b) => a-b);
             const q1 = validHeights[Math.floor((validHeights.length / 4))];
             const q3 = validHeights[Math.floor((validHeights.length * (3 / 4)))];
@@ -1702,15 +1714,14 @@
             
             const filteredHeights = validHeights.filter(h => h >= lowerBound && h <= upperBound);
             
-            // 4. 計算最終代表高度 (使用平均值，因為已經去除了極端值，平均值會比中位數更穩定)
+            // 4. 計算最終代表高度 (平均值)
             const finalHeights = filteredHeights.length > 0 ? filteredHeights : validHeights;
             const sum = finalHeights.reduce((a, b) => a + b, 0);
             const representativeHeight = sum / finalHeights.length;
 
             // 5. 設定目標高度並計算縮放比例
-            // TARGET_TEXT_HEIGHT 是我們期望在「原始畫布」上，一個標準中文字應該要有的像素高度。
-            // 經過測試，設定在 24px 大約能呈現出適中、清晰，且列印時不會過大或過小的尺寸。
-            const TARGET_TEXT_HEIGHT = 24; 
+            // TARGET_TEXT_HEIGHT 已稍微下調，讓整體中文字體比之前小，看起來更緊湊精緻 (約等於考卷11pt)
+            const TARGET_TEXT_HEIGHT = 13; 
             const newScale = TARGET_TEXT_HEIGHT / representativeHeight;
 
             setExportScale(Math.min(Math.max(newScale, 0.2), 5));
