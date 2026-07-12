@@ -1657,14 +1657,15 @@
             const ret = await worker.recognize(dataUrl);
             await worker.terminate();
 
-            const lines = ret.data.lines;
-            if (!lines || lines.length === 0) {
+            // ★ 核心修正 1：改用 words (單詞/單字) 來精準抓取中文字體方塊，排除行距與空白干擾
+            const items = ret.data.words && ret.data.words.length > 0 ? ret.data.words : ret.data.lines;
+            if (!items || items.length === 0) {
                 alert('分析失敗：在圖片中找不到足夠清晰的文字！');
                 setIsOcrLoading(false);
                 return;
             }
 
-            const heights = lines.map(line => line.bbox.y1 - line.bbox.y0).filter(h => h > 5 && h < canvasDim.h * 0.5);
+            const heights = items.map(item => item.bbox.y1 - item.bbox.y0).filter(h => h > 5 && h < canvasDim.h * 0.5);
             if (heights.length === 0) {
                  alert('分析失敗：找不到適合評估尺寸的文字！');
                  setIsOcrLoading(false);
@@ -1674,8 +1675,10 @@
             heights.sort((a,b) => a-b);
             const medianHeight = heights[Math.floor(heights.length/2)];
 
-            // 設定目標基準高度 (使文字在畫布上的實體高度統一約為 45px，符合多數舒適閱讀尺寸)
-            const TARGET_TEXT_HEIGHT = 45;
+            // ★ 核心修正 2：解決題目長短不一導致「列印時被強制不同比例壓縮」的問題
+            // 將目標字體高度設定為標準考卷大小 16px。
+            // 如此一來所有題目經過等比縮放後，物理寬度都不會超過 A4 紙的極限，保證列印時字體大小絕對一致！
+            const TARGET_TEXT_HEIGHT = 16;
             const newScale = TARGET_TEXT_HEIGHT / medianHeight;
 
             setExportScale(Math.min(Math.max(newScale, 0.2), 5));
@@ -1866,8 +1869,8 @@
                        style={{ 
                          fontFamily: '"Times New Roman", Times, serif',
                          letterSpacing: '0.4em',
-                         fontSize: '4.94mm', 
-                         lineHeight: '4.94mm', 
+                         fontSize: '16px', // 改為 16px 與 AI 統一生字基準一致
+                         lineHeight: '16px', 
                          color: 'rgba(100, 100, 100, 0.85)', 
                          textShadow: '1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white, 0px 0px 3px rgba(255,255,255,0.9)' 
                        }}>
