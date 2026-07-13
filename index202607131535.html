@@ -38,12 +38,11 @@
       #print-area, #print-area * { visibility: visible; }
       #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; background-color: #ffffff !important; }
       .no-print { display: none !important; }
-      /* 縮小列印邊界，極大化可列印寬度 */
-      @page { margin: 0.8cm; size: A4 portrait; }
+      @page { margin: 0.5cm 2cm; size: A4 portrait; }
       /* 縮小卡片間距，塞入更多錯題 */
       .print-card { padding: 0.25rem 0 !important; margin-bottom: 0.75rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
-      /* 取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示，並強制圖片靠左對齊 */
-      .print-img { max-width: 100% !important; max-height: none !important; object-fit: contain; margin-left: 0 !important; margin-right: auto !important; }
+      /* 取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示 */
+      .print-img { max-width: 100% !important; max-height: none !important; object-fit: contain; }
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
     }
     
@@ -763,7 +762,6 @@
           6. ⚠️【極度重要：提供文言文精準的註釋與完整語譯】：當處理國文科題目，若圖片中有文言文的文章，請提供【整篇文言文的重要語詞註釋】與【整篇文言文的語譯】。
 
           JSON 格式必須嚴格依照思考順序如下：
-
           {
             "concept": "核心知識",
             "sub_subject": "單元/章節名稱",
