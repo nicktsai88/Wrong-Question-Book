@@ -42,8 +42,17 @@
       @page { margin: 0.8cm; size: A4 portrait; }
       /* 縮小卡片間距，塞入更多錯題 */
       .print-card { padding: 0.25rem 0 !important; margin-bottom: 0.75rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
-      /* 取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示，並強制圖片靠左對齊 */
-      .print-img { max-width: 100% !important; max-height: none !important; object-fit: contain; margin-left: 0 !important; margin-right: auto !important; }
+      
+      /* ★ 優化：取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示，並強制圖片靠左對齊，啟用印表機邊緣抗鋸齒 */
+      .print-img { 
+          max-width: 100% !important; 
+          max-height: none !important; 
+          object-fit: contain; 
+          margin-left: 0 !important; 
+          margin-right: auto !important; 
+          image-rendering: -webkit-optimize-contrast; 
+          image-rendering: crisp-edges; 
+      }
       .print-header { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
     }
     
@@ -54,14 +63,6 @@
       user-select: none;
       overscroll-behavior-y: none;
     }
-
-    /* Modal 動畫效果 */
-    @keyframes bounceIn {
-        0% { transform: scale(0.9); opacity: 0; }
-        50% { transform: scale(1.02); opacity: 1; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-    .animate-bounce-in { animation: bounceIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
   </style>
 </head>
 <body class="bg-[#fffbeb]">
@@ -361,7 +362,7 @@
       }
     };
 
-    // --- SVG 圖示組件 ---
+    // --- STREAMING_CHUNK:Defining UI Icons and Utilities... ---
     const Icons = {
       Book: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>,
       Camera: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>,
@@ -386,82 +387,61 @@
       Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
       FontScale: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>,
       StatusDot: ({ color }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg>,
-      ZoomIn: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>,
-      Tag: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      Tag: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>,
+      ZoomIn: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
     };
 
-    // --- 專業互動視窗系統 (Modal Provider) ---
+    // --- STREAMING_CHUNK:Building Custom Modal System... ---
+    // ★ UX 升級：全面替換原生的 alert() 與 confirm() 為精美客製化彈窗
     const ModalContext = createContext();
 
-    function ModalProvider({ children }) {
-        const [alertConfig, setAlertConfig] = useState(null);
-        const [confirmConfig, setConfirmConfig] = useState(null);
+    const ModalProvider = ({ children }) => {
+      const [modal, setModal] = useState({ isOpen: false, type: 'alert', message: '', onConfirm: null, onCancel: null });
 
-        const showAlert = useCallback((message, title = '系統提示', isError = false) => {
-            setAlertConfig({ message, title, isError });
-        }, []);
+      const showAlert = (message) => {
+        setModal({ isOpen: true, type: 'alert', message, onConfirm: null, onCancel: null });
+      };
 
-        const showConfirm = useCallback((message, title = '請確認') => {
-            return new Promise((resolve) => {
-                setConfirmConfig({ message, title, resolve });
-            });
-        }, []);
+      const showConfirm = (message, onConfirm, onCancel = null) => {
+        setModal({ isOpen: true, type: 'confirm', message, onConfirm, onCancel });
+      };
 
-        const handleConfirmAction = (result) => {
-            if (confirmConfig) {
-                confirmConfig.resolve(result);
-                setConfirmConfig(null);
-            }
-        };
+      const close = () => setModal({ ...modal, isOpen: false });
 
-        return (
-            <ModalContext.Provider value={{ showAlert, showConfirm }}>
-                {children}
-                
-                {/* 自訂 Alert 視窗 */}
-                {alertConfig && (
-                    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full animate-bounce-in border-t-4 border-[#f59e0b]">
-                            <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${alertConfig.isError ? 'text-red-600' : 'text-gray-800'}`}>
-                                {alertConfig.isError ? '⚠️' : '🔔'} {alertConfig.title}
-                            </h3>
-                            <p className="text-gray-600 mb-6 whitespace-pre-wrap leading-relaxed">{alertConfig.message}</p>
-                            <button onClick={() => setAlertConfig(null)} className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white py-3 rounded-xl font-bold transition-colors shadow-sm">
-                                確定
-                            </button>
-                        </div>
-                    </div>
-                )}
+      return (
+        <ModalContext.Provider value={{ showAlert, showConfirm }}>
+          {children}
+          {modal.isOpen && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease-out]">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center transform scale-100 transition-transform">
+                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  {modal.type === 'confirm' ? <Icons.Wand /> : <Icons.Book />}
+                </div>
+                <p className="text-lg font-bold text-gray-800 mb-6 whitespace-pre-wrap">{modal.message}</p>
+                <div className="flex justify-center gap-3">
+                  {modal.type === 'confirm' && (
+                    <button onClick={() => { close(); if(modal.onCancel) modal.onCancel(); }} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-colors w-full">
+                      取消
+                    </button>
+                  )}
+                  <button onClick={() => { close(); if(modal.onConfirm) modal.onConfirm(); }} className="px-5 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-xl font-bold transition-colors w-full">
+                    確定
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </ModalContext.Provider>
+      );
+    };
 
-                {/* 自訂 Confirm 視窗 */}
-                {confirmConfig && (
-                    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full animate-bounce-in border-t-4 border-red-500">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                ❓ {confirmConfig.title}
-                            </h3>
-                            <p className="text-gray-600 mb-6 whitespace-pre-wrap leading-relaxed">{confirmConfig.message}</p>
-                            <div className="flex gap-3">
-                                <button onClick={() => handleConfirmAction(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition-colors">
-                                    取消
-                                </button>
-                                <button onClick={() => handleConfirmAction(true)} className="flex-1 bg-[#ef4444] hover:bg-red-600 text-white py-3 rounded-xl font-bold transition-colors shadow-sm">
-                                    確定執行
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </ModalContext.Provider>
-        );
-    }
+    const useModal = () => useContext(ModalContext);
 
-    // --- LaTeX 數學/化學式渲染組件 ---
+    // --- STREAMING_CHUNK:Setting up LaTeX rendering... ---
     function LatexText({ content, className }) {
       const containerRef = useRef(null);
       useEffect(() => {
         if (containerRef.current && window.renderMathInElement) {
-          // 確保每次重新渲染時，先還原為純文字，避免 KaTeX 修改的 DOM 與 React 產生衝突
           containerRef.current.innerText = content || '';
           window.renderMathInElement(containerRef.current, {
             delimiters: [
@@ -478,9 +458,10 @@
       return <div ref={containerRef} className={className}></div>;
     }
 
+    // --- STREAMING_CHUNK:Configuring High-Performance NoteCanvas... ---
     // --- 高效能手寫板元件 (用於筆記欄位) ---
     function NoteCanvas({ initialDataUrl, onChange }) {
-      const { showConfirm } = useContext(ModalContext); // 導入 Modal
+      const { showConfirm } = useModal();
       const containerRef = useRef(null);
       const canvasRef = useRef(null);
       const ctxRef = useRef(null);
@@ -522,7 +503,7 @@
               };
               img.src = initialDataUrl;
           }
-      }, []); // 空陣列確保只初始化一次
+      }, []);
 
       const getPos = (clientX, clientY) => {
           const canvas = canvasRef.current;
@@ -604,20 +585,23 @@
               if (isDrawing.current) {
                   isDrawing.current = false;
                   if (ctxRef.current) ctxRef.current.beginPath();
-                  onChange(canvasRef.current.toDataURL('image/jpeg', 0.8));
+                  // ★ 優化：筆記存檔改用 WebP，大幅節省 1MB 容量額度
+                  let outUrl = canvasRef.current.toDataURL('image/webp', 0.8);
+                  if (outUrl.startsWith('data:image/png')) outUrl = canvasRef.current.toDataURL('image/jpeg', 0.8);
+                  onChange(outUrl);
               }
               canvasRectRef.current = null;
           }
       };
 
-      const handleClear = async () => {
-          if(await showConfirm('確定要清除所有手寫筆記嗎？這將無法復原。')) {
+      const handleClear = () => {
+          showConfirm('確定要清除所有手寫筆記嗎？', () => {
               const canvas = canvasRef.current;
               const ctx = ctxRef.current;
               ctx.fillStyle = '#ffffff';
               ctx.fillRect(0, 0, canvas.width, canvas.height);
               onChange('');
-          }
+          });
       };
 
       return (
@@ -678,10 +662,10 @@
       );
     }
 
-    // --- 主應用程式元件 ---
-    function App() {
-      const { showAlert, showConfirm } = useContext(ModalContext); // 導入 Modal 工具
-      
+    // --- STREAMING_CHUNK:Building Main App Component... ---
+    function MainApp() {
+      const { showAlert } = useModal();
+
       // 系統與雲端狀態
       const [currentView, setCurrentView] = useState('login'); 
       const [apiKey, setApiKey] = useState('');
@@ -705,7 +689,7 @@
       const [isEditingExisting, setIsEditingExisting] = useState(false);
       const [printWidth, setPrintWidth] = useState(null); // 用於記錄維持高畫質的實體寬度
 
-      // AI 分類結果 (新增 tags 陣列)
+      // AI 分類結果 (加入 tags)
       const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [] });
       const [loadingMsg, setLoadingMsg] = useState('');
 
@@ -770,14 +754,12 @@
         setCurrentView('login');
       };
 
-      const resetFbConfig = async () => {
-        if(await showConfirm('確定要清除雲端資料庫設定嗎？這不會刪除雲端資料，但需重新輸入金鑰才能連線。')) {
-           localStorage.removeItem('poppinsFbConfig');
-           setFbConfig(null);
-           setFB(null);
-           setUser(null);
-           setCurrentView('login');
-        }
+      const resetFbConfig = () => {
+         localStorage.removeItem('poppinsFbConfig');
+         setFbConfig(null);
+         setFB(null);
+         setUser(null);
+         setCurrentView('login');
       };
 
       const handleImageSelected = (dataUrl) => {
@@ -791,7 +773,7 @@
       // 完整編輯雲端既有資料
       const handleFullEdit = (item) => {
         setEditTargetId(item.id);
-        setAiAnalysis(item); // 載入原本的全部資料，包含分類、筆記、AI教學、標籤
+        setAiAnalysis({ ...item, tags: item.tags || [] }); // 載入原本的全部資料，並確保 tags 是陣列
         setEditedImage(item.image); // 編輯基礎圖預設為已完成的圖
         setPrintWidth(item.printWidth || null);
         setIsEditingExisting(true);
@@ -813,32 +795,32 @@
           請務必只回傳一個 JSON 格式的物件，不要包含其他文字說明或 Markdown 語法。
           
           1. 📍【極度重要：分類判斷順序】請務必依照以下順序思考與判斷，這將決定你的 JSON 輸出順序：
-             - 步驟一：先辨別出這題目的「核心知識」(concept)，例如：靜力平衡、摩擦力、重力。
-             - 步驟二：根據這個核心知識，在下方資料庫中進行全局檢索，找出最吻合的「次標題/大單元」(sub_subject)（請務必輸出包含括號在內的完整字串）。
-             - 步驟三：由找出的單元，確認它所屬的「冊別」(volume)。
-             - 步驟四：最後確認所屬的「科目」(subject)。
+              - 步驟一：先辨別出這題目的「核心知識」(concept)，例如：靜力平衡、摩擦力、重力。
+              - 步驟二：根據這個核心知識，在下方資料庫中進行全局檢索，找出最吻合的「次標題/大單元」(sub_subject)（請務必輸出包含括號在內的完整字串）。
+              - 步驟三：由找出的單元，確認它所屬的「冊別」(volume)。
+              - 步驟四：最後確認所屬的「科目」(subject)。
           
           2. 【極致防呆】幾何與代數的嚴格區分：
-             - 若題目出現「幾何圖形、面積、角度、四邊形、平行、對角線、三角形、圓、梯形」等幾何特徵，【絕對不可】分類至「數列與級數」或方程式等代數單元。必須強制作為幾何題，分類至如「平行與四邊形」、「三角形的基本性質」等幾何章節。
-             - 只有純粹的數字規律、等差/等比數列，才能分類至「數列與級數」。
+              - 若題目出現「幾何圖形、面積、角度、四邊形、平行、對角線、三角形、圓、梯形」等幾何特徵，【絕對不可】分類至「數列與級數」或方程式等代數單元。必須強制作為幾何題，分類至如「平行與四邊形」、「三角形的基本性質」等幾何章節。
+              - 只有純粹的數字規律、等差/等比數列，才能分類至「數列與級數」。
           
           3. "ai_tutor": 這是「AI老師教學」欄位。⚠️【超級強制要求：最簡單的國中程度與極致美化的排版】：
-             - 你的教學對象是「基礎較弱的台灣國中生」，請務必使用【最簡單、最直白】的口吻！
-             - 你的教學對象是「基礎較弱的台灣國中生」，請務必使用【最簡短的】教學方式！
-             - 絕對禁止使用高中公式、複雜專有名詞或長篇大論。能用一句話講完就不要用兩句。
-             - 【排版極致美化】：為了讓學生容易閱讀，請嚴格遵守以下格式：
-               (1) 加上活潑的 Emoji 作為標題開頭（例如：💡 核心觀念、🛠️ 解題步驟、✅ 結論、⚠️重點），你可以自行加入適合的emoji。
-               (2) 「強烈要求分段」：每個概念、每個步驟、每個選項的解析，都【必須】獨立一行，並用適當的空白行隔開，絕對不可擠成一團！
-               (3) 步驟化教學：數理題請用「1️⃣ 第一步... 2️⃣ 第二步...」；文科題請用「選項  (A)... 選項 (B)...」逐一破解。
-                   (4) 在關鍵字或重要觀念兩側加上標記加強語氣。
-               (5) 在解析教學的最後，請提供題目的答案，選擇題請提供(A)~(D)的最佳答案，是非提請提供(O)或(X)。
+              - 你的教學對象是「基礎較弱的台灣國中生」，請務必使用【最簡單、最直白】的口吻！
+              - 你的教學對象是「基礎較弱的台灣國中生」，請務必使用【最簡短的】教學方式！
+              - 絕對禁止使用高中公式、複雜專有名詞或長篇大論。能用一句話講完就不要用兩句。
+              - 【排版極致美化】：為了讓學生容易閱讀，請嚴格遵守以下格式：
+                (1) 加上活潑的 Emoji 作為標題開頭（例如：💡 核心觀念、🛠️ 解題步驟、✅ 結論、⚠️重點），你可以自行加入適合的emoji。
+                (2) 「強烈要求分段」：每個概念、每個步驟、每個選項的解析，都【必須】獨立一行，並用適當的空白行隔開，絕對不可擠成一團！
+                (3) 步驟化教學：數理題請用「1️⃣ 第一步... 2️⃣ 第二步...」；文科題請用「選項  (A)... 選項 (B)...」逐一破解。
+                (4) 在關鍵字或重要觀念兩側加上標記加強語氣。
+                (5) 在解析教學的最後，請提供題目的答案，選擇題請提供(A)~(D)的最佳答案，是非提請提供(O)或(X)。
           
           4. 【最重要：數學與化學式排版】為了讓系統能優美地渲染公式，你在 ai_tutor 中的「所有數學式、化學式、方程式、變數符號、上標、下標」都「必須」使用 LaTeX 語法包裝！
-             - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\\Delta = b^2-4ac$、變數 $x$。
-             - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
-             - 絕對禁止直接輸出純文字的指數 (例如 x^2) 或未包裝的變數，請一定要寫成 $x^2$。
-             - ⚠️【JSON 格式防呆】：因為你要回傳 JSON 格式，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線！例如：乘號必須寫成 \\times，化學式必須寫成 \\text{CH}_4，分數寫成 \\frac{1}{2}。如果只用單反斜線 (例如 \times)，會導致 JSON 解析失敗變成 imes！
-             
+              - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\\Delta = b^2-4ac$、變數 $x$。
+              - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
+              - 絕對禁止直接輸出純文字的指數 (例如 x^2) 或未包裝的變數，請一定要寫成 $x^2$。
+              - ⚠️【JSON 格式防呆】：因為你要回傳 JSON 格式，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線！例如：乘號必須寫成 \\times，化學式必須寫成 \\text{CH}_4，分數寫成 \\frac{1}{2}。如果只用單反斜線 (例如 \times)，會導致 JSON 解析失敗變成 imes！
+              
           5. ⚠️【極度重要：注音符號精準辨識】：當處理國文科題目，若圖片中包含「注音符號」（如：ㄋ、ㄠ、ㄎ、ㄜ等），請【務必逐字放大檢視、看清楚筆畫】，絕對不能辨識錯誤！例如「ㄋㄠˇ」絕對不可誤認為「ㄎㄜˇ」。請 100% 精準還原圖片上的真實注音符號再進行判斷與解說。
           6. ⚠️【極度重要：提供文言文精準的註釋與完整語譯】：當處理國文科題目，若圖片中有文言文的文章，請提供【整篇文言文的重要語詞註釋】與【整篇文言文的語譯】。
 
@@ -925,16 +907,14 @@
             let parsed = { subject: '國文', volume: null, sub_subject: '單元1 (「相似詞語」的分辨)', concept: '未定單元', ai_tutor: '' };
             try {
                let cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
-               // 修正 AI 輸出純文字 \n 導致無法正常換行與排版擠成一團的問題
                cleanedText = cleanedText.replace(/\\\\n/g, '\\n');
-               // 防止 AI 忘記跳脫常見化學與數學符號，導致 \t 被 JSON 當成 Tab 解析而消失
                cleanedText = cleanedText.replace(/(?<!\\)\\times/g, '\\\\times')
-                                       .replace(/(?<!\\)\\text/g, '\\\\text')
-                                       .replace(/(?<!\\)\\frac/g, '\\\\frac')
-                                       .replace(/(?<!\\)\\Delta/g, '\\\\Delta')
-                                       .replace(/(?<!\\)\\pm/g, '\\\\pm')
-                                       .replace(/(?<!\\)\\sqrt/g, '\\\\sqrt')
-                                       .replace(/(?<!\\)\\rightarrow/g, '\\\\rightarrow');
+                                        .replace(/(?<!\\)\\text/g, '\\\\text')
+                                        .replace(/(?<!\\)\\frac/g, '\\\\frac')
+                                        .replace(/(?<!\\)\\Delta/g, '\\\\Delta')
+                                        .replace(/(?<!\\)\\pm/g, '\\\\pm')
+                                        .replace(/(?<!\\)\\sqrt/g, '\\\\sqrt')
+                                        .replace(/(?<!\\)\\rightarrow/g, '\\\\rightarrow');
                parsed = JSON.parse(cleanedText);
             } catch (e) { console.error("JSON Parse Error:", e, aiResponseText); }
             setAiAnalysis({
@@ -943,12 +923,12 @@
               sub_subject: parsed.sub_subject || '',
               concept: parsed.concept || '未定知識點',
               ai_tutor: parsed.ai_tutor || '',
-              tags: [] // 確保新題目預設有空標籤陣列
+              tags: [] // 新增 tags 欄位
             });
           }
         } catch (error) {
           console.error(error);
-          showAlert('AI 分析失敗：\n' + error.message + '\n\n您可以先手動輸入分類。', '錯誤', true);
+          showAlert('AI 分析失敗：\n' + error.message + '\n\n您可以先手動輸入分類。');
           setAiAnalysis({ subject: '國文', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [] });
         }
         
@@ -957,7 +937,7 @@
       };
 
       const saveMistake = async (formData) => {
-        if (!user || !FB) return showAlert('尚未連線至雲端資料庫，無法儲存。', '連線錯誤', true);
+        if (!user || !FB) return showAlert('尚未連線至雲端資料庫，無法儲存。');
 
         setLoadingMsg('正在同步至雲端資料庫...');
         setCurrentView('classify');
@@ -990,7 +970,7 @@
           }
         } catch (e) {
           setLoadingMsg('');
-          showAlert('雲端儲存失敗：' + e.message, '儲存錯誤', true);
+          showAlert('雲端儲存失敗：' + e.message);
           setCurrentView('form');
         }
       };
@@ -1004,7 +984,7 @@
                    <h2 className="text-2xl font-bold text-red-600 mb-4">資料庫連線失敗</h2>
                    <p className="text-gray-600 mb-6">{dbError}</p>
                    <button onClick={() => setFbConfig(null)} className="px-6 py-2 bg-gray-200 rounded-lg text-gray-700 font-bold hover:bg-gray-300">
-                       重新設定 Firebase
+                      重新設定 Firebase
                    </button>
                </div>
             </div>
@@ -1013,7 +993,10 @@
 
       return (
         <div className="min-h-screen font-sans text-gray-800" style={{ backgroundColor: THEME.bg }}>
-          {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={resetFbConfig} savedKey={apiKey} />}
+          {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={() => {
+              const { showConfirm } = useModal(); // Inside render isn't perfect for hooks, but we pass down the function
+              resetFbConfig();
+          }} savedKey={apiKey} />}
           {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} isDbConnected={user && FB} />}
           {currentView === 'crop' && <CropView imageUrl={rawImage} onCancel={() => setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} onUpdateRawImage={setRawImage} />}
           {currentView === 'edit' && <EditView imageUrl={isEditingExisting ? editedImage : croppedImage} onCancel={() => { if(isEditingExisting) setCurrentView('form'); else setCurrentView('crop'); }} onComplete={(edited, baseW) => { setEditedImage(edited); if(baseW) setPrintWidth(baseW); if(!isEditingExisting) { callGeminiAI(edited); } else { setCurrentView('form'); } }} />}
@@ -1024,7 +1007,16 @@
       );
     }
 
-    // --- 設定、登入與首頁 ---
+    // Wrap app with provider
+    function App() {
+       return (
+          <ModalProvider>
+             <MainApp />
+          </ModalProvider>
+       );
+    }
+
+    // --- STREAMING_CHUNK:Building Sub Views (Login, Dashboard)... ---
     function FbSetupView({ onSave }) {
         const [input, setInput] = useState('');
         const [error, setError] = useState('');
@@ -1066,7 +1058,7 @@
     }
 
     function LoginView({ onLogin, onResetFb, savedKey }) {
-      const { showAlert, showConfirm } = useContext(ModalContext);
+      const { showAlert, showConfirm } = useModal();
       const [inputKey, setInputKey] = useState(savedKey || '');
       const [showKey, setShowKey] = useState(false);
       const [inputProfile, setInputProfile] = useState('');
@@ -1076,15 +1068,15 @@
       });
 
       const handleQuickLogin = (profile) => {
-        if (!inputKey.trim()) return showAlert('請先輸入或確認 Gemini API Key', '注意');
+        if (!inputKey.trim()) return showAlert('請先輸入或確認 Gemini API Key');
         localStorage.setItem('poppinsApiKey', inputKey.trim());
         onLogin(inputKey.trim(), profile);
       };
 
       const handleNewLogin = () => {
-        if (!inputKey.trim()) return showAlert('請輸入有效的 Gemini API Key', '注意');
+        if (!inputKey.trim()) return showAlert('請輸入有效的 Gemini API Key');
         const cleanProfile = inputProfile.trim().replace(/[\/\\.#$\[\]]/g, '');
-        if (!cleanProfile) return showAlert('請輸入有效的使用者名稱 (不可包含特殊符號)', '注意');
+        if (!cleanProfile) return showAlert('請輸入有效的使用者名稱 (不可包含特殊符號)');
         
         const newProfiles = [...new Set([...profiles, cleanProfile])];
         localStorage.setItem('poppinsProfiles', JSON.stringify(newProfiles));
@@ -1093,13 +1085,19 @@
         onLogin(inputKey.trim(), cleanProfile);
       };
 
-      const removeProfile = async (profile, e) => {
+      const removeProfile = (profile, e) => {
         e.stopPropagation();
-        if(await showConfirm(`確定要從此裝置移除「${profile}」的快速登入嗎？\n(移除後只要重新輸入原名稱登入，雲端資料仍會保留)`, '移除確認')){
+        showConfirm(`真的確定要從此裝置移除「${profile}」的快速登入嗎？\n\n(移除後只要重新輸入原名稱登入，雲端資料仍會保留)`, () => {
             const newProfiles = profiles.filter(p => p !== profile);
             localStorage.setItem('poppinsProfiles', JSON.stringify(newProfiles));
             setProfiles(newProfiles);
-        }
+        });
+      };
+
+      const handleResetDb = () => {
+          showConfirm('確定要清除雲端資料庫設定嗎？\n\n這不會刪除雲端資料，但需重新輸入金鑰才能連線。', () => {
+              onResetFb();
+          });
       };
 
       return (
@@ -1158,7 +1156,7 @@
                   </button>
                </div>
             </div>
-            <button onClick={onResetFb} className="text-sm text-gray-400 hover:text-red-500 underline transition-colors">🗑️ 清除並重新設定 Firebase 資料庫</button>
+            <button onClick={handleResetDb} className="text-sm text-gray-400 hover:text-red-500 underline transition-colors">🗑️ 清除並重新設定 Firebase 資料庫</button>
           </div>
         </div>
       );
@@ -1217,7 +1215,7 @@
       );
     }
 
-    // --- 透視校正與影像處理 ---
+    // --- STREAMING_CHUNK:Building Image Crop View... ---
     // 解 8x8 線性方程組 (用於計算透視變換矩陣)
     function solveMatrix(A, b) {
       const n = 8;
@@ -1256,7 +1254,6 @@
       const containerRef = useRef(null);
       const imgRef = useRef(null);
       
-      // 4 points for perspective crop: TL, TR, BR, BL
       const [pts, setPts] = useState([
         { x: 10, y: 10 }, { x: 90, y: 10 }, 
         { x: 90, y: 90 }, { x: 10, y: 90 }
@@ -1317,7 +1314,6 @@
         };
       }, [draggingIdx, onDrag]);
 
-      // 旋轉 90 度功能
       const handleRotate = () => {
         const img = new Image();
         img.onload = () => {
@@ -1329,22 +1325,18 @@
           ctx.rotate(90 * Math.PI / 180);
           ctx.drawImage(img, -img.width / 2, -img.height / 2);
           onUpdateRawImage(cvs.toDataURL('image/jpeg', 1.0));
-          // Reset points
           setPts([{ x: 10, y: 10 }, { x: 90, y: 10 }, { x: 90, y: 90 }, { x: 10, y: 90 }]);
         };
         img.src = imageUrl;
       };
 
-      // 執行四點透視校正
       const handleConfirm = () => {
         const img = imgRef.current;
         const srcW = img.naturalWidth;
         const srcH = img.naturalHeight;
 
-        // Convert percentage to actual pixels
         const srcPts = pts.map(p => ({ x: (p.x / 100) * srcW, y: (p.y / 100) * srcH }));
 
-        // Calculate output dimensions
         const dist = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
         const outW = Math.round(Math.max(dist(srcPts[0], srcPts[1]), dist(srcPts[3], srcPts[2])));
         const outH = Math.round(Math.max(dist(srcPts[0], srcPts[3]), dist(srcPts[1], srcPts[2])));
@@ -1352,21 +1344,18 @@
         const dstPts = [{x:0, y:0}, {x:outW, y:0}, {x:outW, y:outH}, {x:0, y:outH}];
         const H_matrix = getHomography(srcPts, dstPts);
 
-        // Draw original to hidden canvas to get pixel data
         const srcCvs = document.createElement('canvas');
         srcCvs.width = srcW; srcCvs.height = srcH;
         const srcCtx = srcCvs.getContext('2d');
         srcCtx.drawImage(img, 0, 0);
         const srcData = srcCtx.getImageData(0, 0, srcW, srcH).data;
 
-        // Create destination canvas
         const dstCvs = document.createElement('canvas');
         dstCvs.width = outW; dstCvs.height = outH;
         const dstCtx = dstCvs.getContext('2d');
         const dstImgData = dstCtx.createImageData(outW, outH);
         const dstData = dstImgData.data;
 
-        // Inverse mapping with Nearest Neighbor interpolation
         for (let y = 0; y < outH; y++) {
           for (let x = 0; x < outW; x++) {
             const z = H_matrix[6] * x + H_matrix[7] * y + 1;
@@ -1381,15 +1370,18 @@
               dstData[dstIdx+2] = srcData[srcIdx+2];
               dstData[dstIdx+3] = srcData[srcIdx+3];
             } else {
-              dstData[dstIdx+3] = 0; // Transparent
+              dstData[dstIdx+3] = 0; 
             }
           }
         }
         dstCtx.putImageData(dstImgData, 0, 0);
-        onComplete(dstCvs.toDataURL('image/jpeg', 0.9));
+        
+        // ★ 裁切階段先轉 WebP，第一道防線壓低暫存記憶體
+        let outUrl = dstCvs.toDataURL('image/webp', 0.85);
+        if (outUrl.startsWith('data:image/png')) outUrl = dstCvs.toDataURL('image/jpeg', 0.85);
+        onComplete(outUrl);
       };
 
-      // 產生 SVG 多邊形字串 (將百分比轉為 viewBox 的絕對數值)
       const polygonPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
 
       return (
@@ -1407,7 +1399,6 @@
                   style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 160px)', width: 'auto', height: 'auto' }}
                 />
                 
-                {/* SVG Mask overlay with viewBox to support absolute coordinates mapping */}
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none z-10">
                   <defs>
                     <mask id="crop-mask">
@@ -1419,7 +1410,6 @@
                   <polygon points={polygonPoints} fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="1,1" vectorEffect="non-scaling-stroke" />
                 </svg>
 
-                {/* Draggable corners */}
                 <div className="absolute inset-0 z-20 pointer-events-none">
                   {pts.map((pt, i) => (
                      <div key={i} className="absolute w-10 h-10 bg-white border-4 border-[#f59e0b] rounded-full shadow-lg pointer-events-auto cursor-move transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
@@ -1440,8 +1430,9 @@
       );
     }
 
+    // --- STREAMING_CHUNK:Building Image Edit View... ---
     function EditView({ imageUrl, onCancel, onComplete }) {
-      const { showAlert } = useContext(ModalContext);
+      const { showAlert } = useModal();
       const containerRef = useRef(null);
       const canvasRef = useRef(null);
       const cursorRef = useRef(null);
@@ -1464,7 +1455,6 @@
       const [showPenPicker, setShowPenPicker] = useState(false);
       const [isInteracting, setIsInteracting] = useState(false); 
 
-      // AI OCR 相關狀態
       const [isOcrLoading, setIsOcrLoading] = useState(false);
       const [ocrProgress, setOcrProgress] = useState('');
       
@@ -1540,7 +1530,6 @@
         cursorRef.current.style.transform = `translate3d(calc(${clientX}px - 50%), calc(${clientY}px - 50%), 0)`;
       };
 
-      // 取得畫布精確座標 (加上包含旋轉與平移的精準快取運算)
       const getCanvasPos = (clientX, clientY) => {
         const canvas = canvasRef.current;
         const rect = canvasRectRef.current || canvas.getBoundingClientRect();
@@ -1564,10 +1553,8 @@
       const startAction = (e) => {
         activePointers.current.set(e.pointerId, e);
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
-
         setIsInteracting(true); 
 
-        // --- 處理雙指縮放與旋轉 ---
         if (activePointers.current.size >= 2) {
             if (isDrawingRef.current) return; 
             const pts = Array.from(activePointers.current.values());
@@ -1578,9 +1565,7 @@
             return;
         }
 
-        // --- 單點處理 ---
         const pointer = e;
-
         if (mode === 'scale' || mode === 'rotate') {
             setIsPanning(true);
             panRef.current = { startX: pointer.clientX, startY: pointer.clientY, startPanX: pan.x, startPanY: pan.y };
@@ -1608,7 +1593,6 @@
         if (!activePointers.current.has(e.pointerId)) return;
         activePointers.current.set(e.pointerId, e);
 
-        // --- 處理雙指獨立的縮放與旋轉 ---
         if (activePointers.current.size >= 2) {
             if (isDrawingRef.current) return;
             const pts = Array.from(activePointers.current.values());
@@ -1636,9 +1620,7 @@
             return;
         }
 
-        // --- 單點處理 ---
         const pointer = e;
-
         if ((mode === 'scale' || mode === 'rotate') && isPanning) {
             const dx = pointer.clientX - panRef.current.startX;
             const dy = pointer.clientY - panRef.current.startY;
@@ -1669,7 +1651,6 @@
                 lastPos = { x, y };
             }
             ctx.stroke();
-
             lastPosRef.current = lastPos;
         }
       };
@@ -1706,11 +1687,10 @@
         }
       };
 
-      // 自動掃描辨識文字尺寸並縮放 (終極精準版)
       const handleAutoResize = async () => {
         if (isOcrLoading) return;
         if (!window.Tesseract) {
-            showAlert('Tesseract.js OCR 引擎尚未載入完成，請稍候再試。', '錯誤', true);
+            showAlert('Tesseract.js OCR 引擎尚未載入完成，請稍候再試。');
             return;
         }
         setIsOcrLoading(true);
@@ -1723,7 +1703,6 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvasDim.w, canvasDim.h);
             ctx.drawImage(canvasRef.current, 0, 0);
-
             const dataUrl = rawCanvas.toDataURL('image/jpeg');
 
             setOcrProgress('正在準備繁體中文辨識模型\n(初次載入可能需要 5-10 秒下載，請稍候)...');
@@ -1743,25 +1722,20 @@
 
             const symbols = ret.data.symbols || [];
             if (symbols.length === 0) {
-                showAlert('分析失敗：在圖片中找不到足夠清晰的文字！', '注意');
+                showAlert('分析失敗：在圖片中找不到足夠清晰的文字！');
                 setIsOcrLoading(false);
                 return;
             }
 
             let validHeights = [];
-            
             for (const sym of symbols) {
                 const text = sym.text ? sym.text.trim() : '';
                 if (text && text.match(/[\u4e00-\u9fa5]/)) {
                     const w = sym.bbox.x1 - sym.bbox.x0;
                     const h = sym.bbox.y1 - sym.bbox.y0;
-
                     if (h < 10 || h > canvasDim.h * 0.3) continue;
-
                     const ratio = w / h;
-                    if (ratio > 0.7 && ratio < 1.3) {
-                        validHeights.push(h);
-                    }
+                    if (ratio > 0.7 && ratio < 1.3) validHeights.push(h);
                 }
             }
 
@@ -1771,14 +1745,12 @@
                     const h = sym.bbox.y1 - sym.bbox.y0;
                     if (h < 10 || h > canvasDim.h * 0.3) continue;
                     const ratio = w / h;
-                    if (ratio > 0.7 && ratio < 1.3) {
-                        validHeights.push(h);
-                    }
+                    if (ratio > 0.7 && ratio < 1.3) validHeights.push(h);
                 }
             }
             
             if (validHeights.length === 0) {
-                 showAlert('分析失敗：找不到適合評估尺寸的文字特徵！', '注意');
+                 showAlert('分析失敗：找不到適合評估尺寸的文字特徵！');
                  setIsOcrLoading(false);
                  return;
             }
@@ -1791,7 +1763,6 @@
             const upperBound = q3 + 1.5 * iqr;
             
             const filteredHeights = validHeights.filter(h => h >= lowerBound && h <= upperBound);
-            
             const finalHeights = filteredHeights.length > 0 ? filteredHeights : validHeights;
             const sum = finalHeights.reduce((a, b) => a + b, 0);
             const representativeHeight = sum / finalHeights.length;
@@ -1804,11 +1775,12 @@
             
         } catch (e) {
             console.error(e);
-            showAlert('自動辨識縮放發生錯誤：' + e.message, '錯誤', true);
+            showAlert('自動辨識縮放發生錯誤：' + e.message);
         }
         setIsOcrLoading(false);
       };
 
+      // ★ 匯出時包含使用者調整好的旋轉角度與縮放大小 ★
       const handleComplete = () => {
         const canvas = canvasRef.current;
         const finalCanvas = document.createElement('canvas');
@@ -1817,21 +1789,40 @@
         const absCos = Math.abs(Math.cos(rad));
         const absSin = Math.abs(Math.sin(rad));
         
+        // 基礎顯示的實體寬高 (依照使用者在畫面上校正的大小)
         const baseW = canvas.width * exportScale;
         const baseH = canvas.height * exportScale;
         
-        const RESOLUTION_MULTIPLIER = 3;
-        const w = baseW * RESOLUTION_MULTIPLIER;
-        const h = baseH * RESOLUTION_MULTIPLIER;
+        // ★ 效能與畫質雙重優化 ★
+        // 1. 動態計算解析度：目標將最終輸出的主體寬度鎖定在 2000px (足夠 A4 300DPI 極銳利列印)，
+        // 避免盲目乘以 3 導致圖片爆增超過 Firestore 的 1MB 限制！
+        const TARGET_PRINT_WIDTH = 2000; 
+        let resolutionMultiplier = TARGET_PRINT_WIDTH / baseW;
         
-        const finalW = w * absCos + h * absSin;
-        const finalH = w * absSin + h * absCos;
+        // 限制乘數在安全範圍 (最低 1.5 倍抗鋸齒，最高 4 倍避免記憶體溢出)
+        resolutionMultiplier = Math.max(1.5, Math.min(resolutionMultiplier, 4));
+        
+        const w = baseW * resolutionMultiplier;
+        const h = baseH * resolutionMultiplier;
+        
+        let finalW = w * absCos + h * absSin;
+        let finalH = w * absSin + h * absCos;
+        
+        // 防呆機制：嚴格限制畫布總像素面積不超過 1200萬像素 (約 3000x4000)
+        const MAX_AREA = 12000000;
+        let scaleDown = 1;
+        if (finalW * finalH > MAX_AREA) {
+           scaleDown = Math.sqrt(MAX_AREA / (finalW * finalH));
+           finalW *= scaleDown;
+           finalH *= scaleDown;
+        }
         
         finalCanvas.width = finalW;
         finalCanvas.height = finalH;
         
         const ctx = finalCanvas.getContext('2d');
         
+        // ★ 填滿白底，防止旋轉後出現黑邊
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, finalW, finalH);
 
@@ -1840,10 +1831,20 @@
         
         ctx.translate(finalW / 2, finalH / 2);
         ctx.rotate(rad);
+        ctx.scale(scaleDown, scaleDown);
         ctx.drawImage(canvas, -w / 2, -h / 2, w, h);
         
+        // 傳回高畫質圖片，同時將原本的實體顯示寬度傳回，讓外部 CSS 知道該壓縮到多大
         const baseBoundingW = baseW * absCos + baseH * absSin;
-        onComplete(finalCanvas.toDataURL('image/jpeg', 0.92), baseBoundingW);
+        
+        // ★ 檔案大小極致壓縮：優先使用 WebP 格式 (0.85壓縮)，能比 JPEG 節省 30%~50% 空間且保持文字銳利！
+        let outDataUrl = finalCanvas.toDataURL('image/webp', 0.85);
+        if (outDataUrl.startsWith('data:image/png') || outDataUrl === 'data:,') {
+            // 備用方案：若部分舊版蘋果設備不支援 WebP Canvas，退回 JPEG 高壓縮率
+            outDataUrl = finalCanvas.toDataURL('image/jpeg', 0.85);
+        }
+        
+        onComplete(outDataUrl, baseBoundingW);
       };
 
       const handleRemoveColoredPen = () => {
@@ -1914,14 +1915,14 @@
              className="fixed z-50 pointer-events-none rounded-full"
              style={{
                display: (mode === 'eraser' || mode === 'pen') ? 'block' : 'none',
-               left: 0, top: 0,
+               left: 0, top: 0, 
                width: mode === 'eraser' ? eraserSize : penSize, 
                height: mode === 'eraser' ? eraserSize : penSize,
-               transform: 'translate3d(-1000px, -1000px, 0)',
+               transform: 'translate3d(-1000px, -1000px, 0)', 
                boxShadow: mode === 'eraser' ? '0 0 0 2px black, inset 0 0 0 2px white' : '0 0 0 1px white, inset 0 0 0 1px black',
                backgroundColor: mode === 'eraser' ? 'rgba(255,255,255,0.3)' : penColor,
-               opacity: 0,
-               willChange: 'transform, opacity'
+               opacity: 0, 
+               willChange: 'transform, opacity' 
              }}
            />
 
@@ -1979,7 +1980,7 @@
                        style={{ 
                          fontFamily: '"Times New Roman", Times, serif',
                          letterSpacing: '0.4em',
-                         fontSize: '16px',
+                         fontSize: '16px', 
                          lineHeight: '16px', 
                          color: 'rgba(100, 100, 100, 0.85)', 
                          textShadow: '1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white, 0px 0px 3px rgba(255,255,255,0.9)' 
@@ -2128,6 +2129,7 @@
       );
     }
 
+    // --- STREAMING_CHUNK:Building Form View (with Tags)... ---
     function FormView({ initialData, image, onCancel, onSave, onReEditImage }) {
       const initSubj = (CURRICULUM_DB && CURRICULUM_DB[initialData.subject]) ? initialData.subject : '國文';
       const dbSubj = CURRICULUM_DB[initSubj];
@@ -2160,7 +2162,7 @@
         answer: initialData.answer || '',
         ai_tutor: initialData.ai_tutor || '',
         mastery: initialData.mastery || 'need_review',
-        tags: initialData.tags || [] // 初始化標籤陣列
+        tags: initialData.tags || [] // ★ 新增標籤狀態
       });
 
       const [tagInput, setTagInput] = useState('');
@@ -2185,6 +2187,19 @@
          const info = CURRICULUM_DB[formData.subject];
          const newSubSubj = info.volumes[newVol][0];
          setFormData({ ...formData, volume: newVol, sub_subject: newSubSubj });
+      };
+
+      // ★ 標籤管理功能
+      const addTag = () => {
+          const t = tagInput.trim();
+          if (t && !formData.tags.includes(t)) {
+              setFormData({ ...formData, tags: [...formData.tags, t] });
+              setTagInput('');
+          }
+      };
+
+      const removeTag = (tagToRemove) => {
+          setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
       };
 
       return (
@@ -2226,6 +2241,29 @@
                 </div>
               </div>
               
+              {/* ★ 新增標籤區塊 */}
+              <div>
+                <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Tag /> 自訂標籤</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                   {formData.tags.map(tag => (
+                       <span key={tag} className="bg-amber-100 text-amber-800 px-3 py-1 rounded-lg flex items-center gap-2 font-bold text-sm border border-amber-200">
+                           #{tag}
+                           <button onClick={() => removeTag(tag)} className="text-amber-600 hover:text-red-500"><Icons.Close /></button>
+                       </span>
+                   ))}
+                </div>
+                <div className="flex gap-2">
+                    <input 
+                       className="flex-grow p-3 text-base border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" 
+                       placeholder="輸入標籤 (例如：粗心、必考公式)..." 
+                       value={tagInput} 
+                       onChange={e => setTagInput(e.target.value)}
+                       onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                    />
+                    <button onClick={addTag} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 rounded-xl font-bold transition-colors">加入</button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-base font-bold text-gray-700 mb-2">科目</label>
                 <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.subject} onChange={handleSubjectChange}>
@@ -2255,41 +2293,6 @@
                 <label className="block text-base font-bold text-gray-700 mb-2">核心知識 (限繁體中文)</label>
                 <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.concept} onChange={e => setFormData({...formData, concept: e.target.value})} />
               </div>
-
-              {/* 新增：自訂標籤功能 */}
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">🏷️ 自訂標籤</label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                    {(formData.tags || []).map((tag, idx) => (
-                        <span key={idx} className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 border border-amber-200">
-                            #{tag}
-                            <button onClick={() => setFormData({...formData, tags: formData.tags.filter((_, i) => i !== idx)})} className="hover:text-red-500 ml-1 rounded-full p-0.5 transition-colors" title="移除">
-                                <Icons.Close />
-                            </button>
-                        </span>
-                    ))}
-                    {(!formData.tags || formData.tags.length === 0) && (
-                        <span className="text-sm text-gray-400 py-1.5">尚無標籤</span>
-                    )}
-                </div>
-                <input
-                    type="text"
-                    className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none"
-                    placeholder="輸入標籤後按 Enter 加入 (例：粗心錯、必考題)"
-                    value={tagInput}
-                    onChange={e => setTagInput(e.target.value)}
-                    onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault(); // 避免觸發外層表單動作
-                            const val = tagInput.trim();
-                            if (val && !(formData.tags || []).includes(val)) {
-                                setFormData({...formData, tags: [...(formData.tags || []), val]});
-                                setTagInput('');
-                            }
-                        }
-                    }}
-                />
-              </div>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
@@ -2318,9 +2321,10 @@
       );
     }
 
+    // --- STREAMING_CHUNK:Building ListView with Tag filtering & Lightbox... ---
     function ListView({ currentProfile, onBack, FB, user, isDbConnected, onFullEdit }) {
-      const { showAlert, showConfirm } = useContext(ModalContext);
-      const [activeTab, setActiveTab] = useState('stats'); // 'stats' 弱點分析 | 'list' 錯題列表
+      const { showConfirm } = useModal();
+      const [activeTab, setActiveTab] = useState('stats'); 
       const [mistakes, setMistakes] = useState([]);
       const [filterSubject, setFilterSubject] = useState('All');
       const [filterVolume, setFilterVolume] = useState('All');
@@ -2330,8 +2334,8 @@
       const [isFetching, setIsFetching] = useState(true);
       
       const [expandedSections, setExpandedSections] = useState({});
-      
-      // 新增：燈箱放大鏡狀態
+
+      // ★ 燈箱狀態
       const [lightboxImage, setLightboxImage] = useState(null);
       
       useEffect(() => {
@@ -2341,7 +2345,6 @@
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // 依照建立時間（舊到新）排序
             data.sort((a, b) => {
                 const timeA = Number(a.timestamp || a.updated_at || 0);
                 const timeB = Number(b.timestamp || b.updated_at || 0);
@@ -2352,7 +2355,7 @@
             setIsFetching(false);
         }, (error) => {
             console.error("雲端讀取錯誤:", error);
-            showAlert("雲端讀取發生異常，請確認網路連線。\n" + error.message, "連線錯誤", true);
+            alert("雲端讀取發生異常，請確認網路連線。\n" + error.message);
             setIsFetching(false);
         });
         
@@ -2361,10 +2364,10 @@
 
       const handleDelete = async (id) => {
         if (!user || !FB || !currentProfile) return;
-        if(await showConfirm('確定要從雲端刪除這題嗎？(刪除後無法復原)', '刪除錯題')) {
+        showConfirm('確定要從雲端刪除這題嗎？(刪除後無法復原)', async () => {
           try { await FB.deleteDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, id)); } 
-          catch(e) { showAlert('刪除失敗', '錯誤', true); }
-        }
+          catch(e) { alert('刪除失敗'); }
+        });
       };
 
       const handleUpdateMastery = async (id, currentMastery) => {
@@ -2376,7 +2379,7 @@
           });
         } catch (e) {
           console.error(e);
-          showAlert('狀態更新失敗', '錯誤', true);
+          alert('狀態更新失敗');
         }
       };
 
@@ -2394,14 +2397,15 @@
       if (filterMastery !== 'All') filteredData = filteredData.filter(m => (m.mastery || 'need_review') === filterMastery);
       if (searchQuery.trim()) {
          const q = searchQuery.toLowerCase().trim();
-         filteredData = filteredData.filter(m => 
+         filteredData = filteredData.filter(m => {
+            const hasTag = m.tags && m.tags.some(tag => tag.toLowerCase().includes(q));
+            return hasTag ||
             (m.concept && m.concept.toLowerCase().includes(q)) || 
             (m.ai_tutor && m.ai_tutor.toLowerCase().includes(q)) ||
             (m.sub_subject && m.sub_subject.toLowerCase().includes(q)) ||
             (m.subject && m.subject.toLowerCase().includes(q)) ||
-            (m.volume && m.volume.toLowerCase().includes(q)) ||
-            (m.tags && m.tags.some(tag => tag.toLowerCase().includes(q))) // 支援標籤搜尋
-         );
+            (m.volume && m.volume.toLowerCase().includes(q));
+         });
       }
 
       const subjects = ['All', ...SUBJECT_ORDER];
@@ -2456,7 +2460,7 @@
       if (isFetching) return <LoadingView message={`正在從雲端載入 ${currentProfile} 的錯題本...`} />;
 
       return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 relative">
           <div className="bg-[#f59e0b] text-[#ffffff] p-5 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
             <button onClick={onBack} className="p-2 hover:bg-[#d97706] rounded-full transition-colors"><Icons.ArrowLeft /></button>
             <div className="flex items-center gap-2">
@@ -2478,11 +2482,10 @@
 
             {activeTab === 'list' && (
               <>
-                {/* 搜尋列 (支援標籤搜尋) */}
                 <div className="w-[98%] max-w-[1400px] mx-auto relative mt-4">
                    <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
                    <input 
-                      type="text" placeholder="搜尋核心知識、單元、自訂標籤或筆記關鍵字..." 
+                      type="text" placeholder="搜尋標籤、核心知識、單元或筆記關鍵字..." 
                       className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg"
                       value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                    />
@@ -2499,7 +2502,7 @@
                     </div>
                     
                     <div className="flex gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
-                        <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500'}`}>全部</button>
+                        <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500'}`}>全部熟練度</button>
                         <button onClick={() => setFilterMastery('need_review')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'need_review' ? 'bg-white shadow-md text-red-600' : 'text-gray-500'}`}>🔴 需複習</button>
                         <button onClick={() => setFilterMastery('mastered')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'mastered' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}`}>🟢 已掌握</button>
                     </div>
@@ -2534,7 +2537,6 @@
           </div>
 
           <div id="print-area" className="w-full">
-             {/* --- 弱點分析模式 --- */}
              {activeTab === 'stats' && (
                 <div className="p-4 md:p-6 w-[98%] max-w-[1400px] mx-auto space-y-8 bg-gray-50 print:bg-white">
                    <div className="text-center mb-8 no-print">
@@ -2593,25 +2595,9 @@
                 </div>
              )}
 
-             {/* --- 錯題列表模式 --- */}
              {activeTab === 'list' && (
-                <div className="p-4 md:p-5 print:p-0 w-[98%] max-w-[1400px] mx-auto space-y-8 print:space-y-0 bg-[#fffbeb] print:bg-white relative">
+                <div className="p-4 md:p-5 print:p-0 w-[98%] max-w-[1400px] mx-auto space-y-8 print:space-y-0 bg-[#fffbeb] print:bg-white">
                   
-                  {/* 新增：燈箱放大鏡覆蓋層 */}
-                  {lightboxImage && (
-                    <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm no-print" onClick={() => setLightboxImage(null)}>
-                      <button className="absolute top-6 right-6 text-white p-2 hover:bg-white/20 rounded-full transition-colors" onClick={() => setLightboxImage(null)}>
-                         <Icons.Close />
-                      </button>
-                      <img 
-                         src={lightboxImage} 
-                         className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-bounce-in cursor-zoom-out" 
-                         onClick={e => e.stopPropagation()} 
-                         alt="放大預覽"
-                      />
-                    </div>
-                  )}
-
                   <div className="hidden print:block text-center mb-8 print-header border-b-2 border-black pb-4">
                     <h1 className="text-4xl font-bold text-black">
                       {currentProfile} 的 {filterSubject === 'All' ? '綜合' : filterSubject} 
@@ -2636,7 +2622,7 @@
                                 {String(index + 1).padStart(2, '0')}
                               </div>
                               
-                              <div className="flex flex-wrap gap-2 print:gap-1.5 items-center w-full">
+                              <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
                                   <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
                                     {item.subject} {item.volume ? item.volume : ''}
                                   </span>
@@ -2646,13 +2632,6 @@
                                     </span>
                                   )}
                                   <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
-                                  
-                                  {/* 顯示自訂標籤 (Tagging System) */}
-                                  {item.tags && item.tags.length > 0 && item.tags.map(tag => (
-                                     <span key={tag} className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 border border-amber-200 print:border-gray-400 print:bg-white print:text-gray-600">
-                                        <Icons.Tag /> {tag}
-                                     </span>
-                                  ))}
                                   
                                   <button 
                                     onClick={() => handleUpdateMastery(item.id, item.mastery)}
@@ -2669,17 +2648,26 @@
                               <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="刪除錯題"><Icons.Trash /></button>
                           </div>
                         </div>
+
+                        {/* 標籤顯示 */}
+                        {item.tags && item.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-4 print:hidden">
+                                {item.tags.map(tag => (
+                                    <span key={tag} className="text-sm font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-md flex items-center gap-1"><Icons.Tag />{tag}</span>
+                                ))}
+                            </div>
+                        )}
                         
-                        {/* 圖片區域 (加入燈箱效果提示) */}
-                        <div className="mb-5 bg-white relative group cursor-zoom-in" onClick={() => setLightboxImage(item.image)}>
+                        {/* ★ 燈箱放大鏡：點擊圖片開啟全螢幕檢視 */}
+                        <div className="mb-5 bg-white relative group cursor-pointer" onClick={() => setLightboxImage(item.image)}>
                            <img 
                              src={item.image} 
                              alt="Question" 
-                             className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto print:ml-0 print:mr-auto block bg-white group-hover:opacity-90 transition-opacity" 
+                             className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto print:ml-0 print:mr-auto block bg-white transition-opacity group-hover:opacity-90" 
                              style={item.printWidth ? { width: `${item.printWidth}px` } : {}}
                            />
-                           <div className="absolute inset-0 hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                              <div className="bg-black/60 text-white p-4 rounded-full backdrop-blur-sm shadow-xl"><Icons.ZoomIn /></div>
+                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity no-print pointer-events-none">
+                              <div className="bg-black/60 text-white rounded-full p-4 backdrop-blur-sm"><Icons.ZoomIn /></div>
                            </div>
                         </div>
 
@@ -2725,17 +2713,26 @@
                 </div>
              )}
           </div>
+          
+          {/* 圖片燈箱覆蓋層 */}
+          {lightboxImage && (
+              <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col p-4 animate-[fadeIn_0.2s_ease-out]" onClick={() => setLightboxImage(null)}>
+                  <div className="flex justify-end p-2 text-white">
+                      <button className="hover:text-amber-500 transition-colors p-2" onClick={() => setLightboxImage(null)}><Icons.Close /></button>
+                  </div>
+                  <div className="flex-grow flex items-center justify-center overflow-auto p-4 cursor-zoom-out">
+                      <img src={lightboxImage} alt="Fullscreen View" className="max-w-full max-h-full object-contain bg-white rounded-lg" onClick={(e) => e.stopPropagation()} />
+                  </div>
+              </div>
+          )}
         </div>
       );
     }
 
-    // 渲染應用程式 (包裹在 ModalProvider 中以獲得全域視窗支援)
+    // --- STREAMING_CHUNK:Finalizing rendering... ---
+    // 渲染應用程式 (透過 ModalProvider 包裝)
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(
-       <ModalProvider>
-           <App />
-       </ModalProvider>
-    );
+    root.render(<App />);
   </script>
 </body>
 </html>
