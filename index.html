@@ -38,10 +38,10 @@
       #print-area, #print-area * { visibility: visible; }
       #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; background-color: #ffffff !important; }
       .no-print { display: none !important; }
-      /* 縮小列印邊界，極大化可列印寬度 */
-      @page { margin: 0.8cm; size: A4 portrait; }
+      /* 調整列印邊界，適度加大左右邊界作為裝訂邊 */
+      @page { margin: 0.8cm 1.5cm; size: A4 portrait; }
       /* 縮小卡片間距，塞入更多錯題 */
-      .print-card { padding: 0.25rem 0 !important; margin-bottom: 0.75rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
+      .print-card { padding: 0.15rem 0 !important; margin-bottom: 0.35rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
       
       /* ★ 優化：取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示，並強制圖片靠左對齊，啟用印表機邊緣抗鋸齒 */
       .print-img { 
