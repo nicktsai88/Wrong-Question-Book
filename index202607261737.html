@@ -2615,12 +2615,10 @@
                   ) : (
                     filteredData.map((item, index) => (
                       <div key={item.id} className={`bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white ${item.mastery === 'mastered' ? 'print:hidden' : ''}`}>
-                        {/* 減少標題區域與下方圖片的間距：print:mb-3 改為 print:mb-1 */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-1">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-3">
                           
                           <div className="flex items-start gap-3 sm:gap-4 w-full">
-                              {/* 縮小題號字體：print:text-3xl 改為 print:text-xl */}
-                              <div className="text-4xl print:text-xl font-black text-[#f59e0b] print:text-black leading-none pt-1 print:pt-0">
+                              <div className="text-4xl print:text-3xl font-black text-[#f59e0b] print:text-black leading-none pt-1">
                                 {String(index + 1).padStart(2, '0')}
                               </div>
                               
