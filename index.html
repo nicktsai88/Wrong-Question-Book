@@ -422,7 +422,6 @@
     };
 
     // --- STREAMING_CHUNK:Building Custom Modal System... ---
-    // ★ UX 升級：全面替換原生的 alert() 與 confirm() 為精美客製化彈窗
     const ModalContext = createContext();
 
     const ModalProvider = ({ children }) => {
@@ -505,7 +504,7 @@
       const activePointers = useRef(new Map());
       const canvasRectRef = useRef(null);
 
-      // 強制阻斷 iOS Safari 滑動干擾 (與 EditView 相同等級防呆)
+      // 強制阻斷 iOS Safari 滑動干擾
       useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -824,10 +823,9 @@
       // 完整編輯雲端既有資料
       const handleFullEdit = (item) => {
         setEditTargetId(item.id);
-        // ★ 確保編輯時有建立日期，若為舊資料則轉換時間戳記
         const created_date = item.created_date || getDateStr(item.timestamp || Date.now());
         setAiAnalysis({ ...item, tags: item.tags || [], created_date, page_number: item.page_number || '' }); 
-        setEditedImage(item.image); // 編輯基礎圖預設為已完成的圖
+        setEditedImage(item.image); 
         setPrintWidth(item.printWidth || null);
         setIsEditingExisting(true);
         setCurrentView('form');
@@ -928,6 +926,8 @@
                           const geminiRes = await fetch(uploadUrl, {
                               method: 'POST',
                               headers: {
+                                  // ★ 修正：加入 X-Goog-Upload-Protocol 標頭以符合 Gemini File API 規範
+                                  'X-Goog-Upload-Protocol': 'raw',
                                   'X-Goog-Upload-Command': 'start, upload, finalize',
                                   'X-Goog-Upload-Header-Content-Length': blob.size.toString(),
                                   'X-Goog-Upload-Header-Content-Type': 'application/pdf',
@@ -942,6 +942,8 @@
                                   geminiFileUri: currentGeminiUri,
                                   geminiUploadTime: Date.now()
                               });
+                          } else {
+                              console.error('Gemini Upload Error:', geminiData.error || geminiData);
                           }
                       } catch (e) {
                           console.error('重新上傳講義失敗', e);
@@ -1293,6 +1295,8 @@
                 const geminiRes = await fetch(uploadUrl, {
                     method: 'POST',
                     headers: {
+                        // ★ 修正：加入 X-Goog-Upload-Protocol 標頭以符合 Gemini File API 規範
+                        'X-Goog-Upload-Protocol': 'raw',
                         'X-Goog-Upload-Command': 'start, upload, finalize',
                         'X-Goog-Upload-Header-Content-Length': file.size.toString(),
                         'X-Goog-Upload-Header-Content-Type': file.type,
@@ -1301,7 +1305,12 @@
                     body: file
                 });
                 const geminiData = await geminiRes.json();
-                if (!geminiData.file || !geminiData.file.uri) throw new Error('Gemini 上傳失敗');
+                
+                // ★ 修正：加入詳細的錯誤解析，讓使用者知道為何失敗 (例如 API key 權限不足等)
+                if (!geminiRes.ok || !geminiData.file || !geminiData.file.uri) {
+                    const errorDetails = geminiData.error ? `[${geminiData.error.code}] ${geminiData.error.message}` : '無詳細錯誤訊息';
+                    throw new Error(`伺服器拒絕上傳: ${errorDetails}`);
+                }
 
                 setUploadMsg('儲存資料庫...');
                 await FB.addDoc(FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `handouts_${currentProfile}`), {
@@ -1313,7 +1322,8 @@
                 });
                 showAlert('講義上傳成功！');
             } catch (error) {
-                showAlert('上傳失敗：' + error.message);
+                // ★ 修正：將錯誤訊息直接反饋在視窗上
+                showAlert(`Gemini 上傳失敗：\n${error.message}\n\n(提示：請確認您的 API Key 是否有 File API 的權限，且單一檔案不能超過 2GB)`);
             }
             setIsUploading(false);
             setUploadMsg('');
