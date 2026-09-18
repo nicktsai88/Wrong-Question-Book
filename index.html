@@ -488,7 +488,6 @@
     }
 
     // --- STREAMING_CHUNK:Configuring High-Performance NoteCanvas... ---
-    // --- 高效能手寫板元件 (用於筆記欄位) ---
     function NoteCanvas({ initialDataUrl, onChange }) {
       const { showConfirm } = useModal();
       const containerRef = useRef(null);
@@ -504,7 +503,6 @@
       const activePointers = useRef(new Map());
       const canvasRectRef = useRef(null);
 
-      // 強制阻斷 iOS Safari 滑動干擾
       useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -519,7 +517,6 @@
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
           ctxRef.current = ctx;
-          // 固定高解析度，確保筆跡細膩
           canvas.width = 1200;
           canvas.height = 800;
           ctx.fillStyle = '#ffffff';
@@ -614,7 +611,6 @@
               if (isDrawing.current) {
                   isDrawing.current = false;
                   if (ctxRef.current) ctxRef.current.beginPath();
-                  // ★ 優化：筆記存檔改用 WebP，大幅節省 1MB 容量額度
                   let outUrl = canvasRef.current.toDataURL('image/webp', 0.8);
                   if (outUrl.startsWith('data:image/png')) outUrl = canvasRef.current.toDataURL('image/jpeg', 0.8);
                   onChange(outUrl);
@@ -635,7 +631,6 @@
 
       return (
           <div className="border border-amber-200 rounded-xl overflow-hidden bg-white flex flex-col">
-              {/* 工具列 */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-amber-50 border-b border-amber-200 w-full">
                   <div className="flex items-center gap-2">
                       <button onClick={() => { setMode('pen'); setColor('#000000'); }} className={`w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 ${mode === 'pen' && color === '#000000' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#000000'}} title="黑筆"></button>
@@ -649,7 +644,6 @@
                       </button>
                   </div>
                   
-                  {/* 尺寸選擇區 */}
                   <div className="flex items-center gap-2 overflow-x-auto sm:ml-2">
                      {mode === 'pen' && (
                         <>
@@ -674,7 +668,6 @@
                       <Icons.Trash /> 全部清除
                   </button>
               </div>
-              {/* 繪圖區 */}
               <div ref={containerRef} className="w-full bg-gray-100 touch-none flex-grow" style={{ minHeight: '350px' }}>
                   <canvas 
                       ref={canvasRef}
@@ -716,9 +709,8 @@
       // 編輯既有資料狀態
       const [editTargetId, setEditTargetId] = useState(null);
       const [isEditingExisting, setIsEditingExisting] = useState(false);
-      const [printWidth, setPrintWidth] = useState(null); // 用於記錄維持高畫質的實體寬度
+      const [printWidth, setPrintWidth] = useState(null);
 
-      // AI 分類結果 (加入 tags 與 created_date)
       const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '', page_number: '', tags: [], created_date: getTodayStr() });
       const [loadingMsg, setLoadingMsg] = useState('');
 
@@ -820,7 +812,6 @@
         setCurrentView('crop');
       };
 
-      // 完整編輯雲端既有資料
       const handleFullEdit = (item) => {
         setEditTargetId(item.id);
         const created_date = item.created_date || getDateStr(item.timestamp || Date.now());
@@ -837,7 +828,11 @@
         setCurrentView('classify');
         
         try {
+          // ★ 修復 1：動態解析正確的 mimeType (WebP 轉碼衝突防呆)
+          const mimeTypeMatch = base64Image.match(/^data:(image\/[a-zA-Z]*);base64,/);
+          const imgMimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
           const base64Data = base64Image.split(',')[1];
+          
           const dbStr = JSON.stringify(CURRICULUM_DB);
           const prompt = `你是一個台灣國中教育會考的頂尖專家老師。請仔細閱讀這張錯題圖片，找出這題真正在考的觀念。
           
@@ -907,14 +902,14 @@
           let lastErrorMsg = '';
 
           // ★ RAG PDF 預處理：檢查選定講義的 Gemini 暫存是否過期
-          let finalPayloadParts = [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64Data } }];
+          let finalPayloadParts = [{ text: prompt }, { inlineData: { mimeType: imgMimeType, data: base64Data } }];
           
           if (activeHandoutId) {
               const handout = handouts.find(h => h.id === activeHandoutId);
               if (handout) {
                   let currentGeminiUri = null;
                   const ageHours = (Date.now() - handout.geminiUploadTime) / (1000 * 60 * 60);
-                  // Gemini File API 預設 48 小時過期，我們設定 40 小時安全閥值
+                  
                   if (ageHours < 40 && handout.geminiFileUri) {
                       currentGeminiUri = handout.geminiFileUri;
                   } else {
@@ -926,7 +921,6 @@
                           const geminiRes = await fetch(uploadUrl, {
                               method: 'POST',
                               headers: {
-                                  // ★ 修正：加入 X-Goog-Upload-Protocol 標頭以符合 Gemini File API 規範
                                   'X-Goog-Upload-Protocol': 'raw',
                                   'X-Goog-Upload-Command': 'start, upload, finalize',
                                   'X-Goog-Upload-Header-Content-Length': blob.size.toString(),
@@ -951,6 +945,25 @@
                   }
                   
                   if (currentGeminiUri) {
+                      // ★ 修復 2：檢查超大 PDF 是否還在雲端消化中 (Processing state)
+                      setLoadingMsg('正在檢查講義 PDF 處理狀態...');
+                      try {
+                          const fileCheckRes = await fetch(`${currentGeminiUri}?key=${apiKey}`);
+                          if (fileCheckRes.ok) {
+                              const fileInfo = await fileCheckRes.json();
+                              if (fileInfo.state === 'PROCESSING') {
+                                  throw new Error(`您選擇的講義檔案非常大，AI 仍在雲端消化閱讀中\n(通常上傳後需要 2~5 分鐘)。\n\n請先去喝杯水，稍後再進行錯題分析！`);
+                              } else if (fileInfo.state === 'FAILED') {
+                                  throw new Error(`講義解析失敗，檔案可能損壞或超過 AI 限制。請嘗試重新上傳。`);
+                              }
+                          }
+                      } catch (e) {
+                          if (e.message.includes('AI 仍在雲端消化') || e.message.includes('講義解析失敗')) {
+                              throw e; 
+                          }
+                          console.warn('狀態檢查失敗，嘗試強制送出...', e);
+                      }
+
                       finalPayloadParts.unshift({
                           fileData: { mimeType: "application/pdf", fileUri: currentGeminiUri }
                       });
@@ -1030,7 +1043,7 @@
               ai_tutor: parsed.ai_tutor || '',
               page_number: parsed.page_number || '',
               tags: [],
-              created_date: getTodayStr() // ★ 新增紀錄為今日建檔
+              created_date: getTodayStr()
             });
           }
         } catch (error) {
@@ -1052,10 +1065,9 @@
         try {
           const finalPrintWidth = printWidth !== null ? printWidth : (aiAnalysis.printWidth || null);
           if (editTargetId) {
-             // 更新現有資料
              await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), {
                ...formData,
-               image: editedImage, // 儲存可能的二次編輯
+               image: editedImage,
                printWidth: finalPrintWidth,
                updated_at: Date.now()
              });
@@ -1063,7 +1075,6 @@
              showAlert('更新成功！已安全同步至雲端。');
              setCurrentView('list');
           } else {
-             // 新增資料
              const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
              await FB.addDoc(colRef, {
                ...formData,
@@ -1295,7 +1306,6 @@
                 const geminiRes = await fetch(uploadUrl, {
                     method: 'POST',
                     headers: {
-                        // ★ 修正：加入 X-Goog-Upload-Protocol 標頭以符合 Gemini File API 規範
                         'X-Goog-Upload-Protocol': 'raw',
                         'X-Goog-Upload-Command': 'start, upload, finalize',
                         'X-Goog-Upload-Header-Content-Length': file.size.toString(),
@@ -1306,7 +1316,6 @@
                 });
                 const geminiData = await geminiRes.json();
                 
-                // ★ 修正：加入詳細的錯誤解析，讓使用者知道為何失敗 (例如 API key 權限不足等)
                 if (!geminiRes.ok || !geminiData.file || !geminiData.file.uri) {
                     const errorDetails = geminiData.error ? `[${geminiData.error.code}] ${geminiData.error.message}` : '無詳細錯誤訊息';
                     throw new Error(`伺服器拒絕上傳: ${errorDetails}`);
@@ -1322,7 +1331,6 @@
                 });
                 showAlert('講義上傳成功！');
             } catch (error) {
-                // ★ 修正：將錯誤訊息直接反饋在視窗上
                 showAlert(`Gemini 上傳失敗：\n${error.message}\n\n(提示：請確認您的 API Key 是否有 File API 的權限，且單一檔案不能超過 2GB)`);
             }
             setIsUploading(false);
@@ -2031,7 +2039,6 @@
         setIsOcrLoading(false);
       };
 
-      // ★ 匯出時包含使用者調整好的旋轉角度與縮放大小 ★
       const handleComplete = () => {
         const canvas = canvasRef.current;
         const finalCanvas = document.createElement('canvas');
@@ -2040,11 +2047,9 @@
         const absCos = Math.abs(Math.cos(rad));
         const absSin = Math.abs(Math.sin(rad));
         
-        // 基礎顯示的實體寬高 (依照使用者在畫面上校正的大小)
         const baseW = canvas.width * exportScale;
         const baseH = canvas.height * exportScale;
         
-        // ★ 效能與畫質雙重優化 ★
         const TARGET_PRINT_WIDTH = 2000; 
         let resolutionMultiplier = TARGET_PRINT_WIDTH / baseW;
         resolutionMultiplier = Math.max(1.5, Math.min(resolutionMultiplier, 4));
@@ -2055,7 +2060,6 @@
         let finalW = w * absCos + h * absSin;
         let finalH = w * absSin + h * absCos;
         
-        // 防呆機制：嚴格限制畫布總像素面積不超過 1200萬像素 (約 3000x4000)
         const MAX_AREA = 12000000;
         let scaleDown = 1;
         if (finalW * finalH > MAX_AREA) {
@@ -2069,7 +2073,6 @@
         
         const ctx = finalCanvas.getContext('2d');
         
-        // ★ 填滿白底，防止旋轉後出現黑邊
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, finalW, finalH);
 
@@ -2081,10 +2084,8 @@
         ctx.scale(scaleDown, scaleDown);
         ctx.drawImage(canvas, -w / 2, -h / 2, w, h);
         
-        // 傳回高畫質圖片，同時將原本的實體顯示寬度傳回，讓外部 CSS 知道該壓縮到多大
         const baseBoundingW = baseW * absCos + baseH * absSin;
         
-        // ★ 檔案大小極致壓縮：優先使用 WebP 格式 (0.85壓縮)
         let outDataUrl = finalCanvas.toDataURL('image/webp', 0.85);
         if (outDataUrl.startsWith('data:image/png') || outDataUrl === 'data:,') {
             outDataUrl = finalCanvas.toDataURL('image/jpeg', 0.85);
@@ -2410,7 +2411,7 @@
         page_number: initialData.page_number || '',
         mastery: initialData.mastery || 'need_review',
         tags: initialData.tags || [],
-        created_date: initialData.created_date || getTodayStr() // ★ 綁定建檔日期
+        created_date: initialData.created_date || getTodayStr()
       });
 
       const [tagInput, setTagInput] = useState('');
@@ -2489,7 +2490,6 @@
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* ★ 新增建檔日期輸入區塊 */}
                   <div>
                     <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Calendar /> 建檔日期</label>
                     <input 
@@ -2606,7 +2606,6 @@
       const [searchQuery, setSearchQuery] = useState(''); 
       const [isFetching, setIsFetching] = useState(true);
       
-      // ★ 日期過濾狀態
       const [filterStartDate, setFilterStartDate] = useState('');
       const [filterEndDate, setFilterEndDate] = useState('');
 
@@ -2621,7 +2620,6 @@
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // ★ 修改排序邏輯：優先以建檔日期作降冪排序 (新到舊)，若無則使用 timestamp
             data.sort((a, b) => {
                 const timeA = a.created_date ? new Date(a.created_date).getTime() : Number(a.timestamp || a.updated_at || 0);
                 const timeB = b.created_date ? new Date(b.created_date).getTime() : Number(b.timestamp || b.updated_at || 0);
@@ -2673,7 +2671,6 @@
       if (filterSubSubject !== 'All') filteredData = filteredData.filter(m => m.sub_subject === filterSubSubject);
       if (filterMastery !== 'All') filteredData = filteredData.filter(m => (m.mastery || 'need_review') === filterMastery);
       
-      // ★ 執行日期過濾
       if (filterStartDate) {
           filteredData = filteredData.filter(m => {
               const mDate = m.created_date || getDateStr(m.timestamp);
@@ -2794,14 +2791,12 @@
                     </div>
                     
                     <div className="flex flex-wrap sm:flex-nowrap gap-3 w-full xl:w-auto">
-                        {/* 狀態過濾 */}
                         <div className="flex gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
                             <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>全部熟練度</button>
                             <button onClick={() => setFilterMastery('need_review')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'need_review' ? 'bg-white shadow-md text-red-600' : 'text-gray-500 hover:text-red-500'}`}>🔴 需複習</button>
                             <button onClick={() => setFilterMastery('mastered')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'mastered' ? 'bg-white shadow-md text-green-600' : 'text-gray-500 hover:text-green-600'}`}>🟢 已掌握</button>
                         </div>
                         
-                        {/* ★ 日期區間過濾 */}
                         <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 flex-grow sm:flex-grow-0 min-w-max shadow-sm">
                             <span className="text-amber-600 pl-1"><Icons.Calendar /></span>
                             <input 
@@ -2959,7 +2954,6 @@
                                       </span>
                                   )}
                                   
-                                  {/* ★ 顯示建檔日期 */}
                                   <span className="text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-gray-200">
                                       <Icons.Calendar /> {item.created_date || getDateStr(item.timestamp)}
                                   </span>
