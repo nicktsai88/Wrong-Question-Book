@@ -38,14 +38,12 @@
       #print-area, #print-area * { visibility: visible; }
       #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; background-color: #ffffff !important; }
       .no-print { display: none !important; }
-      
-      /* ★ 優化：調整列印邊界，左右留 1.5cm 作為裝訂邊，上下留 0.8cm 盡可能塞入更多題目 */
+      /* 調整列印邊界，適度加大左右邊界作為裝訂邊 */
       @page { margin: 0.8cm 1.5cm; size: A4 portrait; }
-      
-      /* ★ 優化：大幅縮小卡片間距，塞入更多錯題 */
+      /* 縮小卡片間距，塞入更多錯題 */
       .print-card { padding: 0.15rem 0 !important; margin-bottom: 0.35rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
       
-      /* 取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示，並強制圖片靠左對齊，啟用印表機邊緣抗鋸齒 */
+      /* ★ 優化：取消強制 width: auto 避免覆蓋高畫質縮放寬度，改為依原始圖片比例顯示，並強制圖片靠左對齊，啟用印表機邊緣抗鋸齒 */
       .print-img { 
           max-width: 100% !important; 
           max-height: none !important; 
@@ -439,17 +437,7 @@
 
     const useModal = () => useContext(ModalContext);
 
-    // --- STREAMING_CHUNK:Setting up Utilities... ---
-    // 日期格式化工具
-    const getLocalDate = (ts) => {
-        if (!ts) return '';
-        const d = new Date(ts);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-    };
-
+    // --- STREAMING_CHUNK:Setting up LaTeX rendering... ---
     function LatexText({ content, className }) {
       const containerRef = useRef(null);
       useEffect(() => {
@@ -487,7 +475,7 @@
       const activePointers = useRef(new Map());
       const canvasRectRef = useRef(null);
 
-      // 強制阻斷 iOS Safari 滑動干擾
+      // 強制阻斷 iOS Safari 滑動干擾 (與 EditView 相同等級防呆)
       useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -502,6 +490,7 @@
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
           ctxRef.current = ctx;
+          // 固定高解析度，確保筆跡細膩
           canvas.width = 1200;
           canvas.height = 800;
           ctx.fillStyle = '#ffffff';
@@ -596,7 +585,7 @@
               if (isDrawing.current) {
                   isDrawing.current = false;
                   if (ctxRef.current) ctxRef.current.beginPath();
-                  // ★ 優化：筆記存檔改用 WebP 壓縮
+                  // ★ 優化：筆記存檔改用 WebP，大幅節省 1MB 容量額度
                   let outUrl = canvasRef.current.toDataURL('image/webp', 0.8);
                   if (outUrl.startsWith('data:image/png')) outUrl = canvasRef.current.toDataURL('image/jpeg', 0.8);
                   onChange(outUrl);
@@ -698,10 +687,10 @@
       // 編輯既有資料狀態
       const [editTargetId, setEditTargetId] = useState(null);
       const [isEditingExisting, setIsEditingExisting] = useState(false);
-      const [printWidth, setPrintWidth] = useState(null); 
+      const [printWidth, setPrintWidth] = useState(null); // 用於記錄維持高畫質的實體寬度
 
-      // AI 分類結果 (加入 tags 與 date)
-      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [], date: '' });
+      // AI 分類結果 (加入 tags)
+      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [] });
       const [loadingMsg, setLoadingMsg] = useState('');
 
       // --- 載入 Firebase 環境 ---
@@ -784,8 +773,8 @@
       // 完整編輯雲端既有資料
       const handleFullEdit = (item) => {
         setEditTargetId(item.id);
-        setAiAnalysis({ ...item, tags: item.tags || [] }); 
-        setEditedImage(item.image);
+        setAiAnalysis({ ...item, tags: item.tags || [] }); // 載入原本的全部資料，並確保 tags 是陣列
+        setEditedImage(item.image); // 編輯基礎圖預設為已完成的圖
         setPrintWidth(item.printWidth || null);
         setIsEditingExisting(true);
         setCurrentView('form');
@@ -934,14 +923,13 @@
               sub_subject: parsed.sub_subject || '',
               concept: parsed.concept || '未定知識點',
               ai_tutor: parsed.ai_tutor || '',
-              tags: [],
-              date: getLocalDate(Date.now()) // 預設帶入今日日期
+              tags: [] // 新增 tags 欄位
             });
           }
         } catch (error) {
           console.error(error);
           showAlert('AI 分析失敗：\n' + error.message + '\n\n您可以先手動輸入分類。');
-          setAiAnalysis({ subject: '國文', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [], date: getLocalDate(Date.now()) });
+          setAiAnalysis({ subject: '國文', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [] });
         }
         
         setLoadingMsg('');
@@ -960,7 +948,7 @@
              // 更新現有資料
              await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), {
                ...formData,
-               image: editedImage, 
+               image: editedImage, // 儲存可能的二次編輯
                printWidth: finalPrintWidth,
                updated_at: Date.now()
              });
@@ -1006,7 +994,7 @@
       return (
         <div className="min-h-screen font-sans text-gray-800" style={{ backgroundColor: THEME.bg }}>
           {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={() => {
-              const { showConfirm } = useModal(); 
+              const { showConfirm } = useModal(); // Inside render isn't perfect for hooks, but we pass down the function
               resetFbConfig();
           }} savedKey={apiKey} />}
           {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} isDbConnected={user && FB} />}
@@ -1806,7 +1794,8 @@
         const baseH = canvas.height * exportScale;
         
         // ★ 效能與畫質雙重優化 ★
-        // 動態計算解析度：目標將最終輸出的主體寬度鎖定在 2000px (足夠 A4 300DPI 列印)
+        // 1. 動態計算解析度：目標將最終輸出的主體寬度鎖定在 2000px (足夠 A4 300DPI 極銳利列印)，
+        // 避免盲目乘以 3 導致圖片爆增超過 Firestore 的 1MB 限制！
         const TARGET_PRINT_WIDTH = 2000; 
         let resolutionMultiplier = TARGET_PRINT_WIDTH / baseW;
         
@@ -1845,11 +1834,13 @@
         ctx.scale(scaleDown, scaleDown);
         ctx.drawImage(canvas, -w / 2, -h / 2, w, h);
         
+        // 傳回高畫質圖片，同時將原本的實體顯示寬度傳回，讓外部 CSS 知道該壓縮到多大
         const baseBoundingW = baseW * absCos + baseH * absSin;
         
-        // ★ 檔案大小極致壓縮：優先使用 WebP 格式 (0.85壓縮)，節省空間且保持文字銳利！
+        // ★ 檔案大小極致壓縮：優先使用 WebP 格式 (0.85壓縮)，能比 JPEG 節省 30%~50% 空間且保持文字銳利！
         let outDataUrl = finalCanvas.toDataURL('image/webp', 0.85);
         if (outDataUrl.startsWith('data:image/png') || outDataUrl === 'data:,') {
+            // 備用方案：若部分舊版蘋果設備不支援 WebP Canvas，退回 JPEG 高壓縮率
             outDataUrl = finalCanvas.toDataURL('image/jpeg', 0.85);
         }
         
@@ -2129,7 +2120,16 @@
       );
     }
 
-    // --- STREAMING_CHUNK:Building Form View (with Tags & Date)... ---
+    function LoadingView({ message }) {
+      return (
+        <div className="fixed inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-50 p-6 text-center">
+          <div className="animate-spin text-[#d97706] mb-6 scale-150"><Icons.Cloud /></div>
+          <p className="text-xl font-bold text-[#d97706] whitespace-pre-wrap leading-relaxed">{message}</p>
+        </div>
+      );
+    }
+
+    // --- STREAMING_CHUNK:Building Form View (with Tags)... ---
     function FormView({ initialData, image, onCancel, onSave, onReEditImage }) {
       const initSubj = (CURRICULUM_DB && CURRICULUM_DB[initialData.subject]) ? initialData.subject : '國文';
       const dbSubj = CURRICULUM_DB[initSubj];
@@ -2153,8 +2153,6 @@
          }
       }
 
-      const defaultDate = initialData.date || (initialData.timestamp ? getLocalDate(initialData.timestamp) : getLocalDate(Date.now()));
-
       const [formData, setFormData] = useState({
         subject: initSubj,
         volume: initVol,
@@ -2164,8 +2162,7 @@
         answer: initialData.answer || '',
         ai_tutor: initialData.ai_tutor || '',
         mastery: initialData.mastery || 'need_review',
-        tags: initialData.tags || [],
-        date: defaultDate // ★ 建檔日期
+        tags: initialData.tags || [] // ★ 新增標籤狀態
       });
 
       const [tagInput, setTagInput] = useState('');
@@ -2192,6 +2189,7 @@
          setFormData({ ...formData, volume: newVol, sub_subject: newSubSubj });
       };
 
+      // ★ 標籤管理功能
       const addTag = () => {
           const t = tagInput.trim();
           if (t && !formData.tags.includes(t)) {
@@ -2229,26 +2227,21 @@
                  <div className="flex items-center gap-2 text-xl"><Icons.Wand /> <span className="font-bold text-[#b45309]">🤖 AI 分類結果 (可手動修改)</span></div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-5 mb-2">
-                 <div className="flex-1">
-                   <label className="block text-base font-bold text-gray-700 mb-2">📅 建檔日期</label>
-                   <input type="date" className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                 </div>
-                 <div className="flex-1">
-                   <label className="block text-base font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
-                   <div className="flex gap-4">
-                      <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
-                         <input type="radio" name="mastery" value="need_review" className="hidden" checked={formData.mastery === 'need_review'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                         <span className="text-2xl">🔴</span><span className="font-bold text-gray-700 text-lg">需再複習</span>
-                      </label>
-                      <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                         <input type="radio" name="mastery" value="mastered" className="hidden" checked={formData.mastery === 'mastered'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                         <span className="text-2xl">🟢</span><span className="font-bold text-gray-700 text-lg">已掌握</span>
-                      </label>
-                   </div>
-                 </div>
+              <div>
+                <label className="block text-base font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
+                <div className="flex gap-4">
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <input type="radio" name="mastery" value="need_review" className="hidden" checked={formData.mastery === 'need_review'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
+                      <span className="text-2xl">🔴</span><span className="font-bold text-gray-700 text-lg">需再複習</span>
+                   </label>
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <input type="radio" name="mastery" value="mastered" className="hidden" checked={formData.mastery === 'mastered'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
+                      <span className="text-2xl">🟢</span><span className="font-bold text-gray-700 text-lg">已掌握</span>
+                   </label>
+                </div>
               </div>
               
+              {/* ★ 新增標籤區塊 */}
               <div>
                 <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Tag /> 自訂標籤</label>
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -2328,7 +2321,7 @@
       );
     }
 
-    // --- STREAMING_CHUNK:Building ListView with Filters... ---
+    // --- STREAMING_CHUNK:Building ListView with Tag filtering & Lightbox... ---
     function ListView({ currentProfile, onBack, FB, user, isDbConnected, onFullEdit }) {
       const { showConfirm } = useModal();
       const [activeTab, setActiveTab] = useState('stats'); 
@@ -2337,14 +2330,12 @@
       const [filterVolume, setFilterVolume] = useState('All');
       const [filterSubSubject, setFilterSubSubject] = useState('All');
       const [filterMastery, setFilterMastery] = useState('All'); 
-      
-      // ★ 日期與搜尋狀態
       const [searchQuery, setSearchQuery] = useState(''); 
-      const [startDate, setStartDate] = useState('');
-      const [endDate, setEndDate] = useState('');
-      
       const [isFetching, setIsFetching] = useState(true);
+      
       const [expandedSections, setExpandedSections] = useState({});
+
+      // ★ 燈箱狀態
       const [lightboxImage, setLightboxImage] = useState(null);
       
       useEffect(() => {
@@ -2404,21 +2395,6 @@
       if (filterVolume !== 'All') filteredData = filteredData.filter(m => m.volume === filterVolume);
       if (filterSubSubject !== 'All') filteredData = filteredData.filter(m => m.sub_subject === filterSubSubject);
       if (filterMastery !== 'All') filteredData = filteredData.filter(m => (m.mastery || 'need_review') === filterMastery);
-      
-      // ★ 日期過濾邏輯
-      if (startDate) {
-          filteredData = filteredData.filter(m => {
-              const itemDate = m.date || getLocalDate(m.timestamp || m.updated_at || 0);
-              return itemDate >= startDate;
-          });
-      }
-      if (endDate) {
-          filteredData = filteredData.filter(m => {
-              const itemDate = m.date || getLocalDate(m.timestamp || m.updated_at || 0);
-              return itemDate <= endDate;
-          });
-      }
-
       if (searchQuery.trim()) {
          const q = searchQuery.toLowerCase().trim();
          filteredData = filteredData.filter(m => {
@@ -2515,8 +2491,8 @@
                    />
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 w-[98%] max-w-[1400px] mx-auto justify-between items-start md:items-center">
-                    <div className="flex gap-3 overflow-x-auto whitespace-nowrap w-full md:w-auto scrollbar-hide pb-2">
+                <div className="flex flex-col sm:flex-row gap-4 w-[98%] max-w-[1400px] mx-auto justify-between items-start sm:items-center">
+                    <div className="flex gap-3 overflow-x-auto whitespace-nowrap w-full sm:w-auto scrollbar-hide pb-2">
                       {subjects.map(sub => (
                         <button key={sub} onClick={() => handleSubjectChange(sub)}
                           className={`px-5 py-2.5 rounded-full text-base font-bold transition-colors flex-shrink-0 ${filterSubject === sub ? 'bg-[#f59e0b] text-[#ffffff]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -2525,22 +2501,10 @@
                       ))}
                     </div>
                     
-                    <div className="flex flex-wrap md:flex-nowrap gap-3 items-center w-full md:w-auto">
-                        {/* ★ 日期區間篩選 */}
-                        <div className="flex gap-2 items-center bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto whitespace-nowrap">
-                            <span className="text-sm font-bold text-gray-500 px-2 flex items-center gap-1">📅 日期</span>
-                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#f59e0b] text-gray-700 bg-white" />
-                            <span className="text-gray-400 font-bold">-</span>
-                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#f59e0b] text-gray-700 bg-white" />
-                            {(startDate || endDate) && <button onClick={() => {setStartDate(''); setEndDate('');}} className="text-gray-400 hover:text-red-500 ml-1 transition-colors" title="清除日期"><Icons.Close /></button>}
-                        </div>
-
-                        {/* 熟練度篩選 */}
-                        <div className="flex gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
-                            <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500'}`}>全部熟練度</button>
-                            <button onClick={() => setFilterMastery('need_review')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'need_review' ? 'bg-white shadow-md text-red-600' : 'text-gray-500'}`}>🔴 需複習</button>
-                            <button onClick={() => setFilterMastery('mastered')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'mastered' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}`}>🟢 已掌握</button>
-                        </div>
+                    <div className="flex gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 w-full sm:w-auto overflow-x-auto">
+                        <button onClick={() => setFilterMastery('All')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${filterMastery === 'All' ? 'bg-white shadow-md text-gray-800' : 'text-gray-500'}`}>全部熟練度</button>
+                        <button onClick={() => setFilterMastery('need_review')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'need_review' ? 'bg-white shadow-md text-red-600' : 'text-gray-500'}`}>🔴 需複習</button>
+                        <button onClick={() => setFilterMastery('mastered')} className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap flex items-center gap-1.5 ${filterMastery === 'mastered' ? 'bg-white shadow-md text-green-600' : 'text-gray-500'}`}>🟢 已掌握</button>
                     </div>
                 </div>
                 
@@ -2651,20 +2615,16 @@
                   ) : (
                     filteredData.map((item, index) => (
                       <div key={item.id} className={`bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white ${item.mastery === 'mastered' ? 'print:hidden' : ''}`}>
-                        
+                        {/* 減少標題區域與下方圖片的間距：print:mb-3 改為 print:mb-1 */}
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-1">
+                          
                           <div className="flex items-start gap-3 sm:gap-4 w-full">
-                              {/* 縮小題號 */}
+                              {/* 縮小題號字體：print:text-3xl 改為 print:text-xl */}
                               <div className="text-4xl print:text-xl font-black text-[#f59e0b] print:text-black leading-none pt-1 print:pt-0">
                                 {String(index + 1).padStart(2, '0')}
                               </div>
                               
                               <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
-                                  {/* ★ 顯示日期 */}
-                                  <span className="text-sm font-bold text-gray-400 print:text-gray-600 print:mr-2">
-                                     {item.date || getLocalDate(item.timestamp || item.updated_at || 0)}
-                                  </span>
-
                                   <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
                                     {item.subject} {item.volume ? item.volume : ''}
                                   </span>
@@ -2691,6 +2651,7 @@
                           </div>
                         </div>
 
+                        {/* 標籤顯示 */}
                         {item.tags && item.tags.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-4 print:hidden">
                                 {item.tags.map(tag => (
@@ -2699,6 +2660,7 @@
                             </div>
                         )}
                         
+                        {/* ★ 燈箱放大鏡：點擊圖片開啟全螢幕檢視 */}
                         <div className="mb-5 bg-white relative group cursor-pointer" onClick={() => setLightboxImage(item.image)}>
                            <img 
                              src={item.image} 
@@ -2754,6 +2716,7 @@
              )}
           </div>
           
+          {/* 圖片燈箱覆蓋層 */}
           {lightboxImage && (
               <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col p-4 animate-[fadeIn_0.2s_ease-out]" onClick={() => setLightboxImage(null)}>
                   <div className="flex justify-end p-2 text-white">
