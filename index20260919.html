@@ -720,17 +720,8 @@
       const [printWidth, setPrintWidth] = useState(null); // 用於記錄維持高畫質的實體寬度
 
       // AI 分類結果 (加入 tags 與 created_date)
-      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '', page_number: '', tags: [], created_date: getTodayStr() });
+      const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [], created_date: getTodayStr() });
       const [loadingMsg, setLoadingMsg] = useState('');
-
-      // RAG 講義狀態
-      const [handouts, setHandouts] = useState([]);
-      const [activeHandoutId, setActiveHandoutId] = useState(() => localStorage.getItem('poppinsSelectedHandout') || '');
-
-      const handleHandoutChange = (id) => {
-          setActiveHandoutId(id);
-          localStorage.setItem('poppinsSelectedHandout', id);
-      };
 
       // --- 載入 Firebase 環境 ---
       useEffect(() => {
@@ -744,15 +735,13 @@
             const fbApp = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js")')();
             const fbAuth = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")')();
             const fbDb = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")')();
-            const fbStorage = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js")')();
             
             const app = fbApp.initializeApp(fbConfig);
             const auth = fbAuth.getAuth(app);
             const db = fbDb.getFirestore(app);
-            const storage = fbConfig.storageBucket ? fbStorage.getStorage(app) : null;
             const appId = fbConfig.projectId || '2027-exam-app';
 
-            setFB({ ...fbApp, ...fbAuth, ...fbDb, ...fbStorage, db, auth, storage, appId });
+            setFB({ ...fbApp, ...fbAuth, ...fbDb, db, auth, appId });
 
             try {
                await fbAuth.signInAnonymously(auth);
@@ -778,16 +767,6 @@
         const savedKey = localStorage.getItem('poppinsApiKey');
         if (savedKey) setApiKey(savedKey);
       }, []);
-
-      // 載入講義庫
-      useEffect(() => {
-          if (!user || !FB || !currentProfile) return;
-          const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `handouts_${currentProfile}`);
-          const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
-              setHandouts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-          }, (error) => console.error("載入講義失敗：", error));
-          return () => unsubscribe();
-      }, [user, FB, currentProfile]);
 
       const handleFbConfigSave = (config) => {
           localStorage.setItem('poppinsFbConfig', JSON.stringify(config));
@@ -826,7 +805,7 @@
         setEditTargetId(item.id);
         // ★ 確保編輯時有建立日期，若為舊資料則轉換時間戳記
         const created_date = item.created_date || getDateStr(item.timestamp || Date.now());
-        setAiAnalysis({ ...item, tags: item.tags || [], created_date, page_number: item.page_number || '' }); 
+        setAiAnalysis({ ...item, tags: item.tags || [], created_date }); 
         setEditedImage(item.image); // 編輯基礎圖預設為已完成的圖
         setPrintWidth(item.printWidth || null);
         setIsEditingExisting(true);
@@ -872,13 +851,10 @@
               - 行內公式：請使用單錢字號包裝，例如：方程式 $ax^2+bx+c=0$、判別式 $\\Delta = b^2-4ac$、變數 $x$。
               - 獨立成行的公式：請使用雙錢字號包裝，例如：$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
               - 絕對禁止直接輸出純文字的指數 (例如 x^2) 或未包裝的變數，請一定要寫成 $x^2$。
-              - ⚠️【JSON 格式防呆】：因為你要回傳 JSON 格式，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線！例如：乘號必須寫成 \\times，化學式必須寫成 \\text{CH}_4，分數寫成 \\frac{1}{2}。如果只用單反斜線 (例如 \\times)，會導致 JSON 解析失敗變成 imes！
+              - ⚠️【JSON 格式防呆】：因為你要回傳 JSON 格式，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線！例如：乘號必須寫成 \\times，化學式必須寫成 \\text{CH}_4，分數寫成 \\frac{1}{2}。如果只用單反斜線 (例如 \times)，會導致 JSON 解析失敗變成 imes！
               
           5. ⚠️【極度重要：注音符號精準辨識】：當處理國文科題目，若圖片中包含「注音符號」（如：ㄋ、ㄠ、ㄎ、ㄜ等），請【務必逐字放大檢視、看清楚筆畫】，絕對不能辨識錯誤！例如「ㄋㄠˇ」絕對不可誤認為「ㄎㄜˇ」。請 100% 精準還原圖片上的真實注音符號再進行判斷與解說。
           6. ⚠️【極度重要：提供文言文精準的註釋與完整語譯】：當處理國文科題目，若圖片中有文言文的文章，請提供【整篇文言文的重要語詞註釋】與【整篇文言文的語譯】。
-          7. ⚠️【極度重要：講義頁碼精準比對 (RAG)】：如果你收到了一份 PDF 檔案（講義），請在該 PDF 中搜尋與這張錯題圖片最相關、最吻合的頁面。
-              - 將找到的頁碼填入 JSON 的 \`page_number\` 欄位（請填寫純數字或包含頁碼的短字串，如 "12" 或 "P.12"）。
-              - 如果沒有提供 PDF，或是在 PDF 中完全找不到相關頁面，請將 \`page_number\` 設為 null 或空字串。
 
           JSON 格式必須嚴格依照思考順序如下：
 
@@ -887,8 +863,7 @@
             "sub_subject": "單元/章節名稱",
             "volume": "冊別名稱(或null)",
             "subject": "科目名稱",
-            "ai_tutor": "教學解析內容",
-            "page_number": "講義頁碼(或null)"
+            "ai_tutor": "教學解析內容"
           }`;
 
           const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -908,54 +883,6 @@
           let successData = null;
           let lastErrorMsg = '';
 
-          // ★ RAG PDF 預處理：檢查選定講義的 Gemini 暫存是否過期
-          let finalPayloadParts = [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64Data } }];
-          
-          if (activeHandoutId) {
-              const handout = handouts.find(h => h.id === activeHandoutId);
-              if (handout) {
-                  let currentGeminiUri = null;
-                  const ageHours = (Date.now() - handout.geminiUploadTime) / (1000 * 60 * 60);
-                  // Gemini File API 預設 48 小時過期，我們設定 40 小時安全閥值
-                  if (ageHours < 40 && handout.geminiFileUri) {
-                      currentGeminiUri = handout.geminiFileUri;
-                  } else {
-                      setLoadingMsg('講義快取已過期，正在從雲端重新下載並載入 AI 模型 (這可能需要一點時間)...');
-                      try {
-                          const response = await fetch(handout.storageUrl);
-                          const blob = await response.blob();
-                          const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
-                          const geminiRes = await fetch(uploadUrl, {
-                              method: 'POST',
-                              headers: {
-                                  'X-Goog-Upload-Command': 'start, upload, finalize',
-                                  'X-Goog-Upload-Header-Content-Length': blob.size.toString(),
-                                  'X-Goog-Upload-Header-Content-Type': 'application/pdf',
-                                  'Content-Type': 'application/pdf',
-                              },
-                              body: blob
-                          });
-                          const geminiData = await geminiRes.json();
-                          if (geminiData.file && geminiData.file.uri) {
-                              currentGeminiUri = geminiData.file.uri;
-                              await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `handouts_${currentProfile}`, handout.id), {
-                                  geminiFileUri: currentGeminiUri,
-                                  geminiUploadTime: Date.now()
-                              });
-                          }
-                      } catch (e) {
-                          console.error('重新上傳講義失敗', e);
-                      }
-                  }
-                  
-                  if (currentGeminiUri) {
-                      finalPayloadParts.unshift({
-                          fileData: { mimeType: "application/pdf", fileUri: currentGeminiUri }
-                      });
-                  }
-              }
-          }
-
           for (const targetModel of modelsToTry) {
             if (successData) break;
             
@@ -967,7 +894,9 @@
               
               try {
                 const isOldVision = targetModel.includes('vision');
-                const bodyPayload = { contents: [{ parts: finalPayloadParts }] };
+                const bodyPayload = {
+                  contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64Data } }] }]
+                };
                 if (!isOldVision) bodyPayload.generationConfig = { responseMimeType: "application/json" };
 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`, {
@@ -1007,7 +936,7 @@
           const aiResponseText = successData.candidates?.[0]?.content?.parts?.[0]?.text;
           
           if (aiResponseText) {
-            let parsed = { subject: '國文', volume: null, sub_subject: '單元1 (「相似詞語」的分辨)', concept: '未定單元', ai_tutor: '', page_number: '' };
+            let parsed = { subject: '國文', volume: null, sub_subject: '單元1 (「相似詞語」的分辨)', concept: '未定單元', ai_tutor: '' };
             try {
                let cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                cleanedText = cleanedText.replace(/\\\\n/g, '\\n');
@@ -1026,7 +955,6 @@
               sub_subject: parsed.sub_subject || '',
               concept: parsed.concept || '未定知識點',
               ai_tutor: parsed.ai_tutor || '',
-              page_number: parsed.page_number || '',
               tags: [],
               created_date: getTodayStr() // ★ 新增紀錄為今日建檔
             });
@@ -1034,7 +962,7 @@
         } catch (error) {
           console.error(error);
           showAlert('AI 分析失敗：\n' + error.message + '\n\n您可以先手動輸入分類。');
-          setAiAnalysis({ subject: '國文', volume: null, sub_subject: '', concept: '', ai_tutor: '', page_number: '', tags: [], created_date: getTodayStr() });
+          setAiAnalysis({ subject: '國文', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [], created_date: getTodayStr() });
         }
         
         setLoadingMsg('');
@@ -1102,13 +1030,12 @@
               const { showConfirm } = useModal(); 
               resetFbConfig();
           }} savedKey={apiKey} />}
-          {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} isDbConnected={user && FB} onManageHandouts={() => setCurrentView('handouts')} handouts={handouts} activeHandoutId={activeHandoutId} onSelectHandoutId={handleHandoutChange} />}
+          {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} isDbConnected={user && FB} />}
           {currentView === 'crop' && <CropView imageUrl={rawImage} onCancel={() => setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} onUpdateRawImage={setRawImage} />}
           {currentView === 'edit' && <EditView imageUrl={isEditingExisting ? editedImage : croppedImage} onCancel={() => { if(isEditingExisting) setCurrentView('form'); else setCurrentView('crop'); }} onComplete={(edited, baseW) => { setEditedImage(edited); if(baseW) setPrintWidth(baseW); if(!isEditingExisting) { callGeminiAI(edited); } else { setCurrentView('form'); } }} />}
           {currentView === 'classify' && <LoadingView message={loadingMsg} />}
           {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} onReEditImage={() => setCurrentView('edit')} onCancel={() => { if(isEditingExisting) setCurrentView('list'); else setCurrentView('edit'); }} onSave={saveMistake} />}
           {currentView === 'list' && <ListView currentProfile={currentProfile} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} isDbConnected={user && FB} onFullEdit={handleFullEdit} />}
-          {currentView === 'handouts' && <HandoutView currentProfile={currentProfile} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} apiKey={apiKey} handouts={handouts} />}
         </div>
       );
     }
@@ -1268,125 +1195,7 @@
       );
     }
 
-    function HandoutView({ currentProfile, onBack, FB, user, apiKey, handouts }) {
-        const { showAlert, showConfirm } = useModal();
-        const [isUploading, setIsUploading] = useState(false);
-        const [uploadMsg, setUploadMsg] = useState('');
-        const fileInputRef = useRef(null);
-
-        const handleUpload = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (file.type !== 'application/pdf') return showAlert('請上傳 PDF 檔案');
-            if (!FB.storage) return showAlert('尚未設定 Firebase StorageBucket，無法上傳檔案。請重新設定 Firebase 組態。');
-
-            setIsUploading(true);
-            setUploadMsg('上傳至 Firebase Storage...');
-            try {
-                const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-                const storageRef = FB.ref(FB.storage, `artifacts/${FB.appId}/public/data/handouts_${currentProfile}/${Date.now()}_${safeName}`);
-                await FB.uploadBytes(storageRef, file);
-                const downloadUrl = await FB.getDownloadURL(storageRef);
-
-                setUploadMsg('上傳至 Gemini 進行 RAG 預處理...');
-                const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
-                const geminiRes = await fetch(uploadUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-Goog-Upload-Command': 'start, upload, finalize',
-                        'X-Goog-Upload-Header-Content-Length': file.size.toString(),
-                        'X-Goog-Upload-Header-Content-Type': file.type,
-                        'Content-Type': file.type,
-                    },
-                    body: file
-                });
-                const geminiData = await geminiRes.json();
-                if (!geminiData.file || !geminiData.file.uri) throw new Error('Gemini 上傳失敗');
-
-                setUploadMsg('儲存資料庫...');
-                await FB.addDoc(FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `handouts_${currentProfile}`), {
-                    name: file.name,
-                    storageUrl: downloadUrl,
-                    geminiFileUri: geminiData.file.uri,
-                    geminiUploadTime: Date.now(),
-                    timestamp: Date.now()
-                });
-                showAlert('講義上傳成功！');
-            } catch (error) {
-                showAlert('上傳失敗：' + error.message);
-            }
-            setIsUploading(false);
-            setUploadMsg('');
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        };
-
-        const handleDelete = async (h) => {
-            showConfirm(`確定要刪除講義「${h.name}」嗎？`, async () => {
-                try {
-                    await FB.deleteDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `handouts_${currentProfile}`, h.id));
-                    if (FB.storage && h.storageUrl) {
-                        const ref = FB.ref(FB.storage, h.storageUrl);
-                        await FB.deleteObject(ref).catch(e => console.warn('Storage delete failed', e));
-                    }
-                } catch(e) { showAlert('刪除失敗'); }
-            });
-        }
-
-        return (
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-                <div className="bg-[#f59e0b] text-[#ffffff] p-5 shadow-md flex justify-between items-center">
-                    <button onClick={onBack} className="p-2 hover:bg-[#d97706] rounded-full transition-colors"><Icons.ArrowLeft /></button>
-                    <h1 className="font-bold text-xl sm:text-2xl truncate">📚 講義管理庫 (RAG)</h1>
-                    <div className="w-10"></div>
-                </div>
-
-                <div className="p-6 w-[98%] max-w-[800px] mx-auto flex-grow">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 text-center">
-                        <h2 className="text-xl font-bold text-[#b45309] mb-4">上傳 PDF 講義</h2>
-                        <p className="text-gray-500 mb-6 font-bold leading-relaxed">
-                            將您的講義 PDF 上傳至雲端 Storage。<br/>之後在新增錯題時，選擇對應講義，AI 將自動檢索整份文件並精準標記講義頁碼！
-                        </p>
-                        
-                        <input type="file" accept="application/pdf" className="hidden" ref={fileInputRef} onChange={handleUpload} />
-                        
-                        <button 
-                            onClick={() => fileInputRef.current.click()} 
-                            disabled={isUploading || !FB?.storage}
-                            className={`px-6 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 w-full sm:w-auto mx-auto ${isUploading || !FB?.storage ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#f59e0b] hover:bg-[#d97706] text-white shadow-md transition-colors'}`}
-                        >
-                            <Icons.Cloud /> 
-                            {isUploading ? uploadMsg : (FB?.storage ? '選擇 PDF 檔案上傳' : '未設定 StorageBucket，無法上傳')}
-                        </button>
-                        {!FB?.storage && <p className="text-red-500 text-sm mt-4 font-bold">⚠️ 請在 Firebase 組態設定中加入 storageBucket 才能使用講義管理功能。</p>}
-                    </div>
-
-                    <div className="space-y-4">
-                        <h3 className="font-bold text-lg text-gray-700 border-b pb-2">已上傳的講義</h3>
-                        {handouts.length === 0 ? (
-                            <p className="text-gray-400 text-center py-8 font-bold">尚未上傳任何講義</p>
-                        ) : (
-                            handouts.map(h => (
-                                <div key={h.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center transition-shadow hover:shadow-md">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="bg-red-100 text-red-600 p-3 rounded-xl flex-shrink-0"><Icons.Book /></div>
-                                        <div className="truncate">
-                                            <p className="font-bold text-gray-800 truncate text-lg">{h.name}</p>
-                                            <p className="text-sm text-gray-500 font-bold">{new Date(h.timestamp).toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => handleDelete(h)} className="text-gray-400 hover:text-red-500 p-2 ml-2 flex-shrink-0 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors">
-                                        <Icons.Trash />
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    function DashboardView({ currentProfile, onSelectImage, onGoList, onLogout, isDbConnected, onManageHandouts, handouts, activeHandoutId, onSelectHandoutId }) {
+    function DashboardView({ currentProfile, onSelectImage, onGoList, onLogout, isDbConnected }) {
       const fileInputRef = useRef(null);
 
       const handleFileChange = (e) => {
@@ -1433,23 +1242,6 @@
                   <Icons.Cloud /> ☁️ 雲端題本
                 </button>
              </div>
-             
-             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 w-full max-w-2xl text-left mt-8">
-                 <div className="flex justify-between items-center mb-4">
-                     <h3 className="font-bold text-lg text-[#b45309] flex items-center gap-2"><Icons.Book /> 講義頁碼檢索 (RAG)</h3>
-                     <button onClick={onManageHandouts} className="text-sm font-bold bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-200 transition-colors">管理講義庫</button>
-                 </div>
-                 <select 
-                     value={activeHandoutId} 
-                     onChange={e => onSelectHandoutId(e.target.value)}
-                     className="w-full p-4 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none font-bold text-gray-700 text-lg"
-                 >
-                     <option value="">無 (不搜尋頁碼)</option>
-                     {handouts.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                 </select>
-                 <p className="text-sm text-gray-500 mt-3 font-bold">✨ 選擇講義後，AI 將在分析錯題時自動幫您翻閱講義，標出對應題型的精準頁碼！</p>
-             </div>
-
              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
           </main>
         </div>
@@ -2397,7 +2189,6 @@
         notes: initialData.notes || '',
         answer: initialData.answer || '',
         ai_tutor: initialData.ai_tutor || '',
-        page_number: initialData.page_number || '',
         mastery: initialData.mastery || 'need_review',
         tags: initialData.tags || [],
         created_date: initialData.created_date || getTodayStr() // ★ 綁定建檔日期
@@ -2544,17 +2335,6 @@
               <div>
                 <label className="block text-base font-bold text-gray-700 mb-2">核心知識 (限繁體中文)</label>
                 <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.concept} onChange={e => setFormData({...formData, concept: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2">📖 講義頁碼</label>
-                <input 
-                    type="text"
-                    className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none"
-                    value={formData.page_number || ''}
-                    placeholder="例如：P.12 或直接留空"
-                    onChange={e => setFormData({...formData, page_number: e.target.value})}
-                />
               </div>
             </div>
 
@@ -2942,12 +2722,6 @@
                                     </span>
                                   )}
                                   <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">🎯 {item.concept}</span>
-                                  
-                                  {item.page_number && (
-                                      <span className="bg-blue-50 print:bg-transparent print:border print:border-black text-blue-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-blue-200">
-                                          📖 {item.page_number}
-                                      </span>
-                                  )}
                                   
                                   {/* ★ 顯示建檔日期 */}
                                   <span className="text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-gray-200">
