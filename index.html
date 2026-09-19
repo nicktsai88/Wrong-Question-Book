@@ -1338,7 +1338,7 @@
               setUser(currentUser);
               if (currentUser) {
                   try {
-                      const kpRef = fbDb.collection(db, 'artifacts', appId, 'public', 'knowledge_points');
+                      const kpRef = fbDb.collection(db, 'artifacts', appId, 'public', 'data', 'knowledge_points');
                       const kpSnap = await fbDb.getDocs(kpRef);
                       const kps = kpSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                       setKnowledgePoints(kps);
