@@ -175,13 +175,13 @@
       const close = () => setModal({ ...modal, isOpen: false });
 
       return (
-        <ModalContext.Provider value={{ showAlert, showConfirm }}>
+        <ModalContext.Provider showAlert, showConfirm value="{{" }}>
           {children}
           {modal.isOpen && (
             <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease-out]">
               <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center transform scale-100 transition-transform">
                 <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {modal.type === 'confirm' ? <Icons.Wand /> : <Icons.Book />}
+                  {modal.type === 'confirm' ? <Icons.Wand/> : <Icons.Book/>}
                 </div>
                 <p className="text-lg font-bold text-gray-800 mb-6 whitespace-pre-wrap">{modal.message}</p>
                 <div className="flex justify-center gap-3">
@@ -225,7 +225,6 @@
     }
 
     // --- STREAMING_CHUNK:Configuring High-Performance NoteCanvas... ---
-    // (NoteCanvas implementation unchanged)
     function NoteCanvas({ initialDataUrl, onChange }) {
       const { showConfirm } = useModal();
       const containerRef = useRef(null);
@@ -379,11 +378,11 @@
                       <div className="w-px h-6 bg-amber-200 mx-1"></div>
                       
                       <button onClick={() => setMode('eraser')} className={`p-2 rounded-lg transition-colors flex items-center gap-1 font-bold text-sm flex-shrink-0 ${mode === 'eraser' ? 'bg-amber-600 text-white shadow-md' : 'text-gray-600 hover:bg-amber-100'}`}>
-                          <Icons.Eraser /> 橡皮擦
+                          <Icons.Eraser/> 橡皮擦
                       </button>
                   </div>
                   
-                  {/* 尺寸選擇區 */}
+                  {/* 尺寸選擇區 (修復 JSX 語法錯誤) */}
                   <div className="flex items-center gap-2 overflow-x-auto sm:ml-2">
                      {mode === 'pen' && (
                         <>
@@ -391,7 +390,7 @@
                           <button onClick={() => setPenSize(8)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${penSize === 8 ? 'bg-amber-200 shadow-inner' : 'hover:bg-amber-100'}`} title="中"><div className="rounded-full" style={{ width: 8, height: 8, backgroundColor: color }}></div></button>
                           <button onClick={() => setPenSize(16)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${penSize === 16 ? 'bg-amber-200 shadow-inner' : 'hover:bg-amber-100'}`} title="粗"><div className="rounded-full" style={{ width: 16, height: 16, backgroundColor: color }}></div></button>
                           <button onClick={() => setPenSize(24)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${penSize === 24 ? 'bg-amber-200 shadow-inner' : 'hover:bg-amber-100'}`} title="特粗"><div className="rounded-full" style={{ width: 24, height: 24, backgroundColor: color }}></div></button>
-                        </
+                        </>
                      )}
                      {mode === 'eraser' && (
                         <>
@@ -405,7 +404,7 @@
                   </div>
                   
                   <button onClick={handleClear} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors sm:ml-auto flex items-center gap-1 font-bold text-sm flex-shrink-0 w-full sm:w-auto justify-center mt-2 sm:mt-0">
-                      <Icons.Trash /> 全部清除
+                      <Icons.Trash/> 全部清除
                   </button>
               </div>
               {/* 繪圖區 */}
@@ -689,8 +688,8 @@
           if (aiResponseText) {
             let parsed = { subject: '國文', chapter: '', knowledge_point: '未定知識點', page_number: '', ai_tutor: '' };
             try {
-               let cleanedText = aiResponseText.replace(/
-```json/g, '').replace(/```/g, '').trim();
+               // 防呆處理 markdown 格式
+               let cleanedText = aiResponseText.replace(/`{3}json/g, '').replace(/`{3}/g, '').trim();
                cleanedText = cleanedText.replace(/\\\\n/g, '\\n');
                cleanedText = cleanedText.replace(/(?<!\\)\\times/g, '\\\\times')
                                       .replace(/(?<!\\)\\text/g, '\\\\text')
@@ -760,8 +759,8 @@
         }
       };
 
-      if (!fbConfig) return <FbSetupView onSave={handleFbConfigSave} />;
-      if (isDbLoading) return <LoadingView message="正在連線至雲端資料庫..." />;
+      if (!fbConfig) return <FbSetupView onSave="{handleFbConfigSave}"/>;
+      if (isDbLoading) return <LoadingView message="正在連線至雲端資料庫..."/>;
       if (dbError) {
         return (
             <div className="min-h-screen font-sans text-gray-800 bg-[#fffbeb] flex items-center justify-center p-6">
@@ -778,32 +777,27 @@
 
       return (
         <div className="min-h-screen font-sans text-gray-800" style={{ backgroundColor: THEME.bg }}>
-          {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={() => {
+          {currentView === 'login' && <LoginView onLogin="{handleLogin}" onResetFb="{()"> {
               const { showConfirm } = useModal(); 
               resetFbConfig();
           }} savedKey={apiKey} />}
           
-          {currentView === 'dashboard' && <DashboardView 
-              currentProfile={currentProfile} 
-              onSelectImage={handleImageSelected} 
-              onGoList={() => setCurrentView('list')} 
+          {currentView === 'dashboard' && <DashboardView currentProfile="{currentProfile}" onGoList="{()" onSelectImage="{handleImageSelected}"> setCurrentView('list')} 
               onGoManager={() => setCurrentView('kb_manager')}
               onLogout={logout} 
               isDbConnected={user && FB} 
               kbCount={Object.keys(cloudKB).length}
           />}
           
-          {currentView === 'kb_manager' && <KnowledgeBaseManagerView 
-              FB={FB} 
-              onBack={() => setCurrentView('dashboard')} 
+          {currentView === 'kb_manager' && <KnowledgeBaseManagerView FB="{FB}" onBack="{()"> setCurrentView('dashboard')} 
               onUpdateKB={(subject, points) => setCloudKB(prev => ({...prev, [subject]: points}))}
           />}
           
-          {currentView === 'crop' && <CropView imageUrl={rawImage} onCancel={() => setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} onUpdateRawImage={setRawImage} />}
-          {currentView === 'edit' && <EditView imageUrl={isEditingExisting ? editedImage : croppedImage} onCancel={() => { if(isEditingExisting) setCurrentView('form'); else setCurrentView('crop'); }} onComplete={(edited, baseW) => { setEditedImage(edited); if(baseW) setPrintWidth(baseW); if(!isEditingExisting) { callGeminiAI(edited); } else { setCurrentView('form'); } }} />}
-          {currentView === 'classify' && <LoadingView message={loadingMsg} />}
-          {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} onReEditImage={() => setCurrentView('edit')} onCancel={() => { if(isEditingExisting) setCurrentView('list'); else setCurrentView('edit'); }} onSave={saveMistake} />}
-          {currentView === 'list' && <ListView currentProfile={currentProfile} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} isDbConnected={user && FB} onFullEdit={handleFullEdit} cloudKB={cloudKB} />}
+          {currentView === 'crop' && <CropView imageUrl="{rawImage}" onCancel="{()"> setCurrentView('dashboard')} onComplete={(cropped) => { setCroppedImage(cropped); setCurrentView('edit'); }} onUpdateRawImage={setRawImage} />}
+          {currentView === 'edit' && <EditView : ? croppedImage} editedImage imageUrl="{isEditingExisting" onCancel="{()"> { if(isEditingExisting) setCurrentView('form'); else setCurrentView('crop'); }} onComplete={(edited, baseW) => { setEditedImage(edited); if(baseW) setPrintWidth(baseW); if(!isEditingExisting) { callGeminiAI(edited); } else { setCurrentView('form'); } }} />}
+          {currentView === 'classify' && <LoadingView message="{loadingMsg}"/>}
+          {currentView === 'form' && <FormView image="{editedImage}" initialData="{aiAnalysis}" onReEditImage="{()"> setCurrentView('edit')} onCancel={() => { if(isEditingExisting) setCurrentView('list'); else setCurrentView('edit'); }} onSave={saveMistake} />}
+          {currentView === 'list' && <ListView currentProfile="{currentProfile}" onBack="{()"> setCurrentView('dashboard')} FB={FB} user={user} isDbConnected={user && FB} onFullEdit={handleFullEdit} cloudKB={cloudKB} />}
         </div>
       );
     }
@@ -812,7 +806,7 @@
     function App() {
        return (
           <ModalProvider>
-             <MainApp />
+             <MainApp/>
           </ModalProvider>
        );
     }
@@ -862,9 +856,9 @@
             <div className="flex flex-col items-center min-h-screen p-4 sm:p-6 bg-[#fffbeb]">
                 <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-6 sm:p-10 border-t-[6px] border-[#f59e0b]">
                     <div className="flex justify-between items-center mb-8 border-b pb-4">
-                        <button onClick={onBack} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"><Icons.ArrowLeft /></button>
+                        <button onClick={onBack} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"><Icons.ArrowLeft/></button>
                         <h1 className="text-2xl sm:text-3xl font-bold text-[#b45309] flex items-center gap-3">
-                            <Icons.Database /> 雲端知識庫管理
+                            <Icons.Database/> 雲端知識庫管理
                         </h1>
                         <div className="w-10"></div>{/* Spacer */}
                     </div>
@@ -940,7 +934,7 @@
         return (
             <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#fffbeb]">
               <div className="bg-white rounded-3xl shadow-xl p-10 w-full max-w-lg text-center">
-                 <div className="bg-[#f59e0b] text-[#ffffff] p-5 rounded-2xl inline-block mb-6 shadow-md"><Icons.Settings /></div>
+                 <div className="bg-[#f59e0b] text-[#ffffff] p-5 rounded-2xl inline-block mb-6 shadow-md"><Icons.Settings/></div>
                  <h1 className="text-4xl font-bold mb-5 text-[#b45309]">⚙️ 雲端資料庫設定</h1>
                  <p className="text-gray-600 mb-6 text-base text-left leading-relaxed">
                    歡迎使用！為了啟用跨裝置雲端同步功能，請將您的 <strong>Firebase 專案設定 (firebaseConfig)</strong> 貼在下方。<br/><br/>
@@ -1016,7 +1010,7 @@
                    type="button" onClick={() => setShowKey(!showKey)}
                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-500 transition-colors"
                  >
-                   {showKey ? <Icons.EyeOff /> : <Icons.Eye />}
+                   {showKey ? <Icons.EyeOff/> : <Icons.Eye/>}
                  </button>
                </div>
             </div>
@@ -1035,7 +1029,7 @@
                            <span className="text-base font-bold text-gray-600 truncate w-full text-center px-1">{p}</span>
                          </button>
                          <button onClick={(e) => removeProfile(p, e)} className="absolute top-0 right-0 bg-white rounded-full text-gray-400 hover:text-white hover:bg-red-500 shadow-md border border-gray-200 md:hidden group-hover:flex transition-all p-1.5 z-10">
-                           <Icons.Close />
+                           <Icons.Close/>
                          </button>
                        </div>
                     ))}
@@ -1075,16 +1069,16 @@
         <div className="min-h-screen flex flex-col p-4 md:p-6 w-[98%] max-w-[1400px] mx-auto">
           <header className="flex justify-between items-center mb-12 py-4">
             <div className="flex items-center gap-3">
-              <div className="bg-[#f59e0b] text-[#ffffff] p-3 rounded-lg"><Icons.Book /></div>
+              <div className="bg-[#f59e0b] text-[#ffffff] p-3 rounded-lg"><Icons.Book/></div>
               <span className="font-bold text-[#b45309] text-2xl hidden sm:block">🏆 2027 決戰會考</span>
               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm ml-2">
-                <Icons.StatusDot color={isDbConnected ? "#22c55e" : "#ef4444"} />
+                <Icons.StatusDot "#22c55e" "#ef4444"} : ? color="{isDbConnected"/>
                 <span className="text-sm font-bold text-gray-600">{isDbConnected ? '已連線 🟢' : '未連線 🔴'}</span>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <button onClick={onGoManager} className="hidden md:flex items-center gap-2 text-sm font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-4 py-2 rounded-full transition-colors border border-amber-300">
-                  <Icons.Database /> 知識庫管理 ({kbCount} 科已載入)
+                  <Icons.Database/> 知識庫管理 ({kbCount} 科已載入)
               </button>
               <div className="hidden sm:flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
                  <div className="w-8 h-8 rounded-full bg-[#f59e0b] text-[#ffffff] flex items-center justify-center text-sm font-bold">{currentProfile.charAt(0)}</div>
@@ -1103,16 +1097,16 @@
 
              <div className="flex flex-col sm:flex-row gap-5 w-full max-w-3xl">
                 <button onClick={() => fileInputRef.current.click()} className="flex-1 bg-[#f59e0b] text-[#ffffff] py-5 px-6 rounded-xl font-bold text-xl shadow-lg hover:bg-[#d97706] transition-colors flex justify-center items-center gap-3">
-                  <Icons.Camera /> 📸 新增錯題
+                  <Icons.Camera/> 📸 新增錯題
                 </button>
                 <button onClick={onGoList} className="flex-1 bg-white text-[#451a03] border-2 border-[#f59e0b] py-5 px-6 rounded-xl font-bold text-xl hover:bg-amber-50 transition-colors flex justify-center items-center gap-3">
-                  <Icons.Cloud /> ☁️ 雲端題本
+                  <Icons.Cloud/> ☁️ 雲端題本
                 </button>
              </div>
              
              {/* 手機版顯示知識庫按鈕 */}
              <button onClick={onGoManager} className="md:hidden mt-8 flex items-center gap-2 text-sm font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-6 py-3 rounded-full transition-colors border border-amber-300">
-                  <Icons.Database /> 進入知識庫管理系統
+                  <Icons.Database/> 進入知識庫管理系統
              </button>
 
              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
@@ -1122,7 +1116,6 @@
     }
 
     // --- STREAMING_CHUNK:Building Image Crop View... ---
-    // (CropView implementation unchanged)
     function solveMatrix(A, b) {
       const n = 8;
       for (let i = 0; i < n; i++) {
@@ -1260,9 +1253,9 @@
       return (
         <div className="fixed inset-0 bg-gray-900 flex flex-col z-50">
           <div className="flex justify-between items-center p-5 text-white bg-gray-800 shadow-md z-20">
-            <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
+            <button onClick={onCancel} className="p-2"><Icons.ArrowLeft/></button>
             <span className="text-lg font-bold">✂️ 第一步：透視校正裁切</span>
-            <button onClick={handleRotate} className="p-2 px-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 text-base font-bold"><Icons.Rotate /> 旋轉</button>
+            <button onClick={handleRotate} className="p-2 px-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 text-base font-bold"><Icons.Rotate/> 旋轉</button>
           </div>
           
           <div className="flex-grow relative overflow-hidden flex items-center justify-center p-4">
@@ -1301,7 +1294,6 @@
     }
 
     // --- STREAMING_CHUNK:Building Image Edit View... ---
-    // (EditView implementation unchanged except for omitting the huge OCR block to save space, keeping core logic)
     function EditView({ imageUrl, onCancel, onComplete }) {
       const { showAlert } = useModal();
       const containerRef = useRef(null);
@@ -1681,12 +1673,12 @@
            />
 
            <div className="flex justify-between items-center p-5 bg-white shadow-sm z-10">
-            <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
+            <button onClick={onCancel} className="p-2"><Icons.ArrowLeft/></button>
             <div className="flex items-center gap-4">
                <span className="text-lg font-bold text-gray-800 hidden sm:inline">🎨 第二步：影像處理</span>
                {canUndo && (
                   <button onClick={handleUndo} className="flex items-center gap-2 text-base bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-bold transition-colors">
-                     <Icons.Undo /> ↩️ 復原
+                     <Icons.Undo/> ↩️ 復原
                   </button>
                )}
             </div>
@@ -1697,7 +1689,7 @@
 
           {isOcrLoading && (
               <div className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center text-white p-6 text-center backdrop-blur-sm">
-                 <div className="animate-spin text-[#f59e0b] mb-6 scale-150"><Icons.Settings /></div>
+                 <div className="animate-spin text-[#f59e0b] mb-6 scale-150"><Icons.Settings/></div>
                  <h3 className="text-2xl font-bold mb-3">🤖 AI 正在掃描全圖文字尺寸</h3>
                  <p className="text-amber-200 font-bold text-lg whitespace-pre-wrap leading-relaxed">{ocrProgress}</p>
               </div>
@@ -1779,17 +1771,17 @@
             
             <div className="bg-white p-4 pb-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
               <div className="flex justify-center gap-2 sm:gap-6 overflow-x-auto pb-2 scrollbar-hide w-full max-w-4xl mx-auto">
-                <button onClick={handleAutoResize} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors text-amber-600 hover:bg-amber-50"><Icons.FontScale /><span className="text-sm font-bold">✨ AI 統一生字</span></button>
+                <button onClick={handleAutoResize} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors text-amber-600 hover:bg-amber-50"><Icons.FontScale/><span className="text-sm font-bold">✨ AI 統一生字</span></button>
                 <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
-                <button onClick={() => { setMode(mode === 'scale' ? 'none' : 'scale'); setShowSizePicker(false); setShowPenPicker(false); }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'scale' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Move /><span className="text-sm font-bold">📏 縮放校正</span></button>
-                <button onClick={() => { setMode(mode === 'rotate' ? 'none' : 'rotate'); setShowSizePicker(false); setShowPenPicker(false); }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'rotate' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Rotate /><span className="text-sm font-bold">🔄 旋轉微調</span></button>
+                <button onClick={() => { setMode(mode === 'scale' ? 'none' : 'scale'); setShowSizePicker(false); setShowPenPicker(false); }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'scale' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Move/><span className="text-sm font-bold">📏 縮放校正</span></button>
+                <button onClick={() => { setMode(mode === 'rotate' ? 'none' : 'rotate'); setShowSizePicker(false); setShowPenPicker(false); }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'rotate' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Rotate/><span className="text-sm font-bold">🔄 旋轉微調</span></button>
                 <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
-                <button onClick={() => { if (mode === 'pen') setShowPenPicker(!showPenPicker); else { setMode('pen'); setShowPenPicker(true); setShowSizePicker(false); } }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'pen' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Write /><span className="text-sm font-bold">✍️ 書寫</span></button>
-                <button onClick={() => { if (mode === 'eraser') setShowSizePicker(!showSizePicker); else { setMode('eraser'); setShowSizePicker(true); setShowPenPicker(false); } }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Eraser /><span className="text-sm font-bold">🧽 橡皮擦</span></button>
+                <button onClick={() => { if (mode === 'pen') setShowPenPicker(!showPenPicker); else { setMode('pen'); setShowPenPicker(true); setShowSizePicker(false); } }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'pen' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Write/><span className="text-sm font-bold">✍️ 書寫</span></button>
+                <button onClick={() => { if (mode === 'eraser') setShowSizePicker(!showSizePicker); else { setMode('eraser'); setShowSizePicker(true); setShowPenPicker(false); } }} className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}><Icons.Eraser/><span className="text-sm font-bold">🧽 橡皮擦</span></button>
                 <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
-                <button onClick={handleRemoveColoredPen} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-blue-500 hover:bg-blue-50 transition-colors"><Icons.Wand /><span className="text-sm font-bold">🪄 去彩筆跡</span></button>
-                <button onClick={handleRemovePencil} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"><Icons.Pencil /><span className="text-sm font-bold">✏️ 去鉛筆跡</span></button>
-                <button onClick={handleRemoveBackground} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-800 hover:bg-gray-100 transition-colors"><Icons.Contrast /><span className="text-sm font-bold">🌗 黑白淨化</span></button>
+                <button onClick={handleRemoveColoredPen} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-blue-500 hover:bg-blue-50 transition-colors"><Icons.Wand/><span className="text-sm font-bold">🪄 去彩筆跡</span></button>
+                <button onClick={handleRemovePencil} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"><Icons.Pencil/><span className="text-sm font-bold">✏️ 去鉛筆跡</span></button>
+                <button onClick={handleRemoveBackground} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-800 hover:bg-gray-100 transition-colors"><Icons.Contrast/><span className="text-sm font-bold">🌗 黑白淨化</span></button>
               </div>
             </div>
           </div>
@@ -1800,7 +1792,7 @@
     function LoadingView({ message }) {
       return (
         <div className="fixed inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-50 p-6 text-center">
-          <div className="animate-spin text-[#d97706] mb-6 scale-150"><Icons.Cloud /></div>
+          <div className="animate-spin text-[#d97706] mb-6 scale-150"><Icons.Cloud/></div>
           <p className="text-xl font-bold text-[#d97706] whitespace-pre-wrap leading-relaxed">{message}</p>
         </div>
       );
@@ -1843,10 +1835,10 @@
       return (
         <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
           <div className="bg-white p-5 shadow-sm sticky top-0 flex justify-between items-center z-10">
-            <button onClick={onCancel} className="p-2 text-gray-500 hover:text-gray-800 transition-colors"><Icons.ArrowLeft /></button>
+            <button onClick={onCancel} className="p-2 text-gray-500 hover:text-gray-800 transition-colors"><Icons.ArrowLeft/></button>
             <span className="font-bold text-xl text-gray-800">💾 確認並儲存</span>
             <button onClick={() => onSave(formData)} className="px-6 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold text-lg flex items-center gap-2">
-              <Icons.Cloud /> ☁️ 同步至雲端
+              <Icons.Cloud/> ☁️ 同步至雲端
             </button>
           </div>
 
@@ -1855,14 +1847,14 @@
                <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-[400px] border border-gray-200 mx-auto" />
                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
                   <button onClick={onReEditImage} className="bg-white text-gray-800 px-6 py-3 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 hover:bg-gray-100 transition-colors">
-                     <Icons.Edit /> 重新編輯影像
+                     <Icons.Edit/> 重新編輯影像
                   </button>
                </div>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
               <div className="flex justify-between items-center mb-2">
-                 <div className="flex items-center gap-2 text-xl"><Icons.Wand /> <span className="font-bold text-[#b45309]">🤖 AI 分類與定位結果</span></div>
+                 <div className="flex items-center gap-2 text-xl"><Icons.Wand/> <span className="font-bold text-[#b45309]">🤖 AI 分類與定位結果</span></div>
               </div>
 
               <div>
@@ -1881,7 +1873,7 @@
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Calendar /> 建檔日期</label>
+                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Calendar/> 建檔日期</label>
                     <input 
                         type="date"
                         className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-gray-700 font-bold"
@@ -1890,7 +1882,7 @@
                     />
                   </div>
                   <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Tag /> 自訂標籤</label>
+                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Tag/> 自訂標籤</label>
                     <div className="flex gap-2">
                         <input 
                            className="flex-grow p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" 
@@ -1909,7 +1901,7 @@
                      {formData.tags.map(tag => (
                          <span key={tag} className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg flex items-center gap-2 font-bold text-sm border border-amber-200">
                              #{tag}
-                             <button onClick={() => removeTag(tag)} className="text-amber-600 hover:text-red-500 bg-amber-200 rounded-full p-0.5"><Icons.Close /></button>
+                             <button onClick={() => removeTag(tag)} className="text-amber-600 hover:text-red-500 bg-amber-200 rounded-full p-0.5"><Icons.Close/></button>
                          </span>
                      ))}
                   </div>
@@ -1946,7 +1938,7 @@
                 </div>
                 {showTutorPreview ? (
                   <div className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/30 min-h-[12rem] overflow-y-auto">
-                    <LatexText content={formData.ai_tutor} className="whitespace-pre-wrap leading-relaxed text-gray-800" />
+                    <LatexText className="whitespace-pre-wrap leading-relaxed text-gray-800" content="{formData.ai_tutor}"/>
                   </div>
                 ) : (
                   <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
@@ -1954,7 +1946,7 @@
               </div>
               <div>
                 <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
-                <NoteCanvas initialDataUrl={formData.notes} onChange={(dataUrl) => setFormData({...formData, notes: dataUrl})} />
+                <NoteCanvas initialDataUrl="{formData.notes}" onChange="{(dataUrl)"> setFormData({...formData, notes: dataUrl})} />
               </div>
             </div>
           </div>
@@ -2072,18 +2064,18 @@
 
       const handlePrint = () => { setTimeout(() => { window.print(); }, 100); };
 
-      if (isFetching) return <LoadingView message={`正在從雲端載入 ${currentProfile} 的錯題本...`} />;
+      if (isFetching) return <LoadingView ${currentProfile} message="{`正在從雲端載入" 的錯題本...`}/>;
 
       return (
         <div className="min-h-screen bg-gray-50 relative">
           <div className="bg-[#f59e0b] text-[#ffffff] p-5 sticky top-0 z-10 shadow-md flex justify-between items-center no-print">
-            <button onClick={onBack} className="p-2 hover:bg-[#d97706] rounded-full transition-colors"><Icons.ArrowLeft /></button>
+            <button onClick={onBack} className="p-2 hover:bg-[#d97706] rounded-full transition-colors"><Icons.ArrowLeft/></button>
             <div className="flex items-center gap-2">
                <h1 className="font-bold text-xl sm:text-2xl truncate max-w-[200px] sm:max-w-xs">📚 {currentProfile} 的雲端錯題本</h1>
-               <div title="雲端連線狀態" className="ml-1"><Icons.StatusDot color={isDbConnected ? "#4ade80" : "#ef4444"} /></div>
+               <div title="雲端連線狀態" className="ml-1"><Icons.StatusDot "#4ade80" "#ef4444"} : ? color="{isDbConnected"/></div>
             </div>
             <button onClick={handlePrint} className="bg-white text-[#451a03] px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-amber-50 transition-colors shadow-sm text-base">
-              <Icons.Printer /> <span className="hidden sm:inline">🖨️ 輸出 PDF</span>
+              <Icons.Printer/> <span className="hidden sm:inline">🖨️ 輸出 PDF</span>
             </button>
           </div>
 
@@ -2098,7 +2090,7 @@
             {activeTab === 'list' && (
               <>
                 <div className="w-[98%] max-w-[1400px] mx-auto relative mt-4">
-                   <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
+                   <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search/></div>
                    <input 
                       type="text" placeholder="搜尋標籤、核心知識點、章節或筆記關鍵字..." 
                       className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg font-bold"
@@ -2124,12 +2116,12 @@
                         </div>
                         
                         <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 flex-grow sm:flex-grow-0 min-w-max shadow-sm">
-                            <span className="text-amber-600 pl-1"><Icons.Calendar /></span>
+                            <span className="text-amber-600 pl-1"><Icons.Calendar/></span>
                             <input type="date" className="bg-transparent text-sm font-bold text-gray-700 outline-none cursor-pointer" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} title="開始日期"/>
                             <span className="text-gray-400 font-bold px-1">-</span>
                             <input type="date" className="bg-transparent text-sm font-bold text-gray-700 outline-none cursor-pointer" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} title="結束日期"/>
                             {(filterStartDate || filterEndDate) && (
-                                <button onClick={() => { setFilterStartDate(''); setFilterEndDate(''); }} className="text-gray-400 hover:text-red-500 bg-gray-200 hover:bg-red-100 rounded-full p-1 ml-1 transition-colors" title="清除"><Icons.Close /></button>
+                                <button onClick={() => { setFilterStartDate(''); setFilterEndDate(''); }} className="text-gray-400 hover:text-red-500 bg-gray-200 hover:bg-red-100 rounded-full p-1 ml-1 transition-colors" title="清除"><Icons.Close/></button>
                             )}
                         </div>
                     </div>
@@ -2153,7 +2145,7 @@
 
                    {statsData.length === 0 ? (
                       <div className="text-center py-24 text-gray-400 no-print">
-                         <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
+                         <div className="flex justify-center mb-5 scale-150"><Icons.Cloud/></div>
                          <p className="mt-5 text-2xl font-bold">🔍 目前沒有錯題資料可供分析</p>
                       </div>
                    ) : (
@@ -2163,7 +2155,7 @@
                            return (
                              <div key={stat.subject} className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 transition-all hover:shadow-md print:shadow-none print:border-black print:mb-6 break-inside-avoid">
                                 <div className="flex justify-between items-center mb-6 border-b border-amber-100 print:border-gray-400 pb-4">
-                                   <h3 className="text-2xl sm:text-3xl font-black text-[#b45309] print:text-black flex items-center gap-2"><Icons.Book /> {stat.subject}</h3>
+                                   <h3 className="text-2xl sm:text-3xl font-black text-[#b45309] print:text-black flex items-center gap-2"><Icons.Book/> {stat.subject}</h3>
                                    <span className="bg-[#fffbeb] border border-amber-200 print:border-black text-[#b45309] print:text-black px-4 py-1.5 rounded-xl font-bold text-lg">共 {stat.total} 題</span>
                                 </div>
                                 <div className="space-y-6">
@@ -2209,7 +2201,7 @@
 
                   {filteredData.length === 0 ? (
                      <div className="text-center py-24 text-gray-400 no-print">
-                        <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
+                        <div className="flex justify-center mb-5 scale-150"><Icons.Cloud/></div>
                         <p className="mt-5 text-2xl font-bold">🔍 找不到符合條件的錯題</p>
                      </div>
                   ) : (
@@ -2248,7 +2240,7 @@
                                       )}
                                       
                                       <span className="text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-gray-200 ml-auto sm:ml-0">
-                                          <Icons.Calendar /> {item.created_date || getDateStr(item.timestamp)}
+                                          <Icons.Calendar/> {item.created_date || getDateStr(item.timestamp)}
                                       </span>
                                   </div>
                               </div>
@@ -2262,15 +2254,15 @@
                               >
                                 {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
                               </button>
-                              <button onClick={() => onFullEdit(item)} className="text-gray-500 hover:text-[#f59e0b] bg-gray-100 hover:bg-amber-50 px-3 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 shadow-sm"><Icons.Edit /> 編輯</button>
-                              <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><Icons.Trash /></button>
+                              <button onClick={() => onFullEdit(item)} className="text-gray-500 hover:text-[#f59e0b] bg-gray-100 hover:bg-amber-50 px-3 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 shadow-sm"><Icons.Edit/> 編輯</button>
+                              <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><Icons.Trash/></button>
                           </div>
                         </div>
 
                         {item.tags && item.tags.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-4 print:hidden">
                                 {item.tags.map(tag => (
-                                    <span key={tag} className="text-sm font-bold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1 rounded-md flex items-center gap-1.5"><Icons.Tag />{tag}</span>
+                                    <span key={tag} className="text-sm font-bold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1 rounded-md flex items-center gap-1.5"><Icons.Tag/>{tag}</span>
                                 ))}
                             </div>
                         )}
@@ -2283,7 +2275,7 @@
                              style={item.printWidth ? { width: `${item.printWidth}px` } : {}}
                            />
                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity no-print pointer-events-none">
-                              <div className="bg-black/60 text-white rounded-full p-4 backdrop-blur-sm"><Icons.ZoomIn /></div>
+                              <div className="bg-black/60 text-white rounded-full p-4 backdrop-blur-sm"><Icons.ZoomIn/></div>
                            </div>
                         </div>
 
@@ -2299,7 +2291,7 @@
                                 </div>
                                 {expandedSections[`${item.id}_ai`] && (
                                     <div className="text-gray-800 text-lg bg-white/60 p-4 rounded-xl shadow-sm border border-amber-100/50">
-                                       <LatexText content={item.ai_tutor} className="whitespace-pre-wrap leading-relaxed" />
+                                       <LatexText className="whitespace-pre-wrap leading-relaxed" content="{item.ai_tutor}"/>
                                     </div>
                                 )}
                               </div>
@@ -2333,7 +2325,7 @@
           {lightboxImage && (
               <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col p-4 animate-[fadeIn_0.2s_ease-out]" onClick={() => setLightboxImage(null)}>
                   <div className="flex justify-end p-2 text-white">
-                      <button className="hover:text-amber-500 transition-colors p-2" onClick={() => setLightboxImage(null)}><Icons.Close /></button>
+                      <button className="hover:text-amber-500 transition-colors p-2" onClick={() => setLightboxImage(null)}><Icons.Close/></button>
                   </div>
                   <div className="flex-grow flex items-center justify-center overflow-auto p-4 cursor-zoom-out">
                       <img src={lightboxImage} alt="Fullscreen View" className="max-w-full max-h-full object-contain bg-white rounded-lg" onClick={(e) => e.stopPropagation()} />
@@ -2346,37 +2338,8 @@
 
     // --- STREAMING_CHUNK:Finalizing rendering... ---
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    root.render(<App/>);
   </script>
 </body>
 </html>
 ```eof
-
-### 🚀 升級亮點與使用說明：
-
-1.  **專屬的「雲端知識庫管理」系統**
-    *   在儀表板右上角新增了「知識庫管理」按鈕（手機版在下方）。
-    *   點進去後，您可以將您提供的 Excel 內容轉換成 JSON 格式並貼上。介面中有提供範例格式供您參考。
-    *   **轉換範例**（針對您提供的生物圖檔，JSON 長這樣）：
-        
-```json
-        [
-          {
-            "chapter": "ch1 科學方法與生命的組成",
-            "knowledge_point": "科學探究的基本流程",
-            "description": "由觀察現象開始，依序提出問題、尋找資料、形成假設...",
-            "page_number": "6、8"
-          },
-          {
-            "chapter": "ch1 科學方法與生命的組成",
-            "knowledge_point": "形成假設與可驗證預測",
-            "description": "假設必須能以觀察或實驗檢驗...",
-            "page_number": "6、8"
-          },
-          {
-            "chapter": "ch1 科學方法與生命的組成",
-            "knowledge_point": "實驗設計與變因控制",
-            "description": "實驗中應辦認操縱變因、應變變因與控制變因...",
-            "page_number": "8-9"
-          }
-        ]
