@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🏆 決戰會考 錯題本 (雲端知識點版)</title>
+  <title>🏆 決戰會考 錯題本 (雲端知識庫版)</title>
   
   <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -22,6 +22,14 @@
 
   <!-- 引入 Tesseract.js 用於自動辨識文字尺寸 -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- 白畫面全域錯誤捕捉 -->
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      document.body.innerHTML = '<div style="padding: 20px; color: red; font-family: sans-serif;"><h1>⚠️ 系統發生嚴重錯誤</h1><p>這可能是因為瀏覽器版本過舊或程式碼有誤，導致畫面無法顯示。</p><p>錯誤訊息: ' + message + '</p></div>';
+      return false;
+    };
+  </script>
 
   <style>
     /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
@@ -1288,10 +1296,16 @@
       const [currentView, setCurrentView] = useState('login'); 
       const [apiKey, setApiKey] = useState('');
       const [currentProfile, setCurrentProfile] = useState(''); 
+      
       const [fbConfig, setFbConfig] = useState(() => {
-          const saved = localStorage.getItem('poppinsFbConfig');
-          return saved ? JSON.parse(saved) : null;
+          try {
+              const saved = localStorage.getItem('poppinsFbConfig');
+              return saved ? JSON.parse(saved) : null;
+          } catch (e) {
+              return null;
+          }
       });
+      
       const [FB, setFB] = useState(null); 
       const [user, setUser] = useState(null);
       const [isDbLoading, setIsDbLoading] = useState(false);
@@ -1307,7 +1321,6 @@
       const [isEditingExisting, setIsEditingExisting] = useState(false);
       const [printWidth, setPrintWidth] = useState(null);
 
-      // ★ 狀態更新：移除 tags，使用 points 陣列管理 3 個知識點
       const [aiAnalysis, setAiAnalysis] = useState({ 
           subject: '國文', 
           chapter: '', 
@@ -1398,7 +1411,6 @@
         const created_date = item.created_date || getDateStr(item.timestamp || Date.now());
         const chapter = item.chapter || (item.volume ? `${item.volume} - ${item.sub_subject}` : item.sub_subject) || '';
         
-        // ★ 處理舊資料轉換為新的 points 陣列
         let initPoints = item.points ? [...item.points] : [];
         if (initPoints.length === 0 && (item.concept || item.point_name)) {
             initPoints.push({
@@ -1407,7 +1419,6 @@
                 page: item.page || ''
             });
         }
-        // 補滿 3 個
         while(initPoints.length < 3) initPoints.push({point_id: '', point_name: '', page: ''});
 
         setAiAnalysis({ ...item, chapter, points: initPoints, created_date }); 
@@ -1423,7 +1434,6 @@
         
         try {
           const base64Data = base64Image.split(',')[1];
-          // 壓縮知識點以放入 Prompt
           const condensedKPs = knowledgePoints.map(kp => ({
               subj: kp.subject, chap: kp.chapter, id: kp.point_id, name: kp.point_name, pg: kp.page
           }));
@@ -1449,7 +1459,7 @@
               - 並且在解析的最後，可以親切地提醒學生去翻閱大滿貫講義的對應頁碼。
           
           4. 【最重要：數學與化學式排版】所有數學式、化學式、方程式、變數符號都必須使用 LaTeX 語法包裝！行內用單錢字號 $，獨立行用雙錢字號 $$。
-              - ⚠️【JSON 格式防呆】：因為回傳 JSON，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線 (例如 \\frac, \\times)！
+              - ⚠️【JSON 格式防呆】：因為回傳 JSON，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線 (例如 \\\\frac, \\\\times)！
           
           JSON 格式必須嚴格依照如下 (最多輸出3個 points)：
           {
@@ -1518,21 +1528,28 @@
             let parsed = { subject: '國文', chapter: '', points: [], ai_tutor: '' };
             try {
                let cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
-               cleanedText = cleanedText.replace(/\\\\n/g, '\\n')
-                                        .replace(/(?<!\\)\\times/g, '\\\\times')
-                                        .replace(/(?<!\\)\\text/g, '\\\\text')
-                                        .replace(/(?<!\\)\\frac/g, '\\\\frac')
-                                        .replace(/(?<!\\)\\Delta/g, '\\\\Delta')
-                                        .replace(/(?<!\\)\\pm/g, '\\\\pm')
-                                        .replace(/(?<!\\)\\sqrt/g, '\\\\sqrt')
-                                        .replace(/(?<!\\)\\rightarrow/g, '\\\\rightarrow');
+               
+               // 這是保證相容所有瀏覽器的安全字串取代寫法，徹底移除不支援的 Lookbehind 正則表達式
+               cleanedText = cleanedText.split('\\n').join('\\\\n')
+                                        .split('\\t').join('\\\\t');
+                                        
+               // 透過多次 split/join 來修正單一反斜線的 LaTeX，避免變成 imes 或 frac 解析錯誤
+               const safeLatexReplace = (str, token) => {
+                   return str.split('\\' + token).join('\\\\' + token).split('\\\\\\\\' + token).join('\\\\' + token);
+               };
+               cleanedText = safeLatexReplace(cleanedText, 'times');
+               cleanedText = safeLatexReplace(cleanedText, 'text');
+               cleanedText = safeLatexReplace(cleanedText, 'frac');
+               cleanedText = safeLatexReplace(cleanedText, 'Delta');
+               cleanedText = safeLatexReplace(cleanedText, 'pm');
+               cleanedText = safeLatexReplace(cleanedText, 'sqrt');
+               cleanedText = safeLatexReplace(cleanedText, 'rightarrow');
+
                parsed = JSON.parse(cleanedText);
             } catch (e) { console.error("JSON Parse Error:", e, aiResponseText); }
             
-            // ★ 將 parsed 的 points 轉換為固定長度為 3 的陣列
             let newPoints = parsed.points && Array.isArray(parsed.points) ? parsed.points : [];
             while(newPoints.length < 3) newPoints.push({point_id: '', point_name: '', page: ''});
-            // 只取前 3 個
             newPoints = newPoints.slice(0, 3);
 
             setAiAnalysis({
@@ -1559,7 +1576,6 @@
         setCurrentView('classify');
 
         try {
-          // 清理空知識點，避免存入無用資料
           const cleanedPoints = formData.points.map(p => ({
               point_id: p.point_id || '',
               point_name: p.point_name || '',
@@ -1662,8 +1678,10 @@
       const [showKey, setShowKey] = useState(false);
       const [inputProfile, setInputProfile] = useState('');
       const [profiles, setProfiles] = useState(() => {
-        const saved = localStorage.getItem('poppinsProfiles');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('poppinsProfiles');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
       });
 
       const handleQuickLogin = (profile) => {
@@ -1880,7 +1898,6 @@
                   )}
               </div>
 
-              {/* 多重知識點區塊 */}
               <div className="pt-2">
                  <label className="block text-lg font-bold text-[#b45309] mb-4 border-b border-amber-200 pb-2">🎯 選擇此題測驗的核心知識點 (最多3個)</label>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1916,7 +1933,7 @@
                                <div className="flex items-center gap-2">
                                   <Icons.BookOpen />
                                   <input 
-                                     type="number" 
+                                     type="text" 
                                      className="w-full p-2 text-base border border-amber-300 rounded-lg bg-white focus:outline-none focus:border-amber-500 text-amber-700 font-bold" 
                                      value={formData.points[idx].page} 
                                      onChange={e => handlePointInput(idx, 'page', e.target.value)} 
@@ -2310,6 +2327,15 @@
                   </div>
               </div>
           )}
+        </div>
+      );
+    }
+
+    function LoadingView({ message }) {
+      return (
+        <div className="fixed inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-50 p-6 text-center">
+          <div className="animate-spin text-[#d97706] mb-6 scale-150"><Icons.Cloud /></div>
+          <p className="text-xl font-bold text-[#d97706] whitespace-pre-wrap leading-relaxed">{message}</p>
         </div>
       );
     }
