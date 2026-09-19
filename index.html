@@ -38,9 +38,7 @@
       #print-area, #print-area * { visibility: visible; }
       #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; background-color: #ffffff !important; }
       .no-print { display: none !important; }
-      /* 調整列印邊界，適度加大左右邊界作為裝訂邊 */
       @page { margin: 0.8cm 1.5cm; size: A4 portrait; }
-      /* 縮小卡片間距，塞入更多錯題 */
       .print-card { padding: 0.15rem 0 !important; margin-bottom: 0.35rem !important; border: none !important; border-bottom: 1px dashed #e5e7eb !important; border-radius: 0 !important; box-shadow: none !important; background-color: #ffffff !important; }
       
       .print-img { 
@@ -131,7 +129,6 @@
       Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
       FontScale: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>,
       StatusDot: ({ color }) => <svg width="12" height="12" viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg>,
-      Tag: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>,
       ZoomIn: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>,
       Calendar: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
       BookOpen: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
@@ -1310,7 +1307,18 @@
       const [isEditingExisting, setIsEditingExisting] = useState(false);
       const [printWidth, setPrintWidth] = useState(null);
 
-      const [aiAnalysis, setAiAnalysis] = useState({ subject: '國文', chapter: '', point_id: '', point_name: '', page: '', concept: '', ai_tutor: '', tags: [], created_date: getTodayStr() });
+      // ★ 狀態更新：移除 tags，使用 points 陣列管理 3 個知識點
+      const [aiAnalysis, setAiAnalysis] = useState({ 
+          subject: '國文', 
+          chapter: '', 
+          points: [
+            {point_id: '', point_name: '', page: ''},
+            {point_id: '', point_name: '', page: ''},
+            {point_id: '', point_name: '', page: ''}
+          ], 
+          ai_tutor: '', 
+          created_date: getTodayStr() 
+      });
       const [loadingMsg, setLoadingMsg] = useState('');
 
       useEffect(() => {
@@ -1338,6 +1346,7 @@
               setUser(currentUser);
               if (currentUser) {
                   try {
+                      // 讀取最新的雲端知識點
                       const kpRef = fbDb.collection(db, 'artifacts', appId, 'public', 'data', 'knowledge_points');
                       const kpSnap = await fbDb.getDocs(kpRef);
                       const kps = kpSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1388,7 +1397,20 @@
         setEditTargetId(item.id);
         const created_date = item.created_date || getDateStr(item.timestamp || Date.now());
         const chapter = item.chapter || (item.volume ? `${item.volume} - ${item.sub_subject}` : item.sub_subject) || '';
-        setAiAnalysis({ ...item, chapter, tags: item.tags || [], created_date }); 
+        
+        // ★ 處理舊資料轉換為新的 points 陣列
+        let initPoints = item.points ? [...item.points] : [];
+        if (initPoints.length === 0 && (item.concept || item.point_name)) {
+            initPoints.push({
+                point_id: item.point_id || '',
+                point_name: item.point_name || item.concept,
+                page: item.page || ''
+            });
+        }
+        // 補滿 3 個
+        while(initPoints.length < 3) initPoints.push({point_id: '', point_name: '', page: ''});
+
+        setAiAnalysis({ ...item, chapter, points: initPoints, created_date }); 
         setEditedImage(item.image);
         setPrintWidth(item.printWidth || null);
         setIsEditingExisting(true);
@@ -1401,6 +1423,7 @@
         
         try {
           const base64Data = base64Image.split(',')[1];
+          // 壓縮知識點以放入 Prompt
           const condensedKPs = knowledgePoints.map(kp => ({
               subj: kp.subject, chap: kp.chapter, id: kp.point_id, name: kp.point_name, pg: kp.page
           }));
@@ -1413,10 +1436,8 @@
 
           請務必只回傳一個 JSON 格式的物件，不要包含其他文字說明或 Markdown 語法。
           
-          1. 📍【極度重要：分類判斷順序】請務必依照以下順序思考與判斷，這將決定你的 JSON 輸出：
-              - 步驟一：先辨別出這題目的「核心知識」(concept)，例如：靜力平衡、摩擦力、重力。
-              - 步驟二：根據這個核心知識，在上方資料庫中進行全局檢索，找出最吻合的知識點。
-              - 步驟三：提取該知識點的科目 (subject)、章節 (chapter)、知識點編號 (point_id)、知識點名稱 (point_name) 與頁碼 (page)。
+          1. 📍【分類判斷】：仔細看題目，這題考了哪幾個核心知識點？(一個考題可能混合 1 到 3 個核心知識)。
+              - 請在上方資料庫中進行檢索，找出最吻合的知識點。
               - 如果資料庫中找不到完全對應的，請自行推斷科目與章節，並將 point_id 和 page 留空字串。
           
           2. 【極致防呆】幾何與代數的嚴格區分：若題目出現幾何特徵，【絕對不可】分類至代數單元。
@@ -1425,20 +1446,22 @@
               - 對象是「基礎較弱的台灣國中生」，使用【最簡單、最直白、最簡短】的口吻！
               - 嚴格分段，加上 Emoji 作為標題開頭（如：💡 核心觀念、🛠️ 解題步驟、✅ 結論）。
               - 解析教學的最後，請提供題目的答案。
-              - 並且在解析的最後，可以親切地提醒學生去翻閱大滿貫講義的第幾頁 (根據你找到的 page)。
+              - 並且在解析的最後，可以親切地提醒學生去翻閱大滿貫講義的對應頁碼。
           
           4. 【最重要：數學與化學式排版】所有數學式、化學式、方程式、變數符號都必須使用 LaTeX 語法包裝！行內用單錢字號 $，獨立行用雙錢字號 $$。
               - ⚠️【JSON 格式防呆】：因為回傳 JSON，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線 (例如 \\frac, \\times)！
           
-          JSON 格式必須嚴格依照如下：
-
+          JSON 格式必須嚴格依照如下 (最多輸出3個 points)：
           {
-            "concept": "你歸納的核心知識 (簡短名詞)",
             "subject": "科目名稱",
             "chapter": "章節名稱",
-            "point_id": "知識點編號 (例: 1-01)",
-            "point_name": "知識點名稱",
-            "page": "講義頁碼 (數字)",
+            "points": [
+              {
+                 "point_id": "知識點編號 (例: 1-01)",
+                 "point_name": "知識點名稱",
+                 "page": "講義頁碼 (數字)"
+              }
+            ],
             "ai_tutor": "教學解析內容"
           }`;
 
@@ -1492,7 +1515,7 @@
           const aiResponseText = successData.candidates?.[0]?.content?.parts?.[0]?.text;
           
           if (aiResponseText) {
-            let parsed = { subject: '國文', chapter: '', point_id: '', point_name: '', page: '', concept: '未定知識點', ai_tutor: '' };
+            let parsed = { subject: '國文', chapter: '', points: [], ai_tutor: '' };
             try {
                let cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                cleanedText = cleanedText.replace(/\\\\n/g, '\\n')
@@ -1506,22 +1529,24 @@
                parsed = JSON.parse(cleanedText);
             } catch (e) { console.error("JSON Parse Error:", e, aiResponseText); }
             
+            // ★ 將 parsed 的 points 轉換為固定長度為 3 的陣列
+            let newPoints = parsed.points && Array.isArray(parsed.points) ? parsed.points : [];
+            while(newPoints.length < 3) newPoints.push({point_id: '', point_name: '', page: ''});
+            // 只取前 3 個
+            newPoints = newPoints.slice(0, 3);
+
             setAiAnalysis({
               subject: parsed.subject || '國文',
               chapter: parsed.chapter || '',
-              point_id: parsed.point_id || '',
-              point_name: parsed.point_name || '',
-              page: parsed.page || '',
-              concept: parsed.concept || '未定知識點',
+              points: newPoints,
               ai_tutor: parsed.ai_tutor || '',
-              tags: [],
               created_date: getTodayStr()
             });
           }
         } catch (error) {
           console.error(error);
           showAlert('AI 分析失敗：\n' + error.message + '\n\n您可以先手動輸入分類。');
-          setAiAnalysis({ subject: '國文', chapter: '', point_id: '', point_name: '', page: '', concept: '', ai_tutor: '', tags: [], created_date: getTodayStr() });
+          setAiAnalysis({ subject: '國文', chapter: '', points: [{point_id:'', point_name:'', page:''},{point_id:'', point_name:'', page:''},{point_id:'', point_name:'', page:''}], ai_tutor: '', created_date: getTodayStr() });
         }
         
         setLoadingMsg('');
@@ -1534,17 +1559,29 @@
         setCurrentView('classify');
 
         try {
-          const finalPrintWidth = printWidth !== null ? printWidth : (aiAnalysis.printWidth || null);
+          // 清理空知識點，避免存入無用資料
+          const cleanedPoints = formData.points.map(p => ({
+              point_id: p.point_id || '',
+              point_name: p.point_name || '',
+              page: p.page || ''
+          }));
+
+          const payload = {
+              ...formData,
+              points: cleanedPoints,
+              image: editedImage || croppedImage,
+              printWidth: printWidth !== null ? printWidth : (aiAnalysis.printWidth || null),
+              updated_at: Date.now()
+          };
+          
+          if (!editTargetId) payload.timestamp = Date.now();
+
           if (editTargetId) {
-             await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), {
-               ...formData, image: editedImage, printWidth: finalPrintWidth, updated_at: Date.now()
-             });
+             await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), payload);
              setLoadingMsg(''); showAlert('更新成功！已安全同步至雲端。'); setCurrentView('list');
           } else {
              const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
-             await FB.addDoc(colRef, {
-               ...formData, image: editedImage || croppedImage, printWidth: finalPrintWidth, timestamp: Date.now()
-             });
+             await FB.addDoc(colRef, payload);
              setLoadingMsg(''); showAlert('儲存成功！已安全同步至雲端。'); setCurrentView('dashboard');
           }
         } catch (e) {
@@ -1578,206 +1615,6 @@
           {currentView === 'classify' && <LoadingView message={loadingMsg} />}
           {currentView === 'form' && <FormView initialData={aiAnalysis} image={editedImage} knowledgePoints={knowledgePoints} onReEditImage={() => setCurrentView('edit')} onCancel={() => { if(isEditingExisting) setCurrentView('list'); else setCurrentView('edit'); }} onSave={saveMistake} />}
           {currentView === 'list' && <ListView currentProfile={currentProfile} knowledgePoints={knowledgePoints} onBack={() => setCurrentView('dashboard')} FB={FB} user={user} isDbConnected={user && FB} onFullEdit={handleFullEdit} />}
-        </div>
-      );
-    }
-
-    function FormView({ initialData, image, knowledgePoints, onCancel, onSave, onReEditImage }) {
-      const availableSubjects = useMemo(() => {
-        const subjs = new Set(knowledgePoints.map(kp => kp.subject));
-        if (subjs.size === 0) return SUBJECT_ORDER; 
-        return Array.from(subjs);
-      }, [knowledgePoints]);
-
-      const [formData, setFormData] = useState({
-        subject: availableSubjects.includes(initialData.subject) ? initialData.subject : availableSubjects[0] || '生物',
-        chapter: initialData.chapter || '',
-        point_id: initialData.point_id || '',
-        point_name: initialData.point_name || '',
-        page: initialData.page || '',
-        concept: initialData.concept || '',
-        notes: initialData.notes || '',
-        answer: initialData.answer || '',
-        ai_tutor: initialData.ai_tutor || '',
-        mastery: initialData.mastery || 'need_review',
-        tags: initialData.tags || [],
-        created_date: initialData.created_date || getTodayStr()
-      });
-
-      const [tagInput, setTagInput] = useState('');
-      const [showTutorPreview, setShowTutorPreview] = useState(false);
-
-      const availableChapters = useMemo(() => {
-         const chaps = new Set(knowledgePoints.filter(kp => kp.subject === formData.subject).map(kp => kp.chapter));
-         return Array.from(chaps);
-      }, [knowledgePoints, formData.subject]);
-
-      const availablePoints = useMemo(() => {
-         return knowledgePoints.filter(kp => kp.subject === formData.subject && kp.chapter === formData.chapter);
-      }, [knowledgePoints, formData.subject, formData.chapter]);
-
-      const handleSubjectChange = (e) => {
-        const newSubj = e.target.value;
-        const chaps = Array.from(new Set(knowledgePoints.filter(kp => kp.subject === newSubj).map(kp => kp.chapter)));
-        const firstChap = chaps[0] || '';
-        const pts = knowledgePoints.filter(kp => kp.subject === newSubj && kp.chapter === firstChap);
-        const firstPt = pts[0] || { point_id: '', point_name: '', page: '' };
-        
-        setFormData({ ...formData, subject: newSubj, chapter: firstChap, point_id: firstPt.point_id, point_name: firstPt.point_name, page: firstPt.page });
-      };
-
-      const handleChapterChange = (e) => {
-         const newChap = e.target.value;
-         const pts = knowledgePoints.filter(kp => kp.subject === formData.subject && kp.chapter === newChap);
-         const firstPt = pts[0] || { point_id: '', point_name: '', page: '' };
-         
-         setFormData({ ...formData, chapter: newChap, point_id: firstPt.point_id, point_name: firstPt.point_name, page: firstPt.page });
-      };
-
-      const handlePointChange = (e) => {
-         const newPtId = e.target.value;
-         const matchedPt = availablePoints.find(p => p.point_id === newPtId);
-         if (matchedPt) {
-             setFormData({ ...formData, point_id: matchedPt.point_id, point_name: matchedPt.point_name, page: matchedPt.page });
-         } else {
-             setFormData({ ...formData, point_id: newPtId });
-         }
-      };
-
-      const addTag = () => {
-          const t = tagInput.trim();
-          if (t && !formData.tags.includes(t)) {
-              setFormData({ ...formData, tags: [...formData.tags, t] });
-              setTagInput('');
-          }
-      };
-      const removeTag = (tagToRemove) => setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
-
-      return (
-        <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
-          <div className="bg-white p-5 shadow-sm sticky top-0 flex justify-between items-center z-10">
-            <button onClick={onCancel} className="p-2 text-gray-500 hover:text-gray-800 transition-colors"><Icons.ArrowLeft /></button>
-            <span className="font-bold text-xl text-gray-800">💾 確認並儲存</span>
-            <button onClick={() => onSave(formData)} className="px-6 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold text-lg flex items-center gap-2"><Icons.Cloud /> ☁️ 同步</button>
-          </div>
-
-          <div className="p-4 md:p-6 w-[98%] max-w-[1000px] mx-auto space-y-6">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative group">
-               <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-[400px] border border-gray-200 mx-auto" />
-               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
-                  <button onClick={onReEditImage} className="bg-white text-gray-800 px-6 py-3 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 hover:bg-gray-100 transition-colors"><Icons.Edit /> 重新編輯影像</button>
-               </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
-              <div className="flex justify-between items-center mb-2">
-                 <div className="flex items-center gap-2 text-xl"><Icons.Wand /> <span className="font-bold text-[#b45309]">🤖 AI 分類結果 (可手動修改)</span></div>
-              </div>
-
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
-                <div className="flex gap-4">
-                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
-                      <input type="radio" name="mastery" value="need_review" className="hidden" checked={formData.mastery === 'need_review'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                      <span className="text-2xl">🔴</span><span className="font-bold text-gray-700 text-lg">需再複習</span>
-                   </label>
-                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                      <input type="radio" name="mastery" value="mastered" className="hidden" checked={formData.mastery === 'mastered'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                      <span className="text-2xl">🟢</span><span className="font-bold text-gray-700 text-lg">已掌握</span>
-                   </label>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Calendar /> 建檔日期</label>
-                    <input type="date" className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-gray-700 font-bold" value={formData.created_date} onChange={e => setFormData({...formData, created_date: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Tag /> 自訂標籤</label>
-                    <div className="flex gap-2">
-                        <input className="flex-grow p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" placeholder="輸入標籤 (例如：粗心)..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
-                        <button onClick={addTag} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 rounded-xl font-bold transition-colors text-lg">加入</button>
-                    </div>
-                  </div>
-              </div>
-
-              {formData.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                     {formData.tags.map(tag => (
-                         <span key={tag} className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg flex items-center gap-2 font-bold text-sm border border-amber-200">
-                             #{tag}
-                             <button onClick={() => removeTag(tag)} className="text-amber-600 hover:text-red-500 bg-amber-200 rounded-full p-0.5"><Icons.Close /></button>
-                         </span>
-                     ))}
-                  </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2">科目</label>
-                    <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.subject} onChange={handleSubjectChange}>
-                      {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2">章節</label>
-                    {availableChapters.length > 0 ? (
-                        <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={handleChapterChange}>
-                          {availableChapters.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                    ) : (
-                        <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={e => setFormData({...formData, chapter: e.target.value})} placeholder="例如: ch1 科學方法..." />
-                    )}
-                  </div>
-              </div>
-
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">大滿貫 知識點 (選取後自動帶入名稱與頁碼)</label>
-                {availablePoints.length > 0 ? (
-                    <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_id} onChange={handlePointChange}>
-                      <option value="">-- 手動輸入或其他 --</option>
-                      {availablePoints.map(p => <option key={p.point_id} value={p.point_id}>{p.point_id} - {p.point_name}</option>)}
-                    </select>
-                ) : (
-                    <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_id} onChange={e => setFormData({...formData, point_id: e.target.value})} placeholder="例如: 1-01" />
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2">知識點名稱 / 核心知識</label>
-                    <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_name || formData.concept} onChange={e => setFormData({...formData, point_name: e.target.value, concept: e.target.value})} placeholder="例如: 科學方法流程" />
-                  </div>
-                  <div>
-                    <label className="block text-base font-bold text-amber-700 mb-2 flex items-center gap-2"><Icons.BookOpen /> 大滿貫 講義頁碼</label>
-                    <input type="number" className="w-full p-4 text-lg border border-amber-300 rounded-xl bg-amber-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-amber-800 font-bold" value={formData.page} onChange={e => setFormData({...formData, page: e.target.value})} placeholder="例如: 8" />
-                  </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-base font-bold text-gray-700">🤖 AI 老師教學</label>
-                  <button onClick={() => setShowTutorPreview(!showTutorPreview)} className="text-sm font-bold text-amber-600 hover:bg-amber-50 px-3 py-1 rounded-lg transition-colors border border-amber-200">
-                    {showTutorPreview ? '✏️ 切換為編輯模式' : '✨ 預覽數學/化學式'}
-                  </button>
-                </div>
-                {showTutorPreview ? (
-                  <div className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/30 min-h-[12rem] overflow-y-auto">
-                    <LatexText content={formData.ai_tutor} className="whitespace-pre-wrap leading-relaxed text-gray-800" />
-                  </div>
-                ) : (
-                  <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
-                )}
-              </div>
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
-                <NoteCanvas initialDataUrl={formData.notes} onChange={(dataUrl) => setFormData({...formData, notes: dataUrl})} />
-              </div>
-            </div>
-          </div>
         </div>
       );
     }
@@ -1928,11 +1765,193 @@
       );
     }
 
-    function LoadingView({ message }) {
+    function FormView({ initialData, image, knowledgePoints, onCancel, onSave, onReEditImage }) {
+      const availableSubjects = useMemo(() => {
+        const subjs = new Set(knowledgePoints.map(kp => kp.subject));
+        if (subjs.size === 0) return SUBJECT_ORDER; 
+        return Array.from(subjs);
+      }, [knowledgePoints]);
+
+      const [formData, setFormData] = useState({
+        subject: availableSubjects.includes(initialData.subject) ? initialData.subject : availableSubjects[0] || '生物',
+        chapter: initialData.chapter || '',
+        points: initialData.points || [
+          {point_id: '', point_name: '', page: ''},
+          {point_id: '', point_name: '', page: ''},
+          {point_id: '', point_name: '', page: ''}
+        ],
+        notes: initialData.notes || '',
+        answer: initialData.answer || '',
+        ai_tutor: initialData.ai_tutor || '',
+        mastery: initialData.mastery || 'need_review',
+        created_date: initialData.created_date || getTodayStr()
+      });
+
+      const [showTutorPreview, setShowTutorPreview] = useState(false);
+
+      const availableChapters = useMemo(() => {
+         const chaps = new Set(knowledgePoints.filter(kp => kp.subject === formData.subject).map(kp => kp.chapter));
+         return Array.from(chaps);
+      }, [knowledgePoints, formData.subject]);
+
+      const availablePointsForSelect = useMemo(() => {
+         return knowledgePoints.filter(kp => kp.subject === formData.subject && (!formData.chapter || kp.chapter === formData.chapter));
+      }, [knowledgePoints, formData.subject, formData.chapter]);
+
+      const handleSubjectChange = (e) => {
+        const newSubj = e.target.value;
+        setFormData({ ...formData, subject: newSubj, chapter: '' });
+      };
+
+      const handlePointSelect = (idx, selectedPointId) => {
+         const matchedPt = availablePointsForSelect.find(p => p.point_id === selectedPointId);
+         const newPoints = [...formData.points];
+         if (matchedPt) {
+             newPoints[idx] = { point_id: matchedPt.point_id, point_name: matchedPt.point_name, page: matchedPt.page };
+         } else {
+             newPoints[idx] = { ...newPoints[idx], point_id: selectedPointId };
+         }
+         setFormData({...formData, points: newPoints});
+      };
+
+      const handlePointInput = (idx, field, value) => {
+         const newPoints = [...formData.points];
+         newPoints[idx][field] = value;
+         setFormData({...formData, points: newPoints});
+      };
+
       return (
-        <div className="fixed inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-50 p-6 text-center">
-          <div className="animate-spin text-[#d97706] mb-6 scale-150"><Icons.Cloud /></div>
-          <p className="text-xl font-bold text-[#d97706] whitespace-pre-wrap leading-relaxed">{message}</p>
+        <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
+          <div className="bg-white p-5 shadow-sm sticky top-0 flex justify-between items-center z-10">
+            <button onClick={onCancel} className="p-2 text-gray-500 hover:text-gray-800 transition-colors"><Icons.ArrowLeft /></button>
+            <span className="font-bold text-xl text-gray-800">💾 確認並儲存</span>
+            <button onClick={() => onSave(formData)} className="px-6 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold text-lg flex items-center gap-2"><Icons.Cloud /> ☁️ 同步</button>
+          </div>
+
+          <div className="p-4 md:p-6 w-[98%] max-w-[1000px] mx-auto space-y-6">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative group">
+               <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-[400px] border border-gray-200 mx-auto" />
+               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                  <button onClick={onReEditImage} className="bg-white text-gray-800 px-6 py-3 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 hover:bg-gray-100 transition-colors"><Icons.Edit /> 重新編輯影像</button>
+               </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+              <div className="flex justify-between items-center mb-2">
+                 <div className="flex items-center gap-2 text-xl"><Icons.Wand /> <span className="font-bold text-[#b45309]">🤖 AI 分類結果 (可手動修改)</span></div>
+              </div>
+
+              <div>
+                <label className="block text-base font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
+                <div className="flex gap-4">
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <input type="radio" name="mastery" value="need_review" className="hidden" checked={formData.mastery === 'need_review'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
+                      <span className="text-2xl">🔴</span><span className="font-bold text-gray-700 text-lg">需再複習</span>
+                   </label>
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <input type="radio" name="mastery" value="mastered" className="hidden" checked={formData.mastery === 'mastered'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
+                      <span className="text-2xl">🟢</span><span className="font-bold text-gray-700 text-lg">已掌握</span>
+                   </label>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Calendar /> 建檔日期</label>
+                    <input type="date" className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-gray-700 font-bold" value={formData.created_date} onChange={e => setFormData({...formData, created_date: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-base font-bold text-gray-700 mb-2">科目</label>
+                    <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.subject} onChange={handleSubjectChange}>
+                      {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+              </div>
+
+              <div>
+                  <label className="block text-base font-bold text-gray-700 mb-2">章節</label>
+                  {availableChapters.length > 0 ? (
+                      <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={e => setFormData({...formData, chapter: e.target.value})}>
+                        <option value="">-- 請選擇章節 (可選) --</option>
+                        {availableChapters.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                  ) : (
+                      <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={e => setFormData({...formData, chapter: e.target.value})} placeholder="例如: ch1 科學方法..." />
+                  )}
+              </div>
+
+              {/* 多重知識點區塊 */}
+              <div className="pt-2">
+                 <label className="block text-lg font-bold text-[#b45309] mb-4 border-b border-amber-200 pb-2">🎯 選擇此題測驗的核心知識點 (最多3個)</label>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     {[0, 1, 2].map((idx) => (
+                        <div key={idx} className={`bg-amber-50/50 p-4 rounded-xl border ${formData.points[idx].point_name ? 'border-amber-400 shadow-sm bg-amber-50' : 'border-amber-100'} transition-all`}>
+                           <div className="flex justify-between items-center mb-3">
+                              <label className="text-sm font-bold text-amber-800">知識點 {idx + 1}</label>
+                              {formData.points[idx].point_name && (
+                                  <button onClick={() => handlePointInput(idx, 'point_name', '')} className="text-xs text-gray-400 hover:text-red-500">清除</button>
+                              )}
+                           </div>
+                           
+                           <select 
+                              className="w-full p-2 mb-3 text-sm border border-amber-200 rounded-lg bg-white focus:outline-none focus:border-amber-400 truncate"
+                              value={formData.points[idx].point_id}
+                              onChange={(e) => handlePointSelect(idx, e.target.value)}
+                           >
+                              <option value="">-- 從資料庫快速帶入 --</option>
+                              {availablePointsForSelect.map(p => (
+                                 <option key={p.id} value={p.point_id}>{p.point_id} - {p.point_name}</option>
+                              ))}
+                           </select>
+
+                           <div className="space-y-3">
+                               <div>
+                                  <input 
+                                     className="w-full p-2 text-base border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-amber-400 font-bold" 
+                                     value={formData.points[idx].point_name} 
+                                     onChange={e => handlePointInput(idx, 'point_name', e.target.value)} 
+                                     placeholder="輸入名稱/觀念" 
+                                  />
+                               </div>
+                               <div className="flex items-center gap-2">
+                                  <Icons.BookOpen />
+                                  <input 
+                                     type="number" 
+                                     className="w-full p-2 text-base border border-amber-300 rounded-lg bg-white focus:outline-none focus:border-amber-500 text-amber-700 font-bold" 
+                                     value={formData.points[idx].page} 
+                                     onChange={e => handlePointInput(idx, 'page', e.target.value)} 
+                                     placeholder="講義頁碼" 
+                                  />
+                               </div>
+                           </div>
+                        </div>
+                     ))}
+                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-base font-bold text-gray-700">🤖 AI 老師教學</label>
+                  <button onClick={() => setShowTutorPreview(!showTutorPreview)} className="text-sm font-bold text-amber-600 hover:bg-amber-50 px-3 py-1 rounded-lg transition-colors border border-amber-200">
+                    {showTutorPreview ? '✏️ 切換為編輯模式' : '✨ 預覽數學/化學式'}
+                  </button>
+                </div>
+                {showTutorPreview ? (
+                  <div className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/30 min-h-[12rem] overflow-y-auto">
+                    <LatexText content={formData.ai_tutor} className="whitespace-pre-wrap leading-relaxed text-gray-800" />
+                  </div>
+                ) : (
+                  <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
+                )}
+              </div>
+              <div>
+                <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
+                <NoteCanvas initialDataUrl={formData.notes} onChange={(dataUrl) => setFormData({...formData, notes: dataUrl})} />
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
@@ -2003,7 +2022,8 @@
       if (searchQuery.trim()) {
          const q = searchQuery.toLowerCase().trim();
          filteredData = filteredData.filter(m => {
-            return (m.tags && m.tags.some(tag => tag.toLowerCase().includes(q))) ||
+            const matchPoints = m.points ? m.points.some(p => p.point_name && p.point_name.toLowerCase().includes(q)) : false;
+            return matchPoints ||
             (m.concept && m.concept.toLowerCase().includes(q)) || 
             (m.point_name && m.point_name.toLowerCase().includes(q)) || 
             (m.ai_tutor && m.ai_tutor.toLowerCase().includes(q)) ||
@@ -2065,7 +2085,7 @@
               <>
                 <div className="w-[98%] max-w-[1400px] mx-auto relative mt-4">
                    <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
-                   <input type="text" placeholder="搜尋標籤、知識點名稱、章節..." className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg font-bold" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                   <input type="text" placeholder="搜尋知識點名稱、章節..." className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg font-bold" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
 
                 <div className="flex flex-col xl:flex-row gap-4 w-[98%] max-w-[1400px] mx-auto justify-between items-start xl:items-center mt-4">
@@ -2173,50 +2193,68 @@
                                 {String(index + 1).padStart(2, '0')}
                               </div>
                               
-                              <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
-                                  <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
-                                    {item.subject}
-                                  </span>
-                                  
-                                  {getDisplayChapterName(item) && (
-                                    <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">
-                                        {getDisplayChapterName(item)}
-                                    </span>
-                                  )}
-                                  
-                                  <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">
-                                    🎯 {item.point_id ? `${item.point_id} ${item.point_name || item.concept}` : item.concept}
-                                  </span>
-                                  
-                                  {item.page && (
-                                      <span className="bg-indigo-100 border border-indigo-200 print:bg-transparent print:border print:border-black text-indigo-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-black shadow-sm flex items-center gap-1">
-                                          <Icons.BookOpen /> 大滿貫 p.{item.page}
+                              <div className="flex flex-col w-full gap-2">
+                                  {/* 第1行：科目、章節、日期、狀態鈕 */}
+                                  <div className="flex flex-wrap gap-2 print:gap-1.5 items-center w-full">
+                                      <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
+                                        {item.subject}
                                       </span>
-                                  )}
-                                  
-                                  <span className="text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-gray-200">
-                                      <Icons.Calendar /> {item.created_date || getDateStr(item.timestamp)}
-                                  </span>
+                                      
+                                      {getDisplayChapterName(item) && (
+                                        <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-semibold">
+                                            {getDisplayChapterName(item)}
+                                        </span>
+                                      )}
+                                      
+                                      <span className="text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-gray-200">
+                                          <Icons.Calendar /> {item.created_date || getDateStr(item.timestamp)}
+                                      </span>
 
-                                  <button onClick={() => handleUpdateMastery(item.id, item.mastery)} className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}>
-                                    {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
-                                  </button>
+                                      <button onClick={() => handleUpdateMastery(item.id, item.mastery)} className={`no-print sm:ml-auto px-4 py-1.5 rounded-full text-base font-bold transition-colors border shadow-sm flex items-center gap-2 ${(!item.mastery || item.mastery === 'need_review') ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'}`}>
+                                        {(!item.mastery || item.mastery === 'need_review') ? '🔴 需複習' : '🟢 已掌握'}
+                                      </button>
+                                  </div>
+                                  
+                                  {/* 第2行：核心知識點與講義頁碼 (支援多筆) */}
+                                  <div className="flex flex-wrap gap-2 mt-1">
+                                      {item.points && item.points.map((p, idx) => {
+                                          if (!p.point_name) return null;
+                                          return (
+                                              <div key={idx} className="flex flex-wrap gap-2 items-center bg-gray-50/50 p-1 rounded-xl">
+                                                 <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-gray-200">
+                                                   🎯 {p.point_id ? p.point_id + ' ' : ''}{p.point_name}
+                                                 </span>
+                                                 {p.page && (
+                                                     <span className="bg-indigo-100 border border-indigo-200 print:bg-transparent print:border print:border-black text-indigo-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-black shadow-sm flex items-center gap-1">
+                                                         <Icons.BookOpen /> 大滿貫 p.{p.page}
+                                                     </span>
+                                                 )}
+                                              </div>
+                                          )
+                                      })}
+
+                                      {/* 向下相容舊版單筆資料 */}
+                                      {!item.points && item.concept && (
+                                          <div className="flex flex-wrap gap-2 items-center bg-gray-50/50 p-1 rounded-xl">
+                                              <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-gray-200">
+                                                🎯 {item.point_id ? item.point_id + ' ' : ''}{item.point_name || item.concept}
+                                              </span>
+                                              {item.page && (
+                                                  <span className="bg-indigo-100 border border-indigo-200 print:bg-transparent print:border print:border-black text-indigo-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-black shadow-sm flex items-center gap-1">
+                                                      <Icons.BookOpen /> 大滿貫 p.{item.page}
+                                                  </span>
+                                              )}
+                                          </div>
+                                      )}
+                                  </div>
                               </div>
                           </div>
 
-                          <div className="flex items-center gap-2 self-end sm:self-auto no-print flex-shrink-0">
+                          <div className="flex items-center gap-2 self-end sm:self-auto no-print flex-shrink-0 mt-3 sm:mt-0">
                               <button onClick={() => onFullEdit(item)} className="text-gray-500 hover:text-[#f59e0b] bg-gray-100 hover:bg-amber-50 px-3 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 shadow-sm"><Icons.Edit /> 完整編輯</button>
                               <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><Icons.Trash /></button>
                           </div>
                         </div>
-
-                        {item.tags && item.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-4 print:hidden">
-                                {item.tags.map(tag => (
-                                    <span key={tag} className="text-sm font-bold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1 rounded-md flex items-center gap-1.5"><Icons.Tag />{tag}</span>
-                                ))}
-                            </div>
-                        )}
                         
                         <div className="mb-5 bg-white relative group cursor-pointer" onClick={() => setLightboxImage(item.image)}>
                            <img src={item.image} alt="Question" className="max-w-full h-auto border border-gray-200 rounded-xl print:border-none print-img mx-auto print:ml-0 print:mr-auto block bg-white transition-opacity group-hover:opacity-90" style={item.printWidth ? { width: `${item.printWidth}px` } : {}} />
