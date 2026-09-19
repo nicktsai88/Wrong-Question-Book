@@ -78,7 +78,6 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } = React;
 
-    // --- STREAMING_CHUNK:Initializing Utility Functions & Constants... ---
     const getTodayStr = () => {
         const d = new Date();
         const yyyy = d.getFullYear();
@@ -97,20 +96,17 @@
     };
 
     const THEME = {
-      primary: '#f59e0b', // Amber 500
-      primaryHover: '#d97706', // Amber 600
-      textPrimary: '#b45309', // Amber 700
-      textDark: '#451a03', // Amber 900
-      bg: '#fffbeb', // Amber 50
+      primary: '#f59e0b', 
+      primaryHover: '#d97706', 
+      textPrimary: '#b45309', 
+      textDark: '#451a03', 
+      bg: '#fffbeb', 
       white: '#ffffff',
-      red: '#ef4444' // Red 500
+      red: '#ef4444' 
     };
 
-    // 保留科目陣列，以供 UI 呈現與篩選
     const SUBJECT_ORDER = ['國文', '英文', '數學', '生物', '理化', '地球科學', '歷史', '地理', '公民'];
 
-    // --- STREAMING_CHUNK:Defining UI Icons and Utilities... ---
-    // (省略不變的 Icons 宣告，直接放入程式碼中保持完整性)
     const Icons = {
       Book: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>,
       Camera: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>,
@@ -141,14 +137,19 @@
       BookOpen: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
     };
 
-    // --- STREAMING_CHUNK:Building Custom Modal System... ---
     const ModalContext = createContext();
 
     const ModalProvider = ({ children }) => {
       const [modal, setModal] = useState({ isOpen: false, type: 'alert', message: '', onConfirm: null, onCancel: null });
 
-      const showAlert = (message) => setModal({ isOpen: true, type: 'alert', message, onConfirm: null, onCancel: null });
-      const showConfirm = (message, onConfirm, onCancel = null) => setModal({ isOpen: true, type: 'confirm', message, onConfirm, onCancel });
+      const showAlert = (message) => {
+        setModal({ isOpen: true, type: 'alert', message, onConfirm: null, onCancel: null });
+      };
+
+      const showConfirm = (message, onConfirm, onCancel = null) => {
+        setModal({ isOpen: true, type: 'confirm', message, onConfirm, onCancel });
+      };
+
       const close = () => setModal({ ...modal, isOpen: false });
 
       return (
@@ -163,9 +164,13 @@
                 <p className="text-lg font-bold text-gray-800 mb-6 whitespace-pre-wrap">{modal.message}</p>
                 <div className="flex justify-center gap-3">
                   {modal.type === 'confirm' && (
-                    <button onClick={() => { close(); if(modal.onCancel) modal.onCancel(); }} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-colors w-full">取消</button>
+                    <button onClick={() => { close(); if(modal.onCancel) modal.onCancel(); }} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-colors w-full">
+                      取消
+                    </button>
                   )}
-                  <button onClick={() => { close(); if(modal.onConfirm) modal.onConfirm(); }} className="px-5 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-xl font-bold transition-colors w-full">確定</button>
+                  <button onClick={() => { close(); if(modal.onConfirm) modal.onConfirm(); }} className="px-5 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-xl font-bold transition-colors w-full">
+                    確定
+                  </button>
                 </div>
               </div>
             </div>
@@ -173,9 +178,9 @@
         </ModalContext.Provider>
       );
     };
+
     const useModal = () => useContext(ModalContext);
 
-    // --- STREAMING_CHUNK:Setting up LaTeX rendering... ---
     function LatexText({ content, className }) {
       const containerRef = useRef(null);
       useEffect(() => {
@@ -196,7 +201,6 @@
       return <div ref={containerRef} className={className}></div>;
     }
 
-    // --- STREAMING_CHUNK:Configuring High-Performance NoteCanvas... ---
     function NoteCanvas({ initialDataUrl, onChange }) {
       const { showConfirm } = useModal();
       const containerRef = useRef(null);
@@ -215,7 +219,9 @@
       useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
-        const handleTouchMove = (e) => { if (e.cancelable) e.preventDefault(); };
+        const handleTouchMove = (e) => {
+           if (e.cancelable) e.preventDefault();
+        };
         container.addEventListener('touchmove', handleTouchMove, { passive: false });
         return () => container.removeEventListener('touchmove', handleTouchMove);
       }, []);
@@ -231,7 +237,9 @@
           
           if (initialDataUrl && initialDataUrl.startsWith('data:image')) {
               const img = new Image();
-              img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              img.onload = () => {
+                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              };
               img.src = initialDataUrl;
           }
       }, []);
@@ -241,13 +249,21 @@
           const rect = canvasRectRef.current || canvas.getBoundingClientRect();
           const scaleX = canvas.width / rect.width;
           const scaleY = canvas.height / rect.height;
-          return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY, scaleX };
+          return {
+              x: (clientX - rect.left) * scaleX,
+              y: (clientY - rect.top) * scaleY,
+              scaleX
+          };
       };
 
       const startDraw = (e) => {
           activePointers.current.set(e.pointerId, e);
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
-          if (activePointers.current.size >= 2) { isDrawing.current = false; return; }
+          
+          if (activePointers.current.size >= 2) {
+             isDrawing.current = false;
+             return;
+          }
 
           isDrawing.current = true;
           canvasRectRef.current = canvasRef.current.getBoundingClientRect();
@@ -265,7 +281,9 @@
       const moveDraw = (e) => {
           if (!activePointers.current.has(e.pointerId)) return;
           activePointers.current.set(e.pointerId, e);
-          if (activePointers.current.size >= 2 || !isDrawing.current) return;
+
+          if (activePointers.current.size >= 2) return;
+          if (!isDrawing.current) return;
           
           const pointer = e;
           const ctx = ctxRef.current;
@@ -277,7 +295,8 @@
           ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : color;
           
           const eventsToProcess = (pointer.nativeEvent && typeof pointer.nativeEvent.getCoalescedEvents === 'function')
-              ? pointer.nativeEvent.getCoalescedEvents() : [pointer.nativeEvent || pointer];
+              ? pointer.nativeEvent.getCoalescedEvents()
+              : [pointer.nativeEvent || pointer];
 
           ctx.beginPath();
           ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
@@ -330,8 +349,12 @@
                       <button onClick={() => { setMode('pen'); setColor('#000000'); }} className={`w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 ${mode === 'pen' && color === '#000000' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#000000'}} title="黑筆"></button>
                       <button onClick={() => { setMode('pen'); setColor('#ef4444'); }} className={`w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 ${mode === 'pen' && color === '#ef4444' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#ef4444'}} title="紅筆"></button>
                       <button onClick={() => { setMode('pen'); setColor('#3b82f6'); }} className={`w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 ${mode === 'pen' && color === '#3b82f6' ? 'scale-125 border-gray-400 shadow-md' : 'border-transparent'}`} style={{backgroundColor: '#3b82f6'}} title="藍筆"></button>
+                      
                       <div className="w-px h-6 bg-amber-200 mx-1"></div>
-                      <button onClick={() => setMode('eraser')} className={`p-2 rounded-lg transition-colors flex items-center gap-1 font-bold text-sm flex-shrink-0 ${mode === 'eraser' ? 'bg-amber-600 text-white shadow-md' : 'text-gray-600 hover:bg-amber-100'}`}><Icons.Eraser /> 橡皮擦</button>
+                      
+                      <button onClick={() => setMode('eraser')} className={`p-2 rounded-lg transition-colors flex items-center gap-1 font-bold text-sm flex-shrink-0 ${mode === 'eraser' ? 'bg-amber-600 text-white shadow-md' : 'text-gray-600 hover:bg-amber-100'}`}>
+                          <Icons.Eraser /> 橡皮擦
+                      </button>
                   </div>
                   
                   <div className="flex items-center gap-2 overflow-x-auto sm:ml-2">
@@ -359,13 +382,909 @@
                   </button>
               </div>
               <div ref={containerRef} className="w-full bg-gray-100 touch-none flex-grow" style={{ minHeight: '350px' }}>
-                  <canvas ref={canvasRef} className="w-full h-full cursor-crosshair touch-none block" style={{ objectFit: 'contain' }} onPointerDown={startDraw} onPointerMove={moveDraw} onPointerUp={endDraw} onPointerCancel={endDraw} onPointerOut={endDraw} />
+                  <canvas 
+                      ref={canvasRef}
+                      className="w-full h-full cursor-crosshair touch-none block"
+                      style={{ objectFit: 'contain' }}
+                      onPointerDown={startDraw}
+                      onPointerMove={moveDraw}
+                      onPointerUp={endDraw}
+                      onPointerCancel={endDraw}
+                      onPointerOut={endDraw}
+                  />
               </div>
           </div>
       );
     }
 
-    // --- STREAMING_CHUNK:Building Main App Component... ---
+    function solveMatrix(A, b) {
+      const n = 8;
+      for (let i = 0; i < n; i++) {
+        let max = i;
+        for (let j = i + 1; j < n; j++) if (Math.abs(A[j][i]) > Math.abs(A[max][i])) max = j;
+        [A[i], A[max]] = [A[max], A[i]];
+        [b[i], b[max]] = [b[max], b[i]];
+        for (let j = i + 1; j < n; j++) {
+          const factor = A[j][i] / A[i][i];
+          b[j] -= factor * b[i];
+          for (let k = i; k < n; k++) A[j][k] -= factor * A[i][k];
+        }
+      }
+      const x = new Array(n).fill(0);
+      for (let i = n - 1; i >= 0; i--) {
+        let sum = b[i];
+        for (let j = i + 1; j < n; j++) sum -= A[i][j] * x[j];
+        x[i] = sum / A[i][i];
+      }
+      return x;
+    }
+
+    function getHomography(src, dst) {
+      const A = [], B = [];
+      for (let i = 0; i < 4; i++) {
+        const u = dst[i].x, v = dst[i].y, x = src[i].x, y = src[i].y;
+        A.push([u, v, 1, 0, 0, 0, -x * u, -x * v]); B.push(x);
+        A.push([0, 0, 0, u, v, 1, -y * u, -y * v]); B.push(y);
+      }
+      return solveMatrix(A, B);
+    }
+
+    function CropView({ imageUrl, onCancel, onComplete, onUpdateRawImage }) {
+      const containerRef = useRef(null);
+      const imgRef = useRef(null);
+      
+      const [pts, setPts] = useState([
+        { x: 10, y: 10 }, { x: 90, y: 10 }, 
+        { x: 90, y: 90 }, { x: 10, y: 90 }
+      ]);
+      const [draggingIdx, setDraggingIdx] = useState(null);
+
+      const startDrag = (e, idx) => {
+        e.preventDefault();
+        setDraggingIdx(idx);
+      };
+
+      const onDrag = useCallback((e) => {
+        if (draggingIdx === null || !containerRef.current) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const rect = containerRef.current.getBoundingClientRect();
+        
+        let nx = ((clientX - rect.left) / rect.width) * 100;
+        let ny = ((clientY - rect.top) / rect.height) * 100;
+        nx = Math.max(0, Math.min(100, nx));
+        ny = Math.max(0, Math.min(100, ny));
+
+        setPts(prev => {
+          const next = [...prev];
+          next[draggingIdx] = { x: nx, y: ny };
+          
+          if (draggingIdx === 0) { 
+            next[1] = { ...next[1], y: ny }; 
+            next[3] = { ...next[3], x: nx }; 
+          } else if (draggingIdx === 1) { 
+            next[0] = { ...next[0], y: ny }; 
+            next[2] = { ...next[2], x: nx }; 
+          } else if (draggingIdx === 2) { 
+            next[3] = { ...next[3], y: ny }; 
+            next[1] = { ...next[1], x: nx }; 
+          } else if (draggingIdx === 3) { 
+            next[2] = { ...next[2], y: ny }; 
+            next[0] = { ...next[0], x: nx }; 
+          }
+          return next;
+        });
+      }, [draggingIdx]);
+
+      const endDrag = () => setDraggingIdx(null);
+
+      useEffect(() => {
+        if (draggingIdx !== null) {
+          window.addEventListener('mousemove', onDrag);
+          window.addEventListener('mouseup', endDrag);
+          window.addEventListener('touchmove', onDrag, { passive: false });
+          window.addEventListener('touchend', endDrag);
+        }
+        return () => {
+          window.removeEventListener('mousemove', onDrag);
+          window.removeEventListener('mouseup', endDrag);
+          window.removeEventListener('touchmove', onDrag);
+          window.removeEventListener('touchmove', endDrag);
+        };
+      }, [draggingIdx, onDrag]);
+
+      const handleRotate = () => {
+        const img = new Image();
+        img.onload = () => {
+          const cvs = document.createElement('canvas');
+          cvs.width = img.height;
+          cvs.height = img.width;
+          const ctx = cvs.getContext('2d');
+          ctx.translate(cvs.width / 2, cvs.height / 2);
+          ctx.rotate(90 * Math.PI / 180);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          onUpdateRawImage(cvs.toDataURL('image/jpeg', 1.0));
+          setPts([{ x: 10, y: 10 }, { x: 90, y: 10 }, { x: 90, y: 90 }, { x: 10, y: 90 }]);
+        };
+        img.src = imageUrl;
+      };
+
+      const handleConfirm = () => {
+        const img = imgRef.current;
+        const srcW = img.naturalWidth;
+        const srcH = img.naturalHeight;
+
+        const srcPts = pts.map(p => ({ x: (p.x / 100) * srcW, y: (p.y / 100) * srcH }));
+
+        const dist = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        const outW = Math.round(Math.max(dist(srcPts[0], srcPts[1]), dist(srcPts[3], srcPts[2])));
+        const outH = Math.round(Math.max(dist(srcPts[0], srcPts[3]), dist(srcPts[1], srcPts[2])));
+        
+        const dstPts = [{x:0, y:0}, {x:outW, y:0}, {x:outW, y:outH}, {x:0, y:outH}];
+        const H_matrix = getHomography(srcPts, dstPts);
+
+        const srcCvs = document.createElement('canvas');
+        srcCvs.width = srcW; srcCvs.height = srcH;
+        const srcCtx = srcCvs.getContext('2d');
+        srcCtx.drawImage(img, 0, 0);
+        const srcData = srcCtx.getImageData(0, 0, srcW, srcH).data;
+
+        const dstCvs = document.createElement('canvas');
+        dstCvs.width = outW; dstCvs.height = outH;
+        const dstCtx = dstCvs.getContext('2d');
+        const dstImgData = dstCtx.createImageData(outW, outH);
+        const dstData = dstImgData.data;
+
+        for (let y = 0; y < outH; y++) {
+          for (let x = 0; x < outW; x++) {
+            const z = H_matrix[6] * x + H_matrix[7] * y + 1;
+            const sx = Math.round((H_matrix[0] * x + H_matrix[1] * y + H_matrix[2]) / z);
+            const sy = Math.round((H_matrix[3] * x + H_matrix[4] * y + H_matrix[5]) / z);
+
+            const dstIdx = (y * outW + x) * 4;
+            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH) {
+              const srcIdx = (sy * srcW + sx) * 4;
+              dstData[dstIdx] = srcData[srcIdx];
+              dstData[dstIdx+1] = srcData[srcIdx+1];
+              dstData[dstIdx+2] = srcData[srcIdx+2];
+              dstData[dstIdx+3] = srcData[srcIdx+3];
+            } else {
+              dstData[dstIdx+3] = 0; 
+            }
+          }
+        }
+        dstCtx.putImageData(dstImgData, 0, 0);
+        
+        let outUrl = dstCvs.toDataURL('image/webp', 0.85);
+        if (outUrl.startsWith('data:image/png')) outUrl = dstCvs.toDataURL('image/jpeg', 0.85);
+        onComplete(outUrl);
+      };
+
+      const polygonPoints = pts.map(p => `${p.x},${p.y}`).join(' ');
+
+      return (
+        <div className="fixed inset-0 bg-gray-900 flex flex-col z-50">
+          <div className="flex justify-between items-center p-5 text-white bg-gray-800 shadow-md z-20">
+            <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
+            <span className="text-lg font-bold">✂️ 第一步：透視校正裁切</span>
+            <button onClick={handleRotate} className="p-2 px-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 text-base font-bold"><Icons.Rotate /> 旋轉</button>
+          </div>
+          
+          <div className="flex-grow relative overflow-hidden flex items-center justify-center p-4">
+            <div ref={containerRef} className="relative inline-block touch-none" style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 160px)' }}>
+                <img 
+                  ref={imgRef} src={imageUrl} alt="To crop" className="block pointer-events-none" 
+                  style={{ maxWidth: '100%', maxHeight: 'calc(100vh - 160px)', width: 'auto', height: 'auto' }}
+                />
+                
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                  <defs>
+                    <mask id="crop-mask">
+                      <rect width="100" height="100" fill="white" />
+                      <polygon points={polygonPoints} fill="black" />
+                    </mask>
+                  </defs>
+                  <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask="url(#crop-mask)" />
+                  <polygon points={polygonPoints} fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="1,1" vectorEffect="non-scaling-stroke" />
+                </svg>
+
+                <div className="absolute inset-0 z-20 pointer-events-none">
+                  {pts.map((pt, i) => (
+                     <div key={i} className="absolute w-10 h-10 bg-white border-4 border-[#f59e0b] rounded-full shadow-lg pointer-events-auto cursor-move transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+                          style={{ top: `${pt.y}%`, left: `${pt.x}%` }}
+                          onMouseDown={(e) => startDrag(e, i)} onTouchStart={(e) => startDrag(e, i)}>
+                          <div className="w-2 h-2 bg-[#f59e0b] rounded-full"></div>
+                     </div>
+                  ))}
+                </div>
+            </div>
+          </div>
+
+          <div className="p-6 bg-white rounded-t-3xl flex gap-5 justify-between items-center shadow-lg z-20">
+             <button onClick={onCancel} className="px-6 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold text-lg flex-1">🖼️ 重新選圖</button>
+             <button onClick={handleConfirm} className="px-6 py-4 bg-[#f59e0b] text-[#ffffff] rounded-xl font-bold text-lg flex-1 flex justify-center items-center gap-2 hover:bg-[#d97706] transition-colors">下一步 ➡️</button>
+          </div>
+        </div>
+      );
+    }
+
+    function EditView({ imageUrl, onCancel, onComplete }) {
+      const { showAlert } = useModal();
+      const containerRef = useRef(null);
+      const canvasRef = useRef(null);
+      const cursorRef = useRef(null);
+      const ctxRef = useRef(null); 
+      const isDrawingRef = useRef(false);
+      const lastPosRef = useRef({ x: 0, y: 0 });
+      
+      const activePointers = useRef(new Map());
+      const canvasRectRef = useRef(null);
+
+      const [mode, setMode] = useState('none');
+      const historyRef = useRef([]); 
+      const [canUndo, setCanUndo] = useState(false);
+      
+      const [eraserSize, setEraserSize] = useState(40);
+      const [penSize, setPenSize] = useState(6);
+      const [penColor, setPenColor] = useState('#ef4444');
+      
+      const [showSizePicker, setShowSizePicker] = useState(false);
+      const [showPenPicker, setShowPenPicker] = useState(false);
+      const [isInteracting, setIsInteracting] = useState(false); 
+
+      const [isOcrLoading, setIsOcrLoading] = useState(false);
+      const [ocrProgress, setOcrProgress] = useState('');
+      
+      const [canvasDim, setCanvasDim] = useState({ w: 0, h: 0 });
+      const [exportScale, setExportScale] = useState(1);
+      const [pan, setPan] = useState({ x: 0, y: 0 });
+      const [rotation, setRotation] = useState(0); 
+      const [isPanning, setIsPanning] = useState(false);
+      const touchRef = useRef({ dist: 0, angle: 0 }); 
+      const panRef = useRef({ startX: 0, startY: 0, startPanX: 0, startPanY: 0 });
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctxRef.current = ctx; 
+        const img = new Image();
+        img.onload = () => {
+          const maxWidth = 2500; 
+          let w = img.width, h = img.height;
+          if (w > maxWidth) { h = (maxWidth / w) * h; w = maxWidth; }
+          canvas.width = w; canvas.height = h;
+          setCanvasDim({ w, h });
+          ctx.drawImage(img, 0, 0, w, h);
+          historyRef.current = [];
+          setCanUndo(false);
+
+          if (containerRef.current) {
+             const rect = containerRef.current.getBoundingClientRect();
+             const initScale = Math.min((rect.width - 40) / w, (rect.height - 100) / h, 1);
+             setExportScale(initScale);
+          }
+        };
+        img.src = imageUrl;
+      }, [imageUrl]);
+
+      useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const handleTouchMove = (e) => {
+           if (mode !== 'none' && e.cancelable) {
+              e.preventDefault();
+           }
+        };
+        container.addEventListener('touchmove', handleTouchMove, { passive: false });
+        return () => container.removeEventListener('touchmove', handleTouchMove);
+      }, [mode]);
+
+      const saveState = () => {
+        const cvs = canvasRef.current;
+        historyRef.current.push(ctxRef.current.getImageData(0, 0, cvs.width, cvs.height));
+        if (historyRef.current.length > 10) historyRef.current.shift(); 
+        setCanUndo(true); 
+      };
+
+      const handleUndo = () => {
+        if (historyRef.current.length === 0) return;
+        const lastState = historyRef.current.pop();
+        ctxRef.current.putImageData(lastState, 0, 0);
+        setCanUndo(historyRef.current.length > 0);
+      };
+
+      const toggleCursor = (visible) => {
+          if (!cursorRef.current) return;
+          if (visible && (mode === 'eraser' || mode === 'pen')) {
+              cursorRef.current.style.opacity = mode === 'pen' ? '0.8' : '1';
+          } else {
+              cursorRef.current.style.opacity = '0';
+          }
+      };
+
+      const updateCursorPos = (clientX, clientY) => {
+        if ((mode !== 'eraser' && mode !== 'pen') || !cursorRef.current) return;
+        cursorRef.current.style.transform = `translate3d(calc(${clientX}px - 50%), calc(${clientY}px - 50%), 0)`;
+      };
+
+      const getCanvasPos = (clientX, clientY) => {
+        const canvas = canvasRef.current;
+        const rect = canvasRectRef.current || canvas.getBoundingClientRect();
+        
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        let dx = clientX - centerX;
+        let dy = clientY - centerY;
+        
+        const rad = -rotation * (Math.PI / 180);
+        const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+        const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+        
+        const x = rx / exportScale + canvas.width / 2;
+        const y = ry / exportScale + canvas.height / 2;
+        
+        return { x, y, scaleX: 1 / exportScale };
+      };
+
+      const startAction = (e) => {
+        activePointers.current.set(e.pointerId, e);
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
+        setIsInteracting(true); 
+
+        if (activePointers.current.size >= 2) {
+            if (isDrawingRef.current) return; 
+            const pts = Array.from(activePointers.current.values());
+            const dx = pts[1].clientX - pts[0].clientX;
+            const dy = pts[1].clientY - pts[0].clientY;
+            touchRef.current.dist = Math.hypot(dx, dy);
+            touchRef.current.angle = Math.atan2(dy, dx) * (180 / Math.PI); 
+            return;
+        }
+
+        const pointer = e;
+        if (mode === 'scale' || mode === 'rotate') {
+            setIsPanning(true);
+            panRef.current = { startX: pointer.clientX, startY: pointer.clientY, startPanX: pan.x, startPanY: pan.y };
+        } else if (mode === 'eraser' || mode === 'pen') {
+            updateCursorPos(pointer.clientX, pointer.clientY);
+            toggleCursor(true);
+            saveState();
+            isDrawingRef.current = true;
+            
+            canvasRectRef.current = canvasRef.current.getBoundingClientRect();
+            const { x, y, scaleX } = getCanvasPos(pointer.clientX, pointer.clientY);
+            lastPosRef.current = { x, y };
+
+            const ctx = ctxRef.current;
+            const currentSize = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
+            ctx.fillStyle = mode === 'eraser' ? '#ffffff' : penColor;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+      };
+
+      const moveAction = (e) => {
+        if (!activePointers.current.has(e.pointerId)) return;
+        activePointers.current.set(e.pointerId, e);
+
+        if (activePointers.current.size >= 2) {
+            if (isDrawingRef.current) return;
+            const pts = Array.from(activePointers.current.values());
+            const dx = pts[1].clientX - pts[0].clientX;
+            const dy = pts[1].clientY - pts[0].clientY;
+            const dist = Math.hypot(dx, dy);
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI); 
+
+            if (mode === 'scale') {
+                if (touchRef.current.dist > 0) {
+                    const deltaScale = dist / touchRef.current.dist;
+                    setExportScale(prev => Math.min(Math.max(prev * deltaScale, 0.2), 5));
+                }
+            } else if (mode === 'rotate') {
+                if (touchRef.current.angle !== undefined) {
+                    let deltaAngle = angle - touchRef.current.angle;
+                    if (deltaAngle > 180) deltaAngle -= 360;
+                    if (deltaAngle < -180) deltaAngle += 360;
+                    setRotation(prev => prev + deltaAngle);
+                }
+            }
+
+            touchRef.current.dist = dist;
+            touchRef.current.angle = angle;
+            return;
+        }
+
+        const pointer = e;
+        if ((mode === 'scale' || mode === 'rotate') && isPanning) {
+            const dx = pointer.clientX - panRef.current.startX;
+            const dy = pointer.clientY - panRef.current.startY;
+            setPan({ x: panRef.current.startPanX + dx, y: panRef.current.startPanY + dy });
+        } else if ((mode === 'eraser' || mode === 'pen') && isDrawingRef.current) {
+            updateCursorPos(pointer.clientX, pointer.clientY);
+            
+            const ctx = ctxRef.current;
+            const { scaleX } = getCanvasPos(pointer.clientX, pointer.clientY);
+            
+            ctx.lineWidth = (mode === 'eraser' ? eraserSize : penSize) * scaleX;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = mode === 'eraser' ? '#ffffff' : penColor;
+            
+            const eventsToProcess = (pointer.nativeEvent && typeof pointer.nativeEvent.getCoalescedEvents === 'function')
+                ? pointer.nativeEvent.getCoalescedEvents()
+                : [pointer.nativeEvent || pointer];
+
+            ctx.beginPath();
+            ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
+            
+            let lastPos = lastPosRef.current;
+            for (let i = 0; i < eventsToProcess.length; i++) {
+                const ev = eventsToProcess[i];
+                const { x, y } = getCanvasPos(ev.clientX, ev.clientY);
+                ctx.lineTo(x, y);
+                lastPos = { x, y };
+            }
+            ctx.stroke();
+            lastPosRef.current = lastPos;
+        }
+      };
+
+      const endAction = (e) => {
+        if (e && e.pointerId) {
+            activePointers.current.delete(e.pointerId);
+            try { e.currentTarget.releasePointerCapture(e.pointerId); } catch(err) {}
+        } else {
+            activePointers.current.clear();
+        }
+
+        if (activePointers.current.size === 0) {
+            setIsInteracting(false); 
+            if (isPanning) setIsPanning(false);
+            if (isDrawingRef.current) {
+                isDrawingRef.current = false;
+                if (ctxRef.current) ctxRef.current.beginPath();
+            }
+            touchRef.current.dist = 0;
+            canvasRectRef.current = null; 
+        }
+      };
+
+      const handleWheel = (e) => {
+        if (mode === 'scale') {
+           e.preventDefault();
+           const delta = e.deltaY > 0 ? 0.95 : 1.05;
+           setExportScale(prev => Math.min(Math.max(prev * delta, 0.2), 5));
+        } else if (mode === 'rotate') {
+           e.preventDefault();
+           const deltaAngle = e.deltaY > 0 ? -2 : 2; 
+           setRotation(prev => prev + deltaAngle);
+        }
+      };
+
+      const handleAutoResize = async () => {
+        if (isOcrLoading) return;
+        if (!window.Tesseract) {
+            showAlert('Tesseract.js OCR 引擎尚未載入完成，請稍候再試。');
+            return;
+        }
+        setIsOcrLoading(true);
+        setOcrProgress('正在初始化 AI 視覺掃描引擎...');
+        try {
+            const rawCanvas = document.createElement('canvas');
+            rawCanvas.width = canvasDim.w;
+            rawCanvas.height = canvasDim.h;
+            const ctx = rawCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvasDim.w, canvasDim.h);
+            ctx.drawImage(canvasRef.current, 0, 0);
+            const dataUrl = rawCanvas.toDataURL('image/jpeg');
+
+            setOcrProgress('正在準備繁體中文辨識模型\n(初次載入可能需要 5-10 秒下載，請稍候)...');
+
+            const worker = await window.Tesseract.createWorker('chi_tra', 1, {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        setOcrProgress(`正在深度掃描並分析字體大小... ${Math.round(m.progress * 100)}%`);
+                    } else if (m.status && m.progress) {
+                        setOcrProgress(`引擎模型準備中...\n(${m.status}: ${Math.round(m.progress * 100)}%)`);
+                    }
+                }
+            });
+            
+            const ret = await worker.recognize(dataUrl);
+            await worker.terminate();
+
+            const symbols = ret.data.symbols || [];
+            if (symbols.length === 0) {
+                showAlert('分析失敗：在圖片中找不到足夠清晰的文字！');
+                setIsOcrLoading(false);
+                return;
+            }
+
+            let validHeights = [];
+            for (const sym of symbols) {
+                const text = sym.text ? sym.text.trim() : '';
+                if (text && text.match(/[\u4e00-\u9fa5]/)) {
+                    const w = sym.bbox.x1 - sym.bbox.x0;
+                    const h = sym.bbox.y1 - sym.bbox.y0;
+                    if (h < 10 || h > canvasDim.h * 0.3) continue;
+                    const ratio = w / h;
+                    if (ratio > 0.7 && ratio < 1.3) validHeights.push(h);
+                }
+            }
+
+            if (validHeights.length < 3) {
+                for (const sym of symbols) {
+                    const w = sym.bbox.x1 - sym.bbox.x0;
+                    const h = sym.bbox.y1 - sym.bbox.y0;
+                    if (h < 10 || h > canvasDim.h * 0.3) continue;
+                    const ratio = w / h;
+                    if (ratio > 0.7 && ratio < 1.3) validHeights.push(h);
+                }
+            }
+            
+            if (validHeights.length === 0) {
+                 showAlert('分析失敗：找不到適合評估尺寸的文字特徵！');
+                 setIsOcrLoading(false);
+                 return;
+            }
+
+            validHeights.sort((a,b) => a-b);
+            const q1 = validHeights[Math.floor((validHeights.length / 4))];
+            const q3 = validHeights[Math.floor((validHeights.length * (3 / 4)))];
+            const iqr = q3 - q1;
+            const lowerBound = q1 - 1.5 * iqr;
+            const upperBound = q3 + 1.5 * iqr;
+            
+            const filteredHeights = validHeights.filter(h => h >= lowerBound && h <= upperBound);
+            const finalHeights = filteredHeights.length > 0 ? filteredHeights : validHeights;
+            const sum = finalHeights.reduce((a, b) => a + b, 0);
+            const representativeHeight = sum / finalHeights.length;
+
+            const TARGET_TEXT_HEIGHT = 13; 
+            const newScale = TARGET_TEXT_HEIGHT / representativeHeight;
+
+            setExportScale(Math.min(Math.max(newScale, 0.2), 5));
+            setMode('scale');
+            
+        } catch (e) {
+            console.error(e);
+            showAlert('自動辨識縮放發生錯誤：' + e.message);
+        }
+        setIsOcrLoading(false);
+      };
+
+      const handleComplete = () => {
+        const canvas = canvasRef.current;
+        const finalCanvas = document.createElement('canvas');
+        
+        const rad = rotation * Math.PI / 180;
+        const absCos = Math.abs(Math.cos(rad));
+        const absSin = Math.abs(Math.sin(rad));
+        
+        const baseW = canvas.width * exportScale;
+        const baseH = canvas.height * exportScale;
+        
+        const TARGET_PRINT_WIDTH = 2000; 
+        let resolutionMultiplier = TARGET_PRINT_WIDTH / baseW;
+        resolutionMultiplier = Math.max(1.5, Math.min(resolutionMultiplier, 4));
+        
+        const w = baseW * resolutionMultiplier;
+        const h = baseH * resolutionMultiplier;
+        
+        let finalW = w * absCos + h * absSin;
+        let finalH = w * absSin + h * absCos;
+        
+        const MAX_AREA = 12000000;
+        let scaleDown = 1;
+        if (finalW * finalH > MAX_AREA) {
+           scaleDown = Math.sqrt(MAX_AREA / (finalW * finalH));
+           finalW *= scaleDown;
+           finalH *= scaleDown;
+        }
+        
+        finalCanvas.width = finalW;
+        finalCanvas.height = finalH;
+        
+        const ctx = finalCanvas.getContext('2d');
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, finalW, finalH);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        ctx.translate(finalW / 2, finalH / 2);
+        ctx.rotate(rad);
+        ctx.scale(scaleDown, scaleDown);
+        ctx.drawImage(canvas, -w / 2, -h / 2, w, h);
+        
+        const baseBoundingW = baseW * absCos + baseH * absSin;
+        
+        let outDataUrl = finalCanvas.toDataURL('image/webp', 0.85);
+        if (outDataUrl.startsWith('data:image/png') || outDataUrl === 'data:,') {
+            outDataUrl = finalCanvas.toDataURL('image/jpeg', 0.85);
+        }
+        
+        onComplete(outDataUrl, baseBoundingW);
+      };
+
+      const handleRemoveColoredPen = () => {
+        setShowSizePicker(false);
+        setShowPenPicker(false);
+        setMode('none');
+        saveState();
+        const canvas = canvasRef.current, ctx = ctxRef.current || canvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height), data = imgData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i+1], b = data[i+2];
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const diff = max - min;
+          const isYellowishPaper = r > 160 && g > 150 && b < r - 20;
+          if (diff > 30 && !isYellowishPaper) {
+            data[i] = 255; data[i+1] = 255; data[i+2] = 255;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      };
+
+      const handleRemovePencil = () => {
+        setShowSizePicker(false);
+        setShowPenPicker(false);
+        setMode('none');
+        saveState();
+        const canvas = canvasRef.current, ctx = ctxRef.current || canvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height), data = imgData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+          if (lum > 110) { 
+            data[i] = 255; data[i+1] = 255; data[i+2] = 255; 
+          } else if (lum < 70) {
+            data[i] = 0; data[i+1] = 0; data[i+2] = 0; 
+          } else {
+            const val = (lum - 70) * (255 / 40);
+            data[i] = val; data[i+1] = val; data[i+2] = val;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      };
+
+      const handleRemoveBackground = () => {
+        setShowSizePicker(false);
+        setShowPenPicker(false);
+        setMode('none');
+        saveState();
+        const canvas = canvasRef.current, ctx = ctxRef.current || canvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height), data = imgData.data;
+        const threshold = 170; 
+        for (let i = 0; i < data.length; i += 4) {
+          const luminance = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+          if (luminance > threshold) {
+            data[i] = 255; data[i+1] = 255; data[i+2] = 255;
+          } else {
+            data[i] = Math.max(0, data[i] - 40); data[i+1] = Math.max(0, data[i+1] - 40); data[i+2] = Math.max(0, data[i+2] - 40);
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      };
+
+      return (
+        <div className="fixed inset-0 bg-gray-100 flex flex-col z-50">
+           <div 
+             ref={cursorRef}
+             className="fixed z-50 pointer-events-none rounded-full"
+             style={{
+               display: (mode === 'eraser' || mode === 'pen') ? 'block' : 'none',
+               left: 0, top: 0, 
+               width: mode === 'eraser' ? eraserSize : penSize, 
+               height: mode === 'eraser' ? eraserSize : penSize,
+               transform: 'translate3d(-1000px, -1000px, 0)', 
+               boxShadow: mode === 'eraser' ? '0 0 0 2px black, inset 0 0 0 2px white' : '0 0 0 1px white, inset 0 0 0 1px black',
+               backgroundColor: mode === 'eraser' ? 'rgba(255,255,255,0.3)' : penColor,
+               opacity: 0, 
+               willChange: 'transform, opacity' 
+             }}
+           />
+
+           <div className="flex justify-between items-center p-5 bg-white shadow-sm z-10">
+            <button onClick={onCancel} className="p-2"><Icons.ArrowLeft /></button>
+            <div className="flex items-center gap-4">
+               <span className="text-lg font-bold text-gray-800 hidden sm:inline">🎨 第二步：影像處理</span>
+               {canUndo && (
+                  <button onClick={handleUndo} className="flex items-center gap-2 text-base bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-bold transition-colors">
+                     <Icons.Undo /> ↩️ 復原
+                  </button>
+               )}
+            </div>
+            <button onClick={handleComplete} className="px-5 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg text-base font-bold">
+              ✅ 完成
+            </button>
+          </div>
+
+          {isOcrLoading && (
+              <div className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center text-white p-6 text-center backdrop-blur-sm">
+                 <div className="animate-spin text-[#f59e0b] mb-6 scale-150"><Icons.Settings /></div>
+                 <h3 className="text-2xl font-bold mb-3">🤖 AI 正在掃描全圖文字尺寸</h3>
+                 <p className="text-amber-200 font-bold text-lg whitespace-pre-wrap leading-relaxed">{ocrProgress}</p>
+              </div>
+          )}
+
+          <div ref={containerRef} className="flex-grow overflow-hidden flex items-center justify-center p-4 touch-none relative bg-gray-200 shadow-inner"
+               onWheel={handleWheel}
+               onPointerDown={startAction} 
+               onPointerMove={moveAction} 
+               onPointerUp={endAction} 
+               onPointerCancel={endAction}
+               onPointerEnter={() => toggleCursor(true)}
+               onPointerLeave={(e) => { 
+                   toggleCursor(false); 
+                   if (isDrawingRef.current && activePointers.current.size === 0) {
+                       endAction(e);
+                   }
+               }}>
+            
+            <canvas ref={canvasRef} 
+              className={`absolute top-1/2 left-1/2 shadow-md bg-white border border-gray-300 ${(mode === 'eraser' || mode === 'pen') ? 'cursor-none' : ((mode === 'scale' || mode === 'rotate') ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : '')}`}
+              style={{ 
+                 width: canvasDim.w, height: canvasDim.h,
+                 transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${exportScale}) rotate(${rotation}deg)`,
+                 transformOrigin: 'center center',
+                 transition: isPanning || mode === 'scale' || mode === 'rotate' ? 'none' : 'transform 0.1s ease-out'
+              }} 
+            />
+
+            {(mode === 'scale' || mode === 'rotate') && (
+              <>
+                {mode === 'scale' && (
+                  <div className="absolute top-[20%] left-[15%] pointer-events-none z-40 font-bold" 
+                       style={{ 
+                         fontFamily: '"Times New Roman", Times, serif',
+                         letterSpacing: '0.4em',
+                         fontSize: '16px', 
+                         lineHeight: '16px', 
+                         color: 'rgba(100, 100, 100, 0.85)', 
+                         textShadow: '1px 1px 0px white, -1px -1px 0px white, 1px -1px 0px white, -1px 1px 0px white, 0px 0px 3px rgba(255,255,255,0.9)' 
+                       }}>
+                    0123456789
+                  </div>
+                )}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex flex-col items-center">
+                   <div className={`text-white font-bold bg-black/70 px-5 py-3 rounded-2xl text-sm md:text-base backdrop-blur shadow-lg text-center leading-relaxed transition-opacity duration-300 ${isInteracting ? 'opacity-0' : 'opacity-100'}`}>
+                     {mode === 'scale' ? (
+                         <>🔍 請用雙指縮放或單指平移<br/><span className="text-amber-300">將題目數字與左上方灰階數字重疊並調整至等大</span></>
+                     ) : (
+                         <>🔄 請用雙指旋轉或單指平移<br/><span className="text-amber-300">將題目調整至完美水平狀態</span></>
+                     )}
+                   </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="relative">
+            {mode === 'pen' && showPenPicker && (
+              <div className="absolute bottom-full left-0 right-0 flex justify-center pb-4 pointer-events-none z-20">
+                 <div className="bg-white/95 backdrop-blur px-4 sm:px-6 py-3 rounded-2xl sm:rounded-full shadow-lg border border-gray-200 flex flex-col sm:flex-row items-center gap-4 pointer-events-auto transition-all">
+                    <div className="flex items-center gap-3 border-b sm:border-b-0 sm:border-r border-gray-200 pb-2 sm:pb-0 sm:pr-4">
+                      {['#000000', '#ef4444', '#3b82f6', '#22c55e'].map(color => (
+                        <button key={color} onClick={() => setPenColor(color)} className={`w-8 h-8 rounded-full border-2 transition-transform ${penColor === color ? 'scale-125 shadow-md border-gray-400' : 'border-transparent'}`} style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <button onClick={() => { setPenSize(4); setShowPenPicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${penSize === 4 ? 'bg-gray-200 shadow-inner' : 'hover:bg-gray-100'}`} title="細"><div className="rounded-full" style={{ width: 4, height: 4, backgroundColor: penColor }}></div></button>
+                      <button onClick={() => { setPenSize(8); setShowPenPicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${penSize === 8 ? 'bg-gray-200 shadow-inner' : 'hover:bg-gray-100'}`} title="中"><div className="rounded-full" style={{ width: 8, height: 8, backgroundColor: penColor }}></div></button>
+                      <button onClick={() => { setPenSize(16); setShowPenPicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${penSize === 16 ? 'bg-gray-200 shadow-inner' : 'hover:bg-gray-100'}`} title="粗"><div className="rounded-full" style={{ width: 16, height: 16, backgroundColor: penColor }}></div></button>
+                      <button onClick={() => { setPenSize(24); setShowPenPicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${penSize === 24 ? 'bg-gray-200 shadow-inner' : 'hover:bg-gray-100'}`} title="特粗"><div className="rounded-full" style={{ width: 24, height: 24, backgroundColor: penColor }}></div></button>
+                    </div>
+                 </div>
+              </div>
+            )}
+
+            {mode === 'eraser' && showSizePicker && (
+              <div className="absolute bottom-full left-0 right-0 flex justify-center pb-4 pointer-events-none z-20">
+                 <div className="bg-white/95 backdrop-blur px-4 sm:px-6 py-3 rounded-full shadow-lg border border-gray-200 flex items-center gap-3 sm:gap-6 pointer-events-auto transition-all">
+                    <span className="text-sm font-bold text-gray-700 hidden sm:inline">擦拭範圍</span>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <button onClick={() => { setEraserSize(10); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 10 ? 'bg-[#f59e0b] text-white shadow-md scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="特小"><div className="w-1.5 h-1.5 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(20); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 20 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="小"><div className="w-3 h-3 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(40); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 40 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="中"><div className="w-5 h-5 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(70); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 70 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="大"><div className="w-7 h-7 rounded-full bg-current"></div></button>
+                      <button onClick={() => { setEraserSize(100); setShowSizePicker(false); }} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${eraserSize === 100 ? 'bg-white shadow-md scale-110' : 'text-gray-500 hover:bg-amber-100'}`} title="特大"><div className="w-9 h-9 rounded-full bg-current"></div></button>
+                    </div>
+                 </div>
+              </div>
+            )}
+            
+            <div className="bg-white p-4 pb-8 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-10">
+              <div className="flex justify-center gap-2 sm:gap-6 overflow-x-auto pb-2 scrollbar-hide w-full max-w-4xl mx-auto">
+                <button 
+                  onClick={handleAutoResize}
+                  className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors text-amber-600 hover:bg-amber-50`}>
+                  <Icons.FontScale /><span className="text-sm font-bold">✨ AI 統一生字</span>
+                </button>
+
+                <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
+
+                <button 
+                  onClick={() => {
+                    if (mode === 'scale') {
+                       setMode('none');
+                    } else {
+                       setMode('scale');
+                       setShowSizePicker(false);
+                       setShowPenPicker(false);
+                    }
+                  }}
+                  className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'scale' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Icons.Move /><span className="text-sm font-bold">📏 縮放校正</span>
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    if (mode === 'rotate') {
+                       setMode('none');
+                    } else {
+                       setMode('rotate');
+                       setShowSizePicker(false);
+                       setShowPenPicker(false);
+                    }
+                  }}
+                  className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'rotate' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Icons.Rotate /><span className="text-sm font-bold">🔄 旋轉微調</span>
+                </button>
+
+                <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
+                
+                <button 
+                  onClick={() => {
+                    if (mode === 'pen') {
+                      setShowPenPicker(!showPenPicker);
+                    } else {
+                      setMode('pen');
+                      setShowPenPicker(true);
+                      setShowSizePicker(false);
+                    }
+                  }}
+                  className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'pen' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Icons.Write /><span className="text-sm font-bold">✍️ 書寫</span>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    if (mode === 'eraser') {
+                      setShowSizePicker(!showSizePicker);
+                    } else {
+                      setMode('eraser');
+                      setShowSizePicker(true);
+                      setShowPenPicker(false);
+                    }
+                  }}
+                  className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl transition-colors ${mode === 'eraser' ? 'bg-[#f59e0b] text-[#ffffff]' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Icons.Eraser /><span className="text-sm font-bold">🧽 橡皮擦</span>
+                </button>
+
+                <div className="w-px bg-gray-200 mx-1 my-2 flex-shrink-0"></div>
+                <button onClick={handleRemoveColoredPen} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-blue-500 hover:bg-blue-50 transition-colors">
+                  <Icons.Wand /><span className="text-sm font-bold">🪄 去彩筆跡</span>
+                </button>
+                <button onClick={handleRemovePencil} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-600 hover:bg-gray-100 transition-colors">
+                  <Icons.Pencil /><span className="text-sm font-bold">✏️ 去鉛筆跡</span>
+                </button>
+                <button onClick={handleRemoveBackground} className="flex-shrink-0 flex flex-col items-center gap-2 p-3 min-w-[70px] rounded-xl text-gray-800 hover:bg-gray-100 transition-colors">
+                  <Icons.Contrast /><span className="text-sm font-bold">🌗 黑白淨化</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function MainApp() {
       const { showAlert } = useModal();
 
@@ -381,7 +1300,6 @@
       const [isDbLoading, setIsDbLoading] = useState(false);
       const [dbError, setDbError] = useState('');
       
-      // ★ 新增：從雲端載入的知識點庫
       const [knowledgePoints, setKnowledgePoints] = useState([]);
       
       const [rawImage, setRawImage] = useState(null);
@@ -392,7 +1310,6 @@
       const [isEditingExisting, setIsEditingExisting] = useState(false);
       const [printWidth, setPrintWidth] = useState(null);
 
-      // AI 分類結果，欄位更新為匹配知識點
       const [aiAnalysis, setAiAnalysis] = useState({ subject: '國文', chapter: '', point_id: '', point_name: '', page: '', concept: '', ai_tutor: '', tags: [], created_date: getTodayStr() });
       const [loadingMsg, setLoadingMsg] = useState('');
 
@@ -420,7 +1337,6 @@
             fbAuth.onAuthStateChanged(auth, async (currentUser) => {
               setUser(currentUser);
               if (currentUser) {
-                  // 載入知識點庫
                   try {
                       const kpRef = fbDb.collection(db, 'artifacts', appId, 'public', 'knowledge_points');
                       const kpSnap = await fbDb.getDocs(kpRef);
@@ -471,7 +1387,6 @@
       const handleFullEdit = (item) => {
         setEditTargetId(item.id);
         const created_date = item.created_date || getDateStr(item.timestamp || Date.now());
-        // 兼容舊資料 (舊資料可能沒有 chapter/point_id，只有 volume/sub_subject)
         const chapter = item.chapter || (item.volume ? `${item.volume} - ${item.sub_subject}` : item.sub_subject) || '';
         setAiAnalysis({ ...item, chapter, tags: item.tags || [], created_date }); 
         setEditedImage(item.image);
@@ -480,14 +1395,12 @@
         setCurrentView('form');
       };
 
-      // AI 分析 (更新 Prompt 包含知識點)
       const callGeminiAI = async (base64Image) => {
         setLoadingMsg('AI 老師正在進行分析與教學中...');
         setCurrentView('classify');
         
         try {
           const base64Data = base64Image.split(',')[1];
-          // 將知識點濃縮，只傳遞必要欄位給 AI 以節省 Token (若有大量資料)
           const condensedKPs = knowledgePoints.map(kp => ({
               subj: kp.subject, chap: kp.chapter, id: kp.point_id, name: kp.point_name, pg: kp.page
           }));
@@ -669,12 +1582,206 @@
       );
     }
 
-    function App() {
-       return <ModalProvider><MainApp /></ModalProvider>;
+    function FormView({ initialData, image, knowledgePoints, onCancel, onSave, onReEditImage }) {
+      const availableSubjects = useMemo(() => {
+        const subjs = new Set(knowledgePoints.map(kp => kp.subject));
+        if (subjs.size === 0) return SUBJECT_ORDER; 
+        return Array.from(subjs);
+      }, [knowledgePoints]);
+
+      const [formData, setFormData] = useState({
+        subject: availableSubjects.includes(initialData.subject) ? initialData.subject : availableSubjects[0] || '生物',
+        chapter: initialData.chapter || '',
+        point_id: initialData.point_id || '',
+        point_name: initialData.point_name || '',
+        page: initialData.page || '',
+        concept: initialData.concept || '',
+        notes: initialData.notes || '',
+        answer: initialData.answer || '',
+        ai_tutor: initialData.ai_tutor || '',
+        mastery: initialData.mastery || 'need_review',
+        tags: initialData.tags || [],
+        created_date: initialData.created_date || getTodayStr()
+      });
+
+      const [tagInput, setTagInput] = useState('');
+      const [showTutorPreview, setShowTutorPreview] = useState(false);
+
+      const availableChapters = useMemo(() => {
+         const chaps = new Set(knowledgePoints.filter(kp => kp.subject === formData.subject).map(kp => kp.chapter));
+         return Array.from(chaps);
+      }, [knowledgePoints, formData.subject]);
+
+      const availablePoints = useMemo(() => {
+         return knowledgePoints.filter(kp => kp.subject === formData.subject && kp.chapter === formData.chapter);
+      }, [knowledgePoints, formData.subject, formData.chapter]);
+
+      const handleSubjectChange = (e) => {
+        const newSubj = e.target.value;
+        const chaps = Array.from(new Set(knowledgePoints.filter(kp => kp.subject === newSubj).map(kp => kp.chapter)));
+        const firstChap = chaps[0] || '';
+        const pts = knowledgePoints.filter(kp => kp.subject === newSubj && kp.chapter === firstChap);
+        const firstPt = pts[0] || { point_id: '', point_name: '', page: '' };
+        
+        setFormData({ ...formData, subject: newSubj, chapter: firstChap, point_id: firstPt.point_id, point_name: firstPt.point_name, page: firstPt.page });
+      };
+
+      const handleChapterChange = (e) => {
+         const newChap = e.target.value;
+         const pts = knowledgePoints.filter(kp => kp.subject === formData.subject && kp.chapter === newChap);
+         const firstPt = pts[0] || { point_id: '', point_name: '', page: '' };
+         
+         setFormData({ ...formData, chapter: newChap, point_id: firstPt.point_id, point_name: firstPt.point_name, page: firstPt.page });
+      };
+
+      const handlePointChange = (e) => {
+         const newPtId = e.target.value;
+         const matchedPt = availablePoints.find(p => p.point_id === newPtId);
+         if (matchedPt) {
+             setFormData({ ...formData, point_id: matchedPt.point_id, point_name: matchedPt.point_name, page: matchedPt.page });
+         } else {
+             setFormData({ ...formData, point_id: newPtId });
+         }
+      };
+
+      const addTag = () => {
+          const t = tagInput.trim();
+          if (t && !formData.tags.includes(t)) {
+              setFormData({ ...formData, tags: [...formData.tags, t] });
+              setTagInput('');
+          }
+      };
+      const removeTag = (tagToRemove) => setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
+
+      return (
+        <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
+          <div className="bg-white p-5 shadow-sm sticky top-0 flex justify-between items-center z-10">
+            <button onClick={onCancel} className="p-2 text-gray-500 hover:text-gray-800 transition-colors"><Icons.ArrowLeft /></button>
+            <span className="font-bold text-xl text-gray-800">💾 確認並儲存</span>
+            <button onClick={() => onSave(formData)} className="px-6 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold text-lg flex items-center gap-2"><Icons.Cloud /> ☁️ 同步</button>
+          </div>
+
+          <div className="p-4 md:p-6 w-[98%] max-w-[1000px] mx-auto space-y-6">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative group">
+               <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-[400px] border border-gray-200 mx-auto" />
+               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                  <button onClick={onReEditImage} className="bg-white text-gray-800 px-6 py-3 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 hover:bg-gray-100 transition-colors"><Icons.Edit /> 重新編輯影像</button>
+               </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+              <div className="flex justify-between items-center mb-2">
+                 <div className="flex items-center gap-2 text-xl"><Icons.Wand /> <span className="font-bold text-[#b45309]">🤖 AI 分類結果 (可手動修改)</span></div>
+              </div>
+
+              <div>
+                <label className="block text-base font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
+                <div className="flex gap-4">
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <input type="radio" name="mastery" value="need_review" className="hidden" checked={formData.mastery === 'need_review'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
+                      <span className="text-2xl">🔴</span><span className="font-bold text-gray-700 text-lg">需再複習</span>
+                   </label>
+                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <input type="radio" name="mastery" value="mastered" className="hidden" checked={formData.mastery === 'mastered'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
+                      <span className="text-2xl">🟢</span><span className="font-bold text-gray-700 text-lg">已掌握</span>
+                   </label>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Calendar /> 建檔日期</label>
+                    <input type="date" className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-gray-700 font-bold" value={formData.created_date} onChange={e => setFormData({...formData, created_date: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Tag /> 自訂標籤</label>
+                    <div className="flex gap-2">
+                        <input className="flex-grow p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" placeholder="輸入標籤 (例如：粗心)..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
+                        <button onClick={addTag} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 rounded-xl font-bold transition-colors text-lg">加入</button>
+                    </div>
+                  </div>
+              </div>
+
+              {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                     {formData.tags.map(tag => (
+                         <span key={tag} className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg flex items-center gap-2 font-bold text-sm border border-amber-200">
+                             #{tag}
+                             <button onClick={() => removeTag(tag)} className="text-amber-600 hover:text-red-500 bg-amber-200 rounded-full p-0.5"><Icons.Close /></button>
+                         </span>
+                     ))}
+                  </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-base font-bold text-gray-700 mb-2">科目</label>
+                    <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.subject} onChange={handleSubjectChange}>
+                      {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-base font-bold text-gray-700 mb-2">章節</label>
+                    {availableChapters.length > 0 ? (
+                        <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={handleChapterChange}>
+                          {availableChapters.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    ) : (
+                        <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={e => setFormData({...formData, chapter: e.target.value})} placeholder="例如: ch1 科學方法..." />
+                    )}
+                  </div>
+              </div>
+
+              <div>
+                <label className="block text-base font-bold text-gray-700 mb-2">大滿貫 知識點 (選取後自動帶入名稱與頁碼)</label>
+                {availablePoints.length > 0 ? (
+                    <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_id} onChange={handlePointChange}>
+                      <option value="">-- 手動輸入或其他 --</option>
+                      {availablePoints.map(p => <option key={p.point_id} value={p.point_id}>{p.point_id} - {p.point_name}</option>)}
+                    </select>
+                ) : (
+                    <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_id} onChange={e => setFormData({...formData, point_id: e.target.value})} placeholder="例如: 1-01" />
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-base font-bold text-gray-700 mb-2">知識點名稱 / 核心知識</label>
+                    <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_name || formData.concept} onChange={e => setFormData({...formData, point_name: e.target.value, concept: e.target.value})} placeholder="例如: 科學方法流程" />
+                  </div>
+                  <div>
+                    <label className="block text-base font-bold text-amber-700 mb-2 flex items-center gap-2"><Icons.BookOpen /> 大滿貫 講義頁碼</label>
+                    <input type="number" className="w-full p-4 text-lg border border-amber-300 rounded-xl bg-amber-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-amber-800 font-bold" value={formData.page} onChange={e => setFormData({...formData, page: e.target.value})} placeholder="例如: 8" />
+                  </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-base font-bold text-gray-700">🤖 AI 老師教學</label>
+                  <button onClick={() => setShowTutorPreview(!showTutorPreview)} className="text-sm font-bold text-amber-600 hover:bg-amber-50 px-3 py-1 rounded-lg transition-colors border border-amber-200">
+                    {showTutorPreview ? '✏️ 切換為編輯模式' : '✨ 預覽數學/化學式'}
+                  </button>
+                </div>
+                {showTutorPreview ? (
+                  <div className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/30 min-h-[12rem] overflow-y-auto">
+                    <LatexText content={formData.ai_tutor} className="whitespace-pre-wrap leading-relaxed text-gray-800" />
+                  </div>
+                ) : (
+                  <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
+                )}
+              </div>
+              <div>
+                <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
+                <NoteCanvas initialDataUrl={formData.notes} onChange={(dataUrl) => setFormData({...formData, notes: dataUrl})} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     }
 
-    // --- STREAMING_CHUNK:Building Sub Views (Login, Dashboard, Form)... ---
-    // (LoginView, DashboardView, CropView, EditView 邏輯與介面與先前相同，此處直接省略重複內容以專注於更新的組件)
     function FbSetupView({ onSave }) {
         const [input, setInput] = useState('');
         const [error, setError] = useState('');
@@ -820,223 +1927,19 @@
         </div>
       );
     }
-    
-    // (CropView 與 EditView 若無重大邏輯修改，將採用簡化結構或維持原有運作邏輯以保持穩定，考量篇幅這裡直接引用核心機制)
-    // --- STREAMING_CHUNK:Building Form View (with New KP Structure)... ---
-    function FormView({ initialData, image, knowledgePoints, onCancel, onSave, onReEditImage }) {
-      
-      // 根據 knowledgePoints 動態產生科目與章節選單
-      const availableSubjects = useMemo(() => {
-        const subjs = new Set(knowledgePoints.map(kp => kp.subject));
-        // 如果知識點庫為空，給個預設
-        if (subjs.size === 0) return SUBJECT_ORDER; 
-        return Array.from(subjs);
-      }, [knowledgePoints]);
 
-      const [formData, setFormData] = useState({
-        subject: availableSubjects.includes(initialData.subject) ? initialData.subject : availableSubjects[0] || '生物',
-        chapter: initialData.chapter || '',
-        point_id: initialData.point_id || '',
-        point_name: initialData.point_name || '',
-        page: initialData.page || '',
-        concept: initialData.concept || '',
-        notes: initialData.notes || '',
-        answer: initialData.answer || '',
-        ai_tutor: initialData.ai_tutor || '',
-        mastery: initialData.mastery || 'need_review',
-        tags: initialData.tags || [],
-        created_date: initialData.created_date || getTodayStr()
-      });
-
-      const [tagInput, setTagInput] = useState('');
-      const [showTutorPreview, setShowTutorPreview] = useState(false);
-
-      // 動態過濾出的章節清單
-      const availableChapters = useMemo(() => {
-         const chaps = new Set(knowledgePoints.filter(kp => kp.subject === formData.subject).map(kp => kp.chapter));
-         return Array.from(chaps);
-      }, [knowledgePoints, formData.subject]);
-
-      // 動態過濾出的知識點清單
-      const availablePoints = useMemo(() => {
-         return knowledgePoints.filter(kp => kp.subject === formData.subject && kp.chapter === formData.chapter);
-      }, [knowledgePoints, formData.subject, formData.chapter]);
-
-      // 當切換科目時，重置章節與知識點
-      const handleSubjectChange = (e) => {
-        const newSubj = e.target.value;
-        const chaps = Array.from(new Set(knowledgePoints.filter(kp => kp.subject === newSubj).map(kp => kp.chapter)));
-        const firstChap = chaps[0] || '';
-        const pts = knowledgePoints.filter(kp => kp.subject === newSubj && kp.chapter === firstChap);
-        const firstPt = pts[0] || { point_id: '', point_name: '', page: '' };
-        
-        setFormData({ ...formData, subject: newSubj, chapter: firstChap, point_id: firstPt.point_id, point_name: firstPt.point_name, page: firstPt.page });
-      };
-
-      // 當切換章節時，重置知識點
-      const handleChapterChange = (e) => {
-         const newChap = e.target.value;
-         const pts = knowledgePoints.filter(kp => kp.subject === formData.subject && kp.chapter === newChap);
-         const firstPt = pts[0] || { point_id: '', point_name: '', page: '' };
-         
-         setFormData({ ...formData, chapter: newChap, point_id: firstPt.point_id, point_name: firstPt.point_name, page: firstPt.page });
-      };
-
-      // 當切換知識點時，自動帶入對應的名稱與頁碼
-      const handlePointChange = (e) => {
-         const newPtId = e.target.value;
-         const matchedPt = availablePoints.find(p => p.point_id === newPtId);
-         if (matchedPt) {
-             setFormData({ ...formData, point_id: matchedPt.point_id, point_name: matchedPt.point_name, page: matchedPt.page });
-         } else {
-             setFormData({ ...formData, point_id: newPtId });
-         }
-      };
-
-      const addTag = () => {
-          const t = tagInput.trim();
-          if (t && !formData.tags.includes(t)) {
-              setFormData({ ...formData, tags: [...formData.tags, t] });
-              setTagInput('');
-          }
-      };
-      const removeTag = (tagToRemove) => setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
-
+    function LoadingView({ message }) {
       return (
-        <div className="fixed inset-0 bg-gray-50 overflow-y-auto pb-20">
-          <div className="bg-white p-5 shadow-sm sticky top-0 flex justify-between items-center z-10">
-            <button onClick={onCancel} className="p-2 text-gray-500 hover:text-gray-800 transition-colors"><Icons.ArrowLeft /></button>
-            <span className="font-bold text-xl text-gray-800">💾 確認並儲存</span>
-            <button onClick={() => onSave(formData)} className="px-6 py-2.5 bg-[#f59e0b] hover:bg-[#d97706] transition-colors text-[#ffffff] rounded-lg font-bold text-lg flex items-center gap-2"><Icons.Cloud /> ☁️ 同步</button>
-          </div>
-
-          <div className="p-4 md:p-6 w-[98%] max-w-[1000px] mx-auto space-y-6">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative group">
-               <img src={image} alt="Processed" className="w-full object-contain rounded-lg max-h-[400px] border border-gray-200 mx-auto" />
-               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
-                  <button onClick={onReEditImage} className="bg-white text-gray-800 px-6 py-3 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 hover:bg-gray-100 transition-colors"><Icons.Edit /> 重新編輯影像</button>
-               </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
-              <div className="flex justify-between items-center mb-2">
-                 <div className="flex items-center gap-2 text-xl"><Icons.Wand /> <span className="font-bold text-[#b45309]">🤖 AI 分類結果 (可手動修改)</span></div>
-              </div>
-
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">⭐ 熟練度標記</label>
-                <div className="flex gap-4">
-                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'need_review' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
-                      <input type="radio" name="mastery" value="need_review" className="hidden" checked={formData.mastery === 'need_review'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                      <span className="text-2xl">🔴</span><span className="font-bold text-gray-700 text-lg">需再複習</span>
-                   </label>
-                   <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.mastery === 'mastered' ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                      <input type="radio" name="mastery" value="mastered" className="hidden" checked={formData.mastery === 'mastered'} onChange={(e) => setFormData({...formData, mastery: e.target.value})} />
-                      <span className="text-2xl">🟢</span><span className="font-bold text-gray-700 text-lg">已掌握</span>
-                   </label>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Calendar /> 建檔日期</label>
-                    <input type="date" className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-gray-700 font-bold" value={formData.created_date} onChange={e => setFormData({...formData, created_date: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2 flex items-center gap-2"><Icons.Tag /> 自訂標籤</label>
-                    <div className="flex gap-2">
-                        <input className="flex-grow p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" placeholder="輸入標籤 (例如：粗心)..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
-                        <button onClick={addTag} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 rounded-xl font-bold transition-colors text-lg">加入</button>
-                    </div>
-                  </div>
-              </div>
-
-              {formData.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                     {formData.tags.map(tag => (
-                         <span key={tag} className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg flex items-center gap-2 font-bold text-sm border border-amber-200">
-                             #{tag}
-                             <button onClick={() => removeTag(tag)} className="text-amber-600 hover:text-red-500 bg-amber-200 rounded-full p-0.5"><Icons.Close /></button>
-                         </span>
-                     ))}
-                  </div>
-              )}
-
-              {/* ★ 新版：知識點層次選單 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2">科目</label>
-                    <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.subject} onChange={handleSubjectChange}>
-                      {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2">章節</label>
-                    {availableChapters.length > 0 ? (
-                        <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={handleChapterChange}>
-                          {availableChapters.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                    ) : (
-                        <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.chapter} onChange={e => setFormData({...formData, chapter: e.target.value})} placeholder="例如: ch1 科學方法..." />
-                    )}
-                  </div>
-              </div>
-
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">大滿貫 知識點 (選取後自動帶入名稱與頁碼)</label>
-                {availablePoints.length > 0 ? (
-                    <select className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_id} onChange={handlePointChange}>
-                      <option value="">-- 手動輸入或其他 --</option>
-                      {availablePoints.map(p => <option key={p.point_id} value={p.point_id}>{p.point_id} - {p.point_name}</option>)}
-                    </select>
-                ) : (
-                    <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_id} onChange={e => setFormData({...formData, point_id: e.target.value})} placeholder="例如: 1-01" />
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-base font-bold text-gray-700 mb-2">知識點名稱 / 核心知識</label>
-                    <input className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-[#f59e0b] outline-none" value={formData.point_name || formData.concept} onChange={e => setFormData({...formData, point_name: e.target.value, concept: e.target.value})} placeholder="例如: 科學方法流程" />
-                  </div>
-                  <div>
-                    <label className="block text-base font-bold text-amber-700 mb-2 flex items-center gap-2"><Icons.BookOpen /> 大滿貫 講義頁碼</label>
-                    <input type="number" className="w-full p-4 text-lg border border-amber-300 rounded-xl bg-amber-50 focus:ring-2 focus:ring-[#f59e0b] outline-none text-amber-800 font-bold" value={formData.page} onChange={e => setFormData({...formData, page: e.target.value})} placeholder="例如: 8" />
-                  </div>
-              </div>
-
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-base font-bold text-gray-700">🤖 AI 老師教學</label>
-                  <button onClick={() => setShowTutorPreview(!showTutorPreview)} className="text-sm font-bold text-amber-600 hover:bg-amber-50 px-3 py-1 rounded-lg transition-colors border border-amber-200">
-                    {showTutorPreview ? '✏️ 切換為編輯模式' : '✨ 預覽數學/化學式'}
-                  </button>
-                </div>
-                {showTutorPreview ? (
-                  <div className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/30 min-h-[12rem] overflow-y-auto">
-                    <LatexText content={formData.ai_tutor} className="whitespace-pre-wrap leading-relaxed text-gray-800" />
-                  </div>
-                ) : (
-                  <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
-                )}
-              </div>
-              <div>
-                <label className="block text-base font-bold text-gray-700 mb-2">📝 錯題筆記 / 訂正過程 (手寫板)</label>
-                <NoteCanvas initialDataUrl={formData.notes} onChange={(dataUrl) => setFormData({...formData, notes: dataUrl})} />
-              </div>
-            </div>
-          </div>
+        <div className="fixed inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-50 p-6 text-center">
+          <div className="animate-spin text-[#d97706] mb-6 scale-150"><Icons.Cloud /></div>
+          <p className="text-xl font-bold text-[#d97706] whitespace-pre-wrap leading-relaxed">{message}</p>
         </div>
       );
     }
 
-    // --- STREAMING_CHUNK:Building ListView with Tag filtering & Lightbox... ---
     function ListView({ currentProfile, knowledgePoints, onBack, FB, user, isDbConnected, onFullEdit }) {
       const { showConfirm } = useModal();
-      const [activeTab, setActiveTab] = useState('list'); // 預設顯示列表
+      const [activeTab, setActiveTab] = useState('list'); 
       const [mistakes, setMistakes] = useState([]);
       const [filterSubject, setFilterSubject] = useState('All');
       const [filterChapter, setFilterChapter] = useState('All');
@@ -1109,16 +2012,13 @@
          });
       }
 
-      // 提取動態科目清單 (已存在的錯題)
       const subjects = ['All', ...Array.from(new Set(mistakes.map(m => m.subject)))];
-      // 提取該科目下已存在的章節清單
       let availableChapters = [];
       if (filterSubject !== 'All') {
          availableChapters = ['All', ...Array.from(new Set(mistakes.filter(m => m.subject === filterSubject).map(m => m.chapter || m.sub_subject).filter(Boolean)))];
       }
 
       const getDisplayChapterName = (item) => {
-         // 相容舊資料
          if (item.chapter) return item.chapter.split('(')[0].trim();
          if (item.sub_subject) return item.sub_subject.split('(')[0].trim();
          return '';
@@ -1284,12 +2184,10 @@
                                     </span>
                                   )}
                                   
-                                  {/* ★ 優先顯示知識點，相容舊版 Concept */}
                                   <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold">
                                     🎯 {item.point_id ? `${item.point_id} ${item.point_name || item.concept}` : item.concept}
                                   </span>
                                   
-                                  {/* ★ 新版：耀眼的講義頁碼標籤 */}
                                   {item.page && (
                                       <span className="bg-indigo-100 border border-indigo-200 print:bg-transparent print:border print:border-black text-indigo-700 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-black shadow-sm flex items-center gap-1">
                                           <Icons.BookOpen /> 大滿貫 p.{item.page}
@@ -1378,14 +2276,9 @@
       );
     }
 
-    // --- STREAMING_CHUNK:Finalizing rendering... ---
-    // (Cropper/Editor components remain intact in final logic wrap, see single HTML standard layout)
-    function CropView({ imageUrl, onCancel, onComplete, onUpdateRawImage }) { /* 保持原裁切邏輯，節省篇幅 */ onComplete(imageUrl); return null; }
-    function EditView({ imageUrl, onCancel, onComplete }) { /* 保持原編輯邏輯，節省篇幅 */ onComplete(imageUrl, 800); return null; }
-    // 實務上請保留完整 CropView 與 EditView 程式碼，此處因應系統限制做骨架縮寫示意，但您原本的程式碼結構可直接貼回此處。
-    // ※ 附註：由於原始檔中 Crop/Edit 邏輯非常龐大，我將重點更新的 FormView, ListView, 與 MainApp 置換如上。
-
-    // 渲染應用程式
+    function App() {
+       return <ModalProvider><MainApp /></ModalProvider>;
+    }
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
