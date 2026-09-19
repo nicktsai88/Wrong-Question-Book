@@ -1359,6 +1359,7 @@
               setUser(currentUser);
               if (currentUser) {
                   try {
+                      // 讀取最新的雲端知識點
                       const kpRef = fbDb.collection(db, 'artifacts', appId, 'public', 'data', 'knowledge_points');
                       const kpSnap = await fbDb.getDocs(kpRef);
                       const kps = kpSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1452,16 +1453,10 @@
           2. 【極致防呆】幾何與代數的嚴格區分：若題目出現幾何特徵，【絕對不可】分類至代數單元。
           
           3. "ai_tutor": 這是「AI老師教學」欄位。⚠️【超級強制要求】：
-              - 對象是「基礎較弱的台灣國中生」，使用【最親切、最簡單、最直白】的口吻！
-              - 【大量使用可愛 Emoji】：在每段開頭、重點提示、步驟說明，請大量使用活潑可愛的 Emoji (例如：✨、🌟、🎯、🌈、👀、🙌、🔥等)。
-              - 【嚴格分段與空白行】：為了容易閱讀，每一個解題步驟、每一個觀念，都【必須】換行，並善用空白行區隔。絕對不能把一大串文字擠在同一段！
-              - 結構需包含：
-                💡 核心觀念：(一句話說明重點)
-                🛠️ 拆解步驟：
-                  1️⃣ 第一步...
-                  2️⃣ 第二步...
-                ✅ 結論：(最後的答案，例如(A)~(D))
-                📖 貼心小提醒：提醒學生翻閱講義對應頁碼。
+              - 對象是「基礎較弱的台灣國中生」，使用【最簡單、最直白、最簡短】的口吻！
+              - 嚴格分段，加上 Emoji 作為標題開頭（如：💡 核心觀念、🛠️ 解題步驟、✅ 結論）。
+              - 解析教學的最後，請提供題目的答案。
+              - 並且在解析的最後，可以親切地提醒學生去翻閱大滿貫講義的對應頁碼。
           
           4. 【最重要：數學與化學式排版】所有數學式、化學式、方程式、變數符號都必須使用 LaTeX 語法包裝！行內用單錢字號 $，獨立行用雙錢字號 $$。
               - ⚠️【JSON 格式防呆】：因為回傳 JSON，所有的 LaTeX 反斜線 (backslash) 都「必須」加上跳脫字元變成雙反斜線 (例如 \\\\frac, \\\\times)！
@@ -1534,6 +1529,10 @@
             try {
                let cleanedText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
                
+               // 這是保證相容所有瀏覽器的安全字串取代寫法，徹底移除不支援的 Lookbehind 正則表達式
+               cleanedText = cleanedText.split('\\n').join('\\\\n')
+                                        .split('\\t').join('\\\\t');
+                                        
                // 透過多次 split/join 來修正單一反斜線的 LaTeX，避免變成 imes 或 frac 解析錯誤
                const safeLatexReplace = (str, token) => {
                    return str.split('\\' + token).join('\\\\' + token).split('\\\\\\\\' + token).join('\\\\' + token);
@@ -1961,7 +1960,7 @@
                     <LatexText content={formData.ai_tutor} className="whitespace-pre-wrap leading-relaxed text-gray-800" />
                   </div>
                 ) : (
-                  <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed whitespace-pre-wrap" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
+                  <textarea className="w-full p-4 text-lg border border-gray-300 rounded-xl bg-amber-50/50 focus:ring-2 focus:ring-[#f59e0b] outline-none h-48 leading-relaxed" placeholder="AI 將自動產生詳細解析與步驟..." value={formData.ai_tutor} onChange={e => setFormData({...formData, ai_tutor: e.target.value})} />
                 )}
               </div>
               <div>
@@ -2212,6 +2211,7 @@
                               </div>
                               
                               <div className="flex flex-col w-full gap-2">
+                                  {/* 第1行：科目、章節、日期、狀態鈕 */}
                                   <div className="flex flex-wrap gap-2 print:gap-1.5 items-center w-full">
                                       <span className="bg-amber-50 print:bg-transparent print:border print:border-black text-[#b45309] print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-amber-200">
                                         {item.subject}
@@ -2232,6 +2232,7 @@
                                       </button>
                                   </div>
                                   
+                                  {/* 第2行：核心知識點與講義頁碼 (支援多筆) */}
                                   <div className="flex flex-wrap gap-2 mt-1">
                                       {item.points && item.points.map((p, idx) => {
                                           if (!p.point_name) return null;
@@ -2249,6 +2250,7 @@
                                           )
                                       })}
 
+                                      {/* 向下相容舊版單筆資料 */}
                                       {!item.points && item.concept && (
                                           <div className="flex flex-wrap gap-2 items-center bg-gray-50/50 p-1 rounded-xl">
                                               <span className="bg-gray-100 print:bg-transparent print:border print:border-black text-gray-800 print:text-black px-4 py-1.5 print:px-2 print:py-0.5 rounded-full text-base print:text-sm font-bold border border-gray-200">
