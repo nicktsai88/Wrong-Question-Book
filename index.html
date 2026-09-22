@@ -2443,11 +2443,15 @@
         const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // ★ 修改排序邏輯：優先以建檔日期作降冪排序 (新到舊)，若無則使用 timestamp
+            // 依實際建立時間由新到舊排序；舊資料缺少時間戳記時才使用建檔日期。
+            const getCreatedTime = (item) => {
+                const timestamp = Number(item.timestamp);
+                if (Number.isFinite(timestamp) && timestamp > 0) return timestamp;
+                const date = item.created_date ? new Date(item.created_date).getTime() : 0;
+                return Number.isFinite(date) ? date : 0;
+            };
             data.sort((a, b) => {
-                const timeA = a.created_date ? new Date(a.created_date).getTime() : Number(a.timestamp || a.updated_at || 0);
-                const timeB = b.created_date ? new Date(b.created_date).getTime() : Number(b.timestamp || b.updated_at || 0);
-                return timeB - timeA; 
+                return getCreatedTime(b) - getCreatedTime(a);
             });
             
             setMistakes(data);
