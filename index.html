@@ -1062,7 +1062,6 @@
       return (
         <div className="min-h-screen font-sans text-gray-800" style={{ backgroundColor: THEME.bg }}>
           {currentView === 'login' && <LoginView onLogin={handleLogin} onResetFb={() => {
-              const { showConfirm } = useModal(); 
               resetFbConfig();
           }} savedKey={apiKey} />}
           {currentView === 'dashboard' && <DashboardView currentProfile={currentProfile} onSelectImage={handleImageSelected} onGoList={() => setCurrentView('list')} onLogout={logout} isDbConnected={user && FB} />}
@@ -2429,6 +2428,9 @@
       const [filterMastery, setFilterMastery] = useState('All'); 
       const [searchQuery, setSearchQuery] = useState(''); 
       const [isFetching, setIsFetching] = useState(true);
+      const [readStatus, setReadStatus] = useState('loading');
+      const [readError, setReadError] = useState('');
+      const [reloadCount, setReloadCount] = useState(0);
       
       // ★ 日期過濾狀態
       const [filterStartDate, setFilterStartDate] = useState('');
@@ -2439,10 +2441,31 @@
       const [lightboxImage, setLightboxImage] = useState(null);
       
       useEffect(() => {
-        if (!user || !FB || !currentProfile) return;
+        setMistakes([]);
+        setReadError('');
+        if (!user || !FB || !currentProfile) {
+          setReadStatus('waiting');
+          setIsFetching(false);
+          return;
+        }
         setIsFetching(true);
+        setReadStatus('loading');
+        let active = true;
+        let receivedServer = false;
+        const timeout = setTimeout(() => {
+          if (!active || receivedServer) return;
+          setIsFetching(false);
+          setReadStatus('timeout');
+          setReadError('尚未取得伺服器確認。請檢查網路連線，或按「重新讀取」；目前不能判定雲端是否有題目。');
+        }, 15000);
         const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
-        const unsubscribe = FB.onSnapshot(colRef, (snapshot) => {
+        const unsubscribe = FB.onSnapshot(colRef, { includeMetadataChanges: true }, (snapshot) => {
+            if (!active) return;
+            const fromCache = snapshot.metadata.fromCache;
+            receivedServer = !fromCache;
+            if (!fromCache) clearTimeout(timeout);
+            setReadStatus(fromCache ? 'cache' : 'server');
+            setReadError('');
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             // 依實際建立時間由新到舊排序；舊資料缺少時間戳記時才使用建檔日期。
@@ -2459,13 +2482,16 @@
             setMistakes(data);
             setIsFetching(false);
         }, (error) => {
+            if (!active) return;
+            clearTimeout(timeout);
             console.error("雲端讀取錯誤:", error);
-            alert("雲端讀取發生異常，請確認網路連線。\n" + error.message);
+            setReadStatus('error');
+            setReadError(`雲端讀取失敗（${error.code || 'unknown'}）：${error.message || '請確認網路與讀取權限。'}`);
             setIsFetching(false);
         });
         
-        return () => unsubscribe();
-      }, [user, FB, currentProfile]);
+        return () => { active = false; clearTimeout(timeout); unsubscribe(); };
+      }, [user, FB, currentProfile, reloadCount]);
 
       const handleDelete = async (id) => {
         if (!user || !FB || !currentProfile) return;
@@ -2581,7 +2607,10 @@
 
       const handlePrint = () => { setTimeout(() => { window.print(); }, 100); };
 
-      if (isFetching) return <LoadingView message={`正在從雲端載入 ${currentProfile} 的錯題本...`} />;
+      const emptyMessage = isFetching ? '正在從雲端讀取錯題…'
+        : readStatus !== 'server' ? '尚未確認雲端題目，請查看上方讀取狀態。'
+        : mistakes.length === 0 ? '此雲端資料來源沒有題目，請確認與 iPad 的專案及使用者名稱一致。'
+        : '找不到符合條件的錯題';
 
       return (
         <div className="min-h-screen bg-gray-50 relative">
@@ -2589,7 +2618,7 @@
             <button onClick={onBack} className="p-2 hover:bg-[#d97706] rounded-full transition-colors"><Icons.ArrowLeft /></button>
             <div className="flex items-center gap-2">
                <h1 className="font-bold text-xl sm:text-2xl truncate max-w-[200px] sm:max-w-xs">📚 {currentProfile} 的雲端錯題本</h1>
-               <div title="雲端連線狀態" className="ml-1"><Icons.StatusDot color={isDbConnected ? "#4ade80" : "#ef4444"} /></div>
+               <div title={readStatus === 'server' ? '已收到雲端伺服器資料' : '雲端資料尚未確認'} className="ml-1"><Icons.StatusDot color={readStatus === 'server' ? "#4ade80" : "#fef08a"} /></div>
             </div>
             <button onClick={handlePrint} className="bg-white text-[#451a03] px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-amber-50 transition-colors shadow-sm text-base">
               <Icons.Printer /> <span className="hidden sm:inline">🖨️ 輸出 PDF</span>
@@ -2597,6 +2626,17 @@
           </div>
 
           <div className="p-4 md:p-5 bg-white border-b no-print space-y-5">
+            <div className="w-[98%] max-w-[1400px] mx-auto p-3 rounded-xl border border-amber-200 bg-amber-50 text-sm" role="status">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>{readStatus === 'server' ? `已從雲端讀取 ${mistakes.length} 題` : readStatus === 'cache' ? `目前顯示本機快取 ${mistakes.length} 題，等待雲端確認` : readStatus === 'waiting' ? '等待雲端登入完成' : readStatus === 'error' ? '雲端讀取失敗' : readStatus === 'timeout' ? '雲端回應逾時' : '正在讀取雲端錯題…'}</span>
+                <button className="px-3 py-2 bg-white border rounded-lg font-bold" onClick={() => setReloadCount(n => n + 1)}>重新讀取</button>
+              </div>
+              {readError && <p className="mt-2 text-red-700 whitespace-pre-wrap">{readError}</p>}
+              <details className="mt-2"><summary className="cursor-pointer">查看資料來源（可與 iPad 對照）</summary>
+                <p className="mt-2 break-all">雲端專案：{FB?.db?.app?.options?.projectId || '尚未連線'}<br />使用者名稱：{JSON.stringify(currentProfile)}<br />資料位置：artifacts/{FB?.appId}/public/data/mistakes_{currentProfile}</p>
+                <p className="mt-1">兩台裝置必須使用相同專案與完全相同的使用者名稱。登入成功不代表已成功讀取題目。</p>
+              </details>
+            </div>
             <div className="w-[98%] max-w-[1400px] mx-auto flex justify-center mb-2">
                 <div className="bg-gray-100 p-1.5 rounded-2xl flex gap-2 w-full max-w-md shadow-inner">
                    <button onClick={() => setActiveTab('stats')} className={`flex-1 py-3 rounded-xl font-bold text-lg transition-all flex justify-center items-center gap-2 ${activeTab === 'stats' ? 'bg-white text-[#b45309] shadow-md transform scale-105' : 'text-gray-500 hover:text-gray-700'}`}>📊 弱點分析</button>
@@ -2713,7 +2753,7 @@
                    {statsData.length === 0 ? (
                       <div className="text-center py-24 text-gray-400 no-print">
                          <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
-                         <p className="mt-5 text-2xl font-bold">🔍 目前沒有錯題資料可供分析</p>
+                         <p className="mt-5 text-2xl font-bold">🔍 {emptyMessage}</p>
                       </div>
                    ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
@@ -2771,7 +2811,7 @@
                   {filteredData.length === 0 ? (
                      <div className="text-center py-24 text-gray-400 no-print">
                         <div className="flex justify-center mb-5 scale-150"><Icons.Cloud /></div>
-                        <p className="mt-5 text-2xl font-bold">🔍 找不到符合條件的錯題</p>
+                        <p className="mt-5 text-2xl font-bold">🔍 {emptyMessage}</p>
                      </div>
                   ) : (
                     filteredData.map((item, index) => (
