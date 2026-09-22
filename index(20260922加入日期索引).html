@@ -692,54 +692,9 @@
       );
     }
 
-    // 儲存前檢查實際編碼大小，預留文字及 Firestore 文件開銷。
-    function cloudImageBudget(formData) {
-      const bytes = new TextEncoder().encode(JSON.stringify(formData)).length;
-      const budget = Math.min(900000, 1048576 - bytes - 65536);
-      if (budget < 100000) throw new Error('文字內容過長，請先備份並縮短本題筆記或解析再儲存。');
-      return budget;
-    }
-
-    async function fitCloudImage(source, budget) {
-      if (typeof source !== 'string' || !source) throw new Error('尚未取得題目圖片，請返回確認圖片。');
-      if (new TextEncoder().encode(source).length <= budget) return source;
-      if (!source.startsWith('data:image/')) throw new Error('圖片格式不支援自動縮小，請重新選取圖片。');
-      const img = await new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error('圖片讀取失敗，原有資料未變更，請重新選取圖片。'));
-        image.src = source;
-      });
-      const canvas = document.createElement('canvas');
-      try {
-        let scale = Math.min(1, 4096 / Math.max(img.naturalWidth, img.naturalHeight));
-        for (let attempt = 0; attempt < 14; attempt++) {
-          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-          const ctx = canvas.getContext('2d');
-          if (!ctx) throw new Error('裝置無法處理圖片，請稍後重試。');
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          for (const quality of [0.92, 0.85, 0.76]) {
-            let result = canvas.toDataURL('image/webp', quality);
-            if (!result.startsWith('data:image/webp')) result = canvas.toDataURL('image/jpeg', quality);
-            if (result.startsWith('data:image/') && new TextEncoder().encode(result).length <= budget) return result;
-          }
-          if (Math.max(canvas.width, canvas.height) <= 1200) break;
-          scale *= 0.85;
-        }
-        throw new Error('圖片仍過大。請分成兩題或裁掉多餘空白後重試；目前圖片與填寫內容已保留。');
-      } finally {
-        canvas.width = 1;
-        canvas.height = 1;
-      }
-    }
-
     // --- STREAMING_CHUNK:Building Main App Component... ---
     function MainApp() {
-      const { showAlert, showConfirm } = useModal();
-      const saveInProgress = useRef(false);
+      const { showAlert } = useModal();
 
       // 系統與雲端狀態
       const [currentView, setCurrentView] = useState('login'); 
@@ -1017,29 +972,16 @@
       const saveMistake = async (formData) => {
         if (!user || !FB) return showAlert('尚未連線至雲端資料庫，無法儲存。');
 
-        if (saveInProgress.current) return;
-        saveInProgress.current = true;
-        // FormView 切換頁面後會重建；先保留使用者本次輸入。
-        setAiAnalysis(previous => ({ ...previous, ...formData }));
+        setLoadingMsg('正在同步至雲端資料庫...');
+        setCurrentView('classify');
+
         try {
-          const sourceImage = editTargetId ? editedImage : (editedImage || croppedImage);
-          const budget = cloudImageBudget(formData);
-          if (typeof sourceImage === 'string' && new TextEncoder().encode(sourceImage).length > budget) {
-            const accepted = await new Promise(resolve => showConfirm(
-              '這張圖片超過雲端單筆容量。是否縮小圖片後儲存？縮小可能降低細字與列印畫質。若需保留原始畫質，請按取消。',
-              () => resolve(true), () => resolve(false)
-            ));
-            if (!accepted) return;
-          }
-          setLoadingMsg('正在處理圖片並同步至雲端資料庫...');
-          setCurrentView('classify');
-          const cloudImage = await fitCloudImage(sourceImage, budget);
           const finalPrintWidth = printWidth !== null ? printWidth : (aiAnalysis.printWidth || null);
           if (editTargetId) {
              // 更新現有資料
              await FB.updateDoc(FB.doc(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`, editTargetId), {
                ...formData,
-               image: cloudImage, // 儲存前已驗證大小
+               image: editedImage, // 儲存可能的二次編輯
                printWidth: finalPrintWidth,
                updated_at: Date.now()
              });
@@ -1051,7 +993,7 @@
              const colRef = FB.collection(FB.db, 'artifacts', FB.appId, 'public', 'data', `mistakes_${currentProfile}`);
              await FB.addDoc(colRef, {
                ...formData,
-               image: cloudImage,
+               image: editedImage || croppedImage,
                printWidth: finalPrintWidth,
                timestamp: Date.now()
              });
@@ -1063,8 +1005,6 @@
           setLoadingMsg('');
           showAlert('雲端儲存失敗：' + e.message);
           setCurrentView('form');
-        } finally {
-          saveInProgress.current = false;
         }
       };
 
