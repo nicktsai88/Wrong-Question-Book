@@ -915,18 +915,42 @@
       Object.entries(info.hasVolume ? info.volumes : { '': info.chapters }).flatMap(([volume, chapters]) =>
         chapters.map(sub_subject => ({ subject, volume: volume || null, sub_subject,
           sections: getSections(subject, volume || null, sub_subject) }))));
+    // 僅容許格式差異及唯一的完整名稱對應，不以模糊關鍵字猜測分類。
+    const curriculumKey = value => typeof value === 'string' ? value.normalize('NFKC').replace(/台/g, '臺').replace(/\s+/g, '').trim() : '';
+    const chapterTitle = value => (typeof value === 'string' ? value : '').split(/[（(]/)[0].trim();
+    const sectionTitle = value => (typeof value === 'string' ? value : '').replace(/^\s*(?:\d+\s*-\s*\d+|[\d一二三四五六七八九十]+[、.．])\s*/, '');
+    function resolveCurriculum(parsed) {
+      const subject = Object.keys(CURRICULUM_DB).find(s => curriculumKey(s) === curriculumKey(parsed.subject)) || '';
+      const digits = {'一':'1','二':'2','三':'3','四':'4','五':'5','六':'6'};
+      const volumeKey = curriculumKey(parsed.volume).replace(/[一二三四五六]/g, n => digits[n]);
+      const volume = /^第?[1-6]冊?$/.test(volumeKey) ? '第' + volumeKey.match(/[1-6]/)[0] + '冊' : volumeKey;
+      const suppliedChapter = curriculumKey(parsed.sub_subject);
+      let candidates = CURRICULUM_PATHS.filter(p => (!subject || p.subject === subject) &&
+        (!volume || p.volume === volume) && suppliedChapter &&
+        (curriculumKey(p.sub_subject) === suppliedChapter || curriculumKey(chapterTitle(p.sub_subject)) === suppliedChapter));
+      // 冊別缺漏時可由唯一章名還原；錯誤冊別或矛盾科目不自動覆蓋。
+      const path = candidates.length === 1 ? candidates[0] : null;
+      let section = '';
+      if (path && typeof parsed.section === 'string' && parsed.section.trim()) {
+        const legacy = CURRICULUM_DB[path.subject].legacySectionAliases?.[path.sub_subject]?.[parsed.section] || parsed.section;
+        const matches = path.sections.filter(v => curriculumKey(v) === curriculumKey(legacy) || curriculumKey(sectionTitle(v)) === curriculumKey(legacy));
+        if (matches.length === 1) section = matches[0];
+      }
+      return { path, section, subject, volume: CURRICULUM_DB[subject]?.volumes?.[volume] ? volume : null };
+    }
     function validateAnalysis(parsed) {
       if (!parsed || typeof parsed !== 'object' || typeof parsed.ai_tutor !== 'string' || !parsed.ai_tutor.trim())
         throw new Error('AI 未提供有效解析，請重新分析。');
-      const path = CURRICULUM_PATHS.find(p => p.subject === parsed.subject && p.volume === (parsed.volume || null) && p.sub_subject === parsed.sub_subject);
-      const validSection = path && (path.sections.length ? path.sections.includes(parsed.section) : !parsed.section);
+      const resolved = resolveCurriculum(parsed);
+      const { path, section } = resolved;
+      const validSection = path && (path.sections.length ? !!section : !parsed.section);
       const review = parsed.needs_review !== false || !path || !validSection;
-      return { subject: path?.subject || '', volume: path?.volume || null,
-        sub_subject: path?.sub_subject || '', section: validSection ? (parsed.section || '') : '',
+      return { subject: path?.subject || resolved.subject, volume: path?.volume || resolved.volume,
+        sub_subject: path?.sub_subject || '', section: validSection ? section : '',
         concept: typeof parsed.concept === 'string' ? parsed.concept : '',
         ai_tutor: parsed.ai_tutor, needs_review: review,
         review_reason: [typeof parsed.review_reason === 'string' ? parsed.review_reason : '',
-          !path ? '分類未符合課綱，請手動確認。' : !validSection ? '小節尚未確認，請手動選擇。' : ''].filter(Boolean).join(' '),
+          !path ? '章節尚未對應內建目錄，已保留可確認的科目與冊別，請確認章節。' : !validSection ? '小節尚未確認，請手動選擇。' : ''].filter(Boolean).join(' '),
         question_text: typeof parsed.question_text === 'string' ? parsed.question_text : '',
         classification_reason: typeof parsed.classification_reason === 'string' ? parsed.classification_reason : '' };
     }
@@ -1412,6 +1436,9 @@
 1. 先逐字辨識題幹、所有選項、圖表標示、單位、負號、指數、注音與聲調，放入 question_text。看不清的部分標示 [無法辨識]，不可補造條件；不要把手寫作答當成標準答案。
 2. 依題意獨立解題，再用代回、估算、單位、幾何條件或文本證據核對答案。注意「不正確／何者非」、範圍與選項對應；禁止只依選項猜答案。無法辨識關鍵資訊、題目矛盾或多題未明確指定時，needs_review=true，說明需要補拍哪一部分，不可硬給唯一答案。
 3. 依真正需要的核心知識分類到 subject → volume → sub_subject → section。欄位必須逐字選自同一課綱路徑；sub_subject 保留完整括號內容。section 必須是該路徑 sections 中的一項。無小節的章節填空字串，不可自創。跨單元題以主要解題考點為主，其他考點放 concept；不得僅因圖中有幾何形狀就排除代數，也不得僅因有數字就歸數列。classification_reason 簡述題目證據與分類依據。無法可靠分類時相關欄位留空並標示待確認，勿預設國文或第一章。
+   歷史／地理／公民須依「題目問什麼」判別，不可因為出現國家、地名、戰爭、石油或經濟圖表就只按關鍵字選科目。歷史著重特定時代事件、政策、因果與變遷；地理著重空間分布、區域特徵、環境與產業區位；公民著重制度、權利義務與一般經濟原理。先辨識時間、地點與提問焦點，再在既有目錄中選最直接的小節。目錄是上位分類，不需要章名含有事件專名才可歸類；不要自創「石油危機」等不存在的章節。
+   分類參考：若題目以美麗島事件及黨外運動後續發展為考點，對應歷史／第2冊／第4章 戰後臺灣的政治／4-3 政治民主化的歷程；若以1970年代臺灣經濟變動、石油危機與政府經濟建設為背景，問該次經濟波動的歷史原因，優先對應歷史／第2冊／第6章 戰後臺灣的經濟與社會／6-1 經濟的發展。若問的是西亞石油資源分布、產業或區域特徵，才依實際題意選地理目錄。這些只是判別範例，不可套用範例答案；sub_subject 仍回傳課綱內完整章名字串。
+   可以確定科目但無法確定小節時，保留已確定的科目與章節，只將不確定欄位留空並標示 needs_review，不要連科目一起清空。一張圖片含多個獨立題目時，請要求分題裁切，不要把不同題目的考點合併為單一分類。
    英文分類務必精確到本目錄的小節。先依題目要求的文法功能及完整句型判断，不可只看單一字詞。主動的情狀助動詞與含情狀助動詞的被動句、一般形容詞與情緒分詞、疑問詞與關係詞，須依實際考點區分。小節名稱相近時參照所屬章節；目錄的「疑問句的被動語態」與「問句的被動語態」僅凭目錄無法確定出版社的細分定義，不可自行捏造差異，無法分辨就留空 section 並標示待確認。附錄三態表只用於考查不規則動詞形態的題目，時態或被動語態運用題仍歸相關章節。
    英文新增「字彙」與「閱讀」類別，與既有文法章節並列，請依每一題的主要評量能力分類，而非看題目出現的位置或文章主題：
    - 字彙：判斷單字、片語、慣用語、搭配或語境中的字義；即使題目附有長文，只要主要問字義或選詞，仍歸字彙。若是依上下文推測單字意思，歸「1、字義與語境判斷」。
