@@ -3116,15 +3116,8 @@
       const handleSubjectChange = (sub) => { setFilterSubject(sub); setFilterVolume('All'); setFilterSubSubject('All'); setFilterSection('All'); };
       const handleVolumeChange = (vol) => { setFilterVolume(vol); setFilterSubSubject('All'); setFilterSection('All'); };
 
-      // 每科分別依建立日期編號，以完整科名作為前綴，避免跨科題號重複。
-      // 在篩選前建立題號，搜尋、篩選及列印均使用同一份對照。
-      const subjectCounts = new Map();
-      const mistakeNumbers = new Map(mistakes.map(item => {
-          const subject = item.subject || '未分類';
-          const number = (subjectCounts.get(subject) || 0) + 1;
-          subjectCounts.set(subject, number);
-          return [item.id, subject + '-' + String(number).padStart(3, '0')];
-      }));
+      // 篩選前建立整本錯題的題號，搜尋或只列印部分題目時仍保留原題號。
+      const mistakeNumbers = new Map(mistakes.map((item, index) => [item.id, index + 1]));
       let filteredData = mistakes;
       if (filterSubject !== 'All') filteredData = filteredData.filter(m => m.subject === filterSubject);
       if (filterVolume !== 'All') filteredData = filteredData.filter(m => m.volume === filterVolume);
@@ -3148,13 +3141,9 @@
 
       if (searchQuery.trim()) {
          const q = searchQuery.toLowerCase().trim();
-         // 完整題號採精確比對，輸入「國文-001」不會誤中「國文-0010」。
-         const isQuestionNumber = /^.+-\d+$/.test(q);
          filteredData = filteredData.filter(m => {
-            const questionNumber = mistakeNumbers.get(m.id).toLowerCase();
-            if (isQuestionNumber) return questionNumber === q;
             const hasTag = m.tags && m.tags.some(tag => tag.toLowerCase().includes(q));
-            return questionNumber.includes(q) || hasTag ||
+            return hasTag ||
             (m.section && m.section.toLowerCase().includes(q)) ||
             (m.concept && m.concept.toLowerCase().includes(q)) || 
             (m.ai_tutor && m.ai_tutor.toLowerCase().includes(q)) ||
@@ -3257,7 +3246,7 @@
                 <div className="w-[98%] max-w-[1400px] mx-auto relative mt-4">
                    <div className="absolute left-4 top-3.5 text-gray-400"><Icons.Search /></div>
                    <input 
-                      type="text" placeholder="搜尋題號（如國文-001）、標籤、核心知識或單元..." 
+                      type="text" placeholder="搜尋標籤、核心知識、單元或筆記關鍵字..." 
                       className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f59e0b] outline-none transition-shadow text-lg font-bold"
                       value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                    />
@@ -3428,8 +3417,8 @@
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-1">
                           
                           <div className="flex items-start gap-3 sm:gap-4 w-full">
-                              <div className="text-base sm:text-lg print:text-sm font-black text-[#f59e0b] print:text-black leading-tight pt-1 print:pt-0 whitespace-nowrap flex-shrink-0">
-                                {mistakeNumbers.get(item.id)}
+                              <div className="text-4xl print:text-xl font-black text-[#f59e0b] print:text-black leading-none pt-1 print:pt-0">
+                                {String(mistakeNumbers.get(item.id)).padStart(2, '0')}
                               </div>
                               
                               <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
@@ -3524,7 +3513,7 @@
                   )}
                   
                   <div className="no-print text-center py-8 text-base text-gray-400 font-bold">
-                    💡 各科獨立編號（如國文-001、數學-001）；搜尋、篩選及列印保留完整題號。<br/>列表最新在上；列印最舊在前，同科題號由小到大。<br/>列印時會自動隱藏解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」→「列印」功能。
+                    💡 列表最新在上；列印依題號由小到大（最舊在前），並保留篩選前的題號。<br/>列印時會自動隱藏解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」→「列印」功能。
                   </div>
                 </div>
              )}
