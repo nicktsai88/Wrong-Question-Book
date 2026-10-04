@@ -1777,6 +1777,15 @@
         onLogin(inputKey.trim(), cleanProfile);
       };
 
+      const removeProfile = (profile, e) => {
+        e.stopPropagation();
+        showConfirm(`真的確定要從此裝置移除「${profile}」的快速登入嗎？\n\n(移除後只要重新輸入原名稱登入，雲端資料仍會保留)`, () => {
+            const newProfiles = profiles.filter(p => p !== profile);
+            localStorage.setItem('poppinsProfiles', JSON.stringify(newProfiles));
+            setProfiles(newProfiles);
+        });
+      };
+
       const handleResetDb = () => {
           showConfirm('確定要清除雲端資料庫設定嗎？\n\n這不會刪除雲端資料，但需重新輸入金鑰才能連線。', () => {
               onResetFb();
@@ -1819,6 +1828,9 @@
                              {p.substring(0, 1)}
                            </div>
                            <span className="text-base font-bold text-gray-600 truncate w-full text-center px-1">{p}</span>
+                         </button>
+                         <button onClick={(e) => removeProfile(p, e)} className="absolute top-0 right-0 bg-white rounded-full text-gray-400 hover:text-white hover:bg-red-500 shadow-md border border-gray-200 md:hidden group-hover:flex transition-all p-1.5 z-10">
+                           <Icons.Close />
                          </button>
                        </div>
                     ))}
