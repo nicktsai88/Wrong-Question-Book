@@ -24,14 +24,6 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
-    /* 題目在文件中依編號遞增排列；螢幕反向顯示，列印維持正常分頁。 */
-    @media screen {
-      .mistake-cards { display: flex; flex-direction: column-reverse; gap: 2rem; }
-    }
-    @media print {
-      .mistake-cards { display: block; }
-    }
-
     /* 解決 iPadOS/iOS 切換內容時，文字自動縮放與捲軸出現/消失造成的版面跳動 */
     html {
       -webkit-text-size-adjust: 100%;
@@ -3054,26 +3046,17 @@
             setReadError('');
             const data = snapshot.docs.map(doc => normalizeCurriculumItem({ id: doc.id, ...doc.data() }));
             
-            // 先依建檔日期由舊到新排列；同日依建立時間，再依 ID 穩定排序。
-            // 缺少建檔日期的舊資料沿用時間戳記；兩者皆無則排在最前。
-            const getCreatedTimestamp = (item) => {
+            // 依實際建立時間由新到舊排序；舊資料缺少時間戳記時才使用建檔日期。
+            const getCreatedTime = (item) => {
                 const timestamp = Number(item.timestamp);
-                return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : 0;
-            };
-            const getCreatedDay = (item) => {
-                if (item.created_date && /^\d{4}-\d{2}-\d{2}$/.test(item.created_date)) return item.created_date;
-                const timestamp = getCreatedTimestamp(item);
-                return timestamp ? getDateStr(timestamp) : '';
+                if (Number.isFinite(timestamp) && timestamp > 0) return timestamp;
+                const date = item.created_date ? new Date(item.created_date).getTime() : 0;
+                return Number.isFinite(date) ? date : 0;
             };
             data.sort((a, b) => {
-                const dayA = getCreatedDay(a);
-                const dayB = getCreatedDay(b);
-                if (dayA !== dayB) return dayA < dayB ? -1 : 1;
-                const timeDifference = getCreatedTimestamp(a) - getCreatedTimestamp(b);
-                if (timeDifference) return timeDifference;
-                return String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0;
+                return getCreatedTime(b) - getCreatedTime(a);
             });
-
+            
             setMistakes(data);
             setIsFetching(false);
         }, (error) => {
@@ -3116,8 +3099,6 @@
       const handleSubjectChange = (sub) => { setFilterSubject(sub); setFilterVolume('All'); setFilterSubSubject('All'); setFilterSection('All'); };
       const handleVolumeChange = (vol) => { setFilterVolume(vol); setFilterSubSubject('All'); setFilterSection('All'); };
 
-      // 篩選前建立整本錯題的題號，搜尋或只列印部分題目時仍保留原題號。
-      const mistakeNumbers = new Map(mistakes.map((item, index) => [item.id, index + 1]));
       let filteredData = mistakes;
       if (filterSubject !== 'All') filteredData = filteredData.filter(m => m.subject === filterSubject);
       if (filterVolume !== 'All') filteredData = filteredData.filter(m => m.volume === filterVolume);
@@ -3411,14 +3392,13 @@
                         <p className="mt-5 text-2xl font-bold">🔍 {emptyMessage}</p>
                      </div>
                   ) : (
-                    <div className="mistake-cards">
-                    {filteredData.map(item => (
+                    filteredData.map((item, index) => (
                       <div key={item.id} className={`bg-white p-7 print-card rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-black break-inside-avoid print:bg-white ${item.subject === '數學' ? 'print-math-card' : ''} ${item.mastery === 'mastered' ? 'print:hidden' : ''}`}>
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 print:mb-1">
                           
                           <div className="flex items-start gap-3 sm:gap-4 w-full">
                               <div className="text-4xl print:text-xl font-black text-[#f59e0b] print:text-black leading-none pt-1 print:pt-0">
-                                {String(mistakeNumbers.get(item.id)).padStart(2, '0')}
+                                {String(index + 1).padStart(2, '0')}
                               </div>
                               
                               <div className="flex flex-wrap gap-3 print:gap-1.5 items-center w-full">
@@ -3508,12 +3488,11 @@
                           </div>
                         )}
                       </div>
-                    ))}
-                    </div>
+                    ))
                   )}
                   
                   <div className="no-print text-center py-8 text-base text-gray-400 font-bold">
-                    💡 列表最新在上；列印依題號由小到大（最舊在前），並保留篩選前的題號。<br/>列印時會自動隱藏解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」→「列印」功能。
+                    💡 列印時會自動隱藏解析與筆記，產生極簡版錯題卷。<br/>若點擊「輸出 PDF」無反應，請使用瀏覽器右上角的「分享」→「列印」功能。
                   </div>
                 </div>
              )}
