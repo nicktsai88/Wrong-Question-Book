@@ -1340,44 +1340,81 @@
       const [aiAnalysis, setAiAnalysis] = useState({ subject: '', volume: null, sub_subject: '', concept: '', ai_tutor: '', tags: [], created_date: getTodayStr() });
       const [loadingMsg, setLoadingMsg] = useState('');
 
-      // --- 載入 Firebase 環境 ---
+      // --- 載入 Firebase 環境：行動裝置相容、有限等待與清理 ---
+      const [connectionStage, setConnectionStage] = useState('準備連線');
       useEffect(() => {
-        if (!fbConfig) return; 
-
+        if (!fbConfig) return;
+        let active = true;
+        let unsubscribe = null;
+        let stage = '載入雲端連線元件';
         setIsDbLoading(true);
         setDbError('');
-
+        setUser(null);
+        setFB(null);
+        setConnectionStage(stage);
+        const fail = (error) => {
+          if (!active) return;
+          active = false;
+          clearTimeout(timeout);
+          if (unsubscribe) unsubscribe();
+          setDbError(stage + '失敗：' + (error.code ? '[' + error.code + '] ' : '') + error.message);
+          setIsDbLoading(false);
+        };
+        // 涵蓋模組下載、登入儲存初始化和匿名登入，避免任何一步永久等待。
+        const timeout = setTimeout(() => fail(new Error('等待超過 30 秒。請確認網路後按「重新連線」；若仍失敗，請將這段訊息提供給協助者。')), 30000);
+        const nextStage = (message) => {
+          stage = message;
+          setConnectionStage(message);
+        };
         const loadFirebase = async () => {
           try {
-            const fbApp = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js")')();
-            const fbAuth = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")')();
-            const fbDb = await new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")')();
-            
-            const app = fbApp.initializeApp(fbConfig);
-            const auth = fbAuth.getAuth(app);
+            const [fbApp, fbAuth, fbDb] = await Promise.all([
+              new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js")')(),
+              new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")')(),
+              new Function('return import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")')()
+            ]);
+            if (!active) return;
+            nextStage('初始化登入環境');
+            const existingApp = fbApp.getApps().find(candidate => candidate.options.projectId === fbConfig.projectId && candidate.options.apiKey === fbConfig.apiKey && candidate.options.appId === fbConfig.appId);
+            const app = existingApp || (fbApp.getApps().length ? fbApp.initializeApp(fbConfig, 'notebook-' + Date.now()) : fbApp.initializeApp(fbConfig));
+            const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            // iPad（含桌面版網站模式）避免 Auth 的 IndexedDB 與預載登入 iframe。
+            // 本站只用匿名登入，無需 popupRedirectResolver。
+            let auth;
+            try {
+              auth = isAppleMobile
+              ? fbAuth.initializeAuth(app, { persistence: [fbAuth.browserLocalPersistence, fbAuth.inMemoryPersistence] })
+              : fbAuth.getAuth(app);
+            } catch (error) {
+              if (error.code !== 'auth/already-initialized') throw error;
+              auth = fbAuth.getAuth(app);
+            }
+            await auth.authStateReady();
+            if (!active) return;
+            nextStage('驗證雲端登入');
+            const currentUser = auth.currentUser || (await fbAuth.signInAnonymously(auth)).user;
+            if (!active) return;
             const db = fbDb.getFirestore(app);
             const appId = fbConfig.projectId || '2027-exam-app';
-
             setFB({ ...fbApp, ...fbAuth, ...fbDb, db, auth, appId });
-
-            try {
-               await fbAuth.signInAnonymously(auth);
-            } catch (e) {
-               setDbError("雲端認證失敗：" + e.message);
-               setIsDbLoading(false);
-            }
-
-            fbAuth.onAuthStateChanged(auth, (currentUser) => {
-              setUser(currentUser);
-              setIsDbLoading(false);
-            });
-
-          } catch (e) {
-            setDbError("加載 Firebase 模組失敗：" + e.message);
+            setUser(currentUser);
+            clearTimeout(timeout);
             setIsDbLoading(false);
+            unsubscribe = fbAuth.onAuthStateChanged(auth, (nextUser) => {
+              if (!active) return;
+              setUser(nextUser);
+              if (!nextUser) fail(new Error('登入已中斷，請重新連線。'));
+            }, fail);
+          } catch (error) {
+            fail(error);
           }
         };
         loadFirebase();
+        return () => {
+          active = false;
+          clearTimeout(timeout);
+          if (unsubscribe) unsubscribe();
+        };
       }, [fbConfig]);
 
       useEffect(() => {
@@ -1629,13 +1666,16 @@
       };
 
       if (!fbConfig) return <FbSetupView onSave={handleFbConfigSave} />;
-      if (isDbLoading) return <LoadingView message="正在連線至雲端資料庫..." />;
+      if (isDbLoading) return <LoadingView message={connectionStage + "…"} />;
       if (dbError) {
         return (
             <div className="min-h-screen font-sans text-gray-800 bg-[#fffbeb] flex items-center justify-center p-6">
                <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg text-center border-t-4 border-red-500">
                    <h2 className="text-2xl font-bold text-red-600 mb-4">資料庫連線失敗</h2>
                    <p className="text-gray-600 mb-6">{dbError}</p>
+                   <button onClick={() => window.location.reload()} className="px-6 py-3 bg-[#b45309] text-white rounded-lg font-bold mb-4 mx-2">
+                      重新連線
+                   </button>
                    <button onClick={() => setFbConfig(null)} className="px-6 py-2 bg-gray-200 rounded-lg text-gray-700 font-bold hover:bg-gray-300">
                       重新設定 Firebase
                    </button>
